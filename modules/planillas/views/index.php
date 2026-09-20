@@ -3,6 +3,7 @@ $periodos = [];
 for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
+<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:1100px;">
 
@@ -14,9 +15,6 @@ $fmt = fn($v) => number_format((float)$v, 2);
                 <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
             </div>
         </div>
-        <a href="/empresas/<?= $empresa['id'] ?>" style="background:#f1f5f9;color:#475569;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            ← Empresa
-        </a>
     </div>
 
     <?php if (!empty($_SESSION['planilla_error'])): ?>
@@ -25,7 +23,11 @@ $fmt = fn($v) => number_format((float)$v, 2);
     </div>
     <?php unset($_SESSION['planilla_error']); endif; ?>
 
-    <?php if (isset($_GET['ok'])): ?>
+    <?php if (!empty($_SESSION['planilla_ok'])): ?>
+    <div style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
+        ✓ <?= htmlspecialchars($_SESSION['planilla_ok']) ?>
+    </div>
+    <?php unset($_SESSION['planilla_ok']); elseif (isset($_GET['ok'])): ?>
     <div style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
         ✓ Trabajador agregado.
     </div>
@@ -95,6 +97,27 @@ $fmt = fn($v) => number_format((float)$v, 2);
         <div style="font-size:11px;color:#94a3b8;margin-top:8px;">
             ESSALUD se sugiere automático al 9% del sueldo (editable). La retención de ONP/AFP se ingresa manual — cada AFP tiene comisión distinta.
         </div>
+    </div>
+
+    <!-- Importación masiva por CSV -->
+    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:18px 20px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px;">📥 Importar varios trabajadores a la vez (CSV)</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:12px;">
+            No es un lector del archivo oficial de PLAME/T-Registro (ese formato no se pudo verificar con confianza) —
+            es una plantilla propia: descárgala, llénala con los datos que ya tengas calculados en tu planillero, y súbela aquí.
+        </div>
+        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/planillas/importar" enctype="multipart/form-data" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <input type="hidden" name="periodo" value="<?= $periodo ?>">
+            <a href="/empresas/<?= $empresa['id'] ?>/planillas/plantilla"
+               style="background:#f1f5f9;color:#475569;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+                ⬇ Descargar plantilla CSV
+            </a>
+            <input type="file" name="archivo" accept=".csv" required
+                   style="font-size:13px;">
+            <button type="submit" style="background:#1e3a8a;color:white;border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+                📥 Importar a <?= date('M Y', strtotime(substr($periodo,0,4).'-'.substr($periodo,4,2).'-01')) ?>
+            </button>
+        </form>
     </div>
 
     <?php if (!empty($registros)): ?>

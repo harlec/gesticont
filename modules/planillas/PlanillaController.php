@@ -71,6 +71,102 @@ class PlanillaController
         header("Location: /empresas/{$empresaId}/planillas?periodo={$periodo}&ok=1"); exit;
     }
 
+    /**
+     * Plantilla CSV descargable — no es un parser del archivo real de
+     * PLAME/T-Registro (no se pudo verificar ese formato con confianza,
+     * ver conversación), es una plantilla propia para carga masiva segura.
+     */
+    public function plantillaCsv(int $empresaId): void
+    {
+        // Mismo motivo que en clasificarLote(): con APP_DEBUG=true, cualquier
+        // warning/notice se imprimiría antes del CSV y lo corrompería.
+        ob_start();
+        Auth::require();
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) { ob_end_clean(); http_response_code(403); die('Sin acceso'); }
+
+        ob_end_clean();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="plantilla_planillas.csv"');
+        echo "trabajador,sueldo,gratificacion,asignacion_familiar,essalud,regimen_pension,retencion_pension\n";
+        echo "Juan Perez Garcia,1500.00,0.00,0.00,135.00,ONP,195.00\n";
+        echo "Maria Lopez Diaz,2000.00,0.00,102.50,189.23,AFP,260.00\n";
+    }
+
+    public function importarCsv(int $empresaId): void
+    {
+        Auth::require();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /empresas/{$empresaId}/planillas"); exit;
+        }
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) { http_response_code(403); die('Sin acceso'); }
+
+        $periodo = $_POST['periodo'] ?? date('Ym');
+
+        if (empty($_FILES['archivo']['tmp_name']) || $_FILES['archivo']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['planilla_error'] = 'No se pudo leer el archivo subido.';
+            header("Location: /empresas/{$empresaId}/planillas?periodo={$periodo}"); exit;
+        }
+
+        $handle = fopen($_FILES['archivo']['tmp_name'], 'r');
+        if (!$handle) {
+            $_SESSION['planilla_error'] = 'No se pudo abrir el archivo.';
+            header("Location: /empresas/{$empresaId}/planillas?periodo={$periodo}"); exit;
+        }
+
+        $regimenMap = ['onp' => 'onp', 'afp' => 'afp', 'ninguno' => 'ninguno', '' => 'ninguno'];
+        $fila = 0; $insertados = 0; $errores = [];
+        $pdo = Model::db();
+
+        Model::beginTransaction();
+        try {
+            while (($datos = fgetcsv($handle)) !== false) {
+                $fila++;
+                if ($fila === 1) continue; // encabezado
+                if (count(array_filter($datos, fn($v) => trim((string)$v) !== '')) === 0) continue; // línea vacía
+
+                if (count($datos) < 7) { $errores[] = "Fila {$fila}: faltan columnas."; continue; }
+                [$trabajador, $sueldo, $gratif, $asigFam, $essalud, $regimenTxt, $retencion] = array_map('trim', $datos);
+
+                if ($trabajador === '') { $errores[] = "Fila {$fila}: falta el nombre del trabajador."; continue; }
+                $regimen = $regimenMap[strtolower($regimenTxt)] ?? null;
+                if ($regimen === null) { $errores[] = "Fila {$fila}: régimen '{$regimenTxt}' inválido (usar ONP, AFP o Ninguno)."; continue; }
+                if (!is_numeric($sueldo) || !is_numeric($gratif) || !is_numeric($asigFam) || !is_numeric($essalud) || !is_numeric($retencion)) {
+                    $errores[] = "Fila {$fila}: algún monto no es numérico.";
+                    continue;
+                }
+
+                $pdo->prepare("
+                    INSERT INTO planillas
+                        (empresa_id, periodo, trabajador, sueldo, gratificacion, asignacion_familiar,
+                         essalud, regimen_pension, retencion_pension, origen, usuario_id)
+                    VALUES (?,?,?,?,?,?,?,?,?, 'manual', ?)
+                ")->execute([
+                    $empresaId, $periodo, $trabajador, (float)$sueldo, (float)$gratif, (float)$asigFam,
+                    (float)$essalud, $regimen, (float)$retencion, Auth::id(),
+                ]);
+                $insertados++;
+            }
+            Model::commit();
+        } catch (Exception $e) {
+            Model::rollback();
+            fclose($handle);
+            $_SESSION['planilla_error'] = 'Error al importar: ' . $e->getMessage();
+            header("Location: /empresas/{$empresaId}/planillas?periodo={$periodo}"); exit;
+        }
+        fclose($handle);
+
+        if ($insertados > 0) {
+            $_SESSION['planilla_ok'] = "{$insertados} trabajador(es) importado(s)." . (count($errores) ? ' ' . count($errores) . ' fila(s) con error, omitidas.' : '');
+        }
+        if (!empty($errores)) {
+            $_SESSION['planilla_error'] = implode(' | ', array_slice($errores, 0, 10)) . (count($errores) > 10 ? ' …' : '');
+        }
+
+        header("Location: /empresas/{$empresaId}/planillas?periodo={$periodo}"); exit;
+    }
+
     public function eliminar(int $empresaId, int $id): void
     {
         Auth::require();

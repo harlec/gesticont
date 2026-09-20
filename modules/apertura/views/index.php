@@ -1,8 +1,9 @@
 <?php
 $anios = range((int)date('Y'), (int)date('Y') - 4);
 ?>
+<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
-<div style="max-width:1000px;">
+<div style="max-width:1100px;">
 
     <!-- Encabezado -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
@@ -12,9 +13,6 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
                 <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
             </div>
         </div>
-        <a href="/empresas/<?= $empresa['id'] ?>" style="background:#f1f5f9;color:#475569;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            ← Empresa
-        </a>
     </div>
 
     <?php if (!empty($_SESSION['apertura_error'])): ?>

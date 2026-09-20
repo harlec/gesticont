@@ -5,6 +5,7 @@ $urlBase   = "/empresas/{$empresa['id']}/" . ($esVentas ? 'ventas' : 'compras');
 $urlOtro   = "/empresas/{$empresa['id']}/" . ($esVentas ? 'compras' : 'ventas');
 $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
 ?>
+<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:1100px;">
 
@@ -15,20 +16,6 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;">
                 <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
             </div>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <a href="<?= $urlOtro ?>"
-               style="background:#f1f5f9;color:#475569;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-                <?= $esVentas ? '🧾 Ver Compras' : '📄 Ver Ventas' ?>
-            </a>
-            <a href="/empresas/<?= $empresa['id'] ?>/sync"
-               style="background:#1e3a8a;color:white;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-                🔄 Sincronizar
-            </a>
-            <a href="/empresas/<?= $empresa['id'] ?>"
-               style="background:#f1f5f9;color:#475569;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-                ← Empresa
-            </a>
         </div>
     </div>
 

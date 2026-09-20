@@ -29,6 +29,7 @@ try {
 
 $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'Régimen Especial','rus'=>'Nuevo RUS'];
 ?>
+<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <?php if (isset($dbError)): ?>
 <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:20px;color:#991b1b;font-size:13px;">
@@ -47,71 +48,11 @@ $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'
             RUC: <?= htmlspecialchars($empresa['ruc']) ?> &middot; <?= $regimenes[$empresa['regimen']] ?? $empresa['regimen'] ?>
         </div>
     </div>
-    <!-- BOTONES -->
+    <!-- La navegación entre secciones ahora vive en la barra de pestañas de arriba — aquí solo la acción de editar los datos de la empresa. -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a href="/empresas/<?= $empresa['id'] ?>/editar"
            style="background:#f1f5f9;color:#475569;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
             ✏️ Editar
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/certificado"
-           style="background:#fef3c7;color:#92400e;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            🔑 SOL
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/ventas"
-           style="background:#dcfce7;color:#166534;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            📄 Ventas
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/compras"
-           style="background:#fef3c7;color:#92400e;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            🧾 Compras
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/sync"
-           style="background:#1e3a8a;color:white;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            🔄 Sincronizar
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/imputacion"
-           style="background:#ede9fe;color:#5b21b6;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            🏷️ Clasificar
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/diario"
-           style="background:#e0e7ff;color:#3730a3;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            📖 Diario
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/balance"
-           style="background:#fce7f3;color:#9d174d;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            ⚖️ Balance
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/resultados"
-           style="background:#dbeafe;color:#1e40af;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            📊 Resultados
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/balance-general"
-           style="background:#e0f2fe;color:#075985;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            🏛️ Balance General
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/apertura"
-           style="background:#f3f4f6;color:#374151;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            📋 Inventario Inicial
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/planillas"
-           style="background:#ecfccb;color:#3f6212;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            👥 Planillas
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/caja"
-           style="background:#fef9c3;color:#854d0e;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            💰 Caja
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/cambios-patrimonio"
-           style="background:#ede9fe;color:#5b21b6;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            📈 Cambios Patrimonio
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/flujo-efectivo"
-           style="background:#cffafe;color:#155e75;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            💵 Flujo Efectivo
-        </a>
-        <a href="/empresas/<?= $empresa['id'] ?>/cierre"
-           style="background:#fee2e2;color:#991b1b;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            🔒 Cierre
         </a>
     </div>
 </div>

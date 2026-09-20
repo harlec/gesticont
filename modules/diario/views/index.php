@@ -2,6 +2,7 @@
 $periodos = [];
 for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 ?>
+<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:1100px;">
 
@@ -13,9 +14,6 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
                 <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
             </div>
         </div>
-        <a href="/empresas/<?= $empresa['id'] ?>" style="background:#f1f5f9;color:#475569;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            ← Empresa
-        </a>
     </div>
 
     <?php foreach (['diario_error' => ['#fef2f2', '#991b1b', '⚠'], 'diario_aviso' => ['#fef3c7', '#92400e', 'ℹ'], 'diario_ok' => ['#f0fdf4', '#166534', '✓']] as $key => [$bg, $fg, $icon]):

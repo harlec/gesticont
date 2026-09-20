@@ -3,15 +3,15 @@ $periodos = [];
 for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
+<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
-<div style="max-width:700px;">
+<div style="max-width:750px;">
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
             <div style="font-size:20px;font-weight:700;color:#1e293b;">💵 Estado de Flujo de Efectivo</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:2px;"><?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?></div>
         </div>
-        <a href="/empresas/<?= $empresa['id'] ?>" style="background:#f1f5f9;color:#475569;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">← Empresa</a>
     </div>
 
     <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">

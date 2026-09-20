@@ -45,6 +45,9 @@ class App {
         $router->get('/empresas/{id}/resultados', 'balance/EstadoResultadosController@index');
         // Motor contable — Balance General
         $router->get('/empresas/{id}/balance-general', 'balance/BalanceGeneralController@index');
+        // Motor contable — Inventario Inicial (Saldos de Apertura)
+        $router->get('/empresas/{id}/apertura',          'apertura/AperturaController@index');
+        $router->post('/empresas/{id}/apertura/guardar', 'apertura/AperturaController@guardar');
         $router->get('/comprobantes',               'comprobantes/ComprobanteController@index');
         $router->get('/guias',                      'guias/GuiaController@index');
         $router->get('/declaraciones',              'declaraciones/DeclaracionController@index');

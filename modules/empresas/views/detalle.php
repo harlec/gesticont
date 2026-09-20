@@ -89,6 +89,10 @@ $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'
            style="background:#e0f2fe;color:#075985;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
             🏛️ Balance General
         </a>
+        <a href="/empresas/<?= $empresa['id'] ?>/apertura"
+           style="background:#f3f4f6;color:#374151;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+            📋 Inventario Inicial
+        </a>
     </div>
 </div>
 

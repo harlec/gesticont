@@ -1,4 +1,4 @@
-<div style="max-width:540px;">
+<div style="max-width:540px;margin:0 auto;">
 <?php if ($error): ?>
 <div style="background:var(--gc-neg-soft);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 18px;margin-bottom:20px;font-size:13px;color:var(--gc-neg);">
     <?= $error === 'email' ? '⚠ Ese correo ya está registrado.' : '⚠ Completa nombre y correo.' ?>

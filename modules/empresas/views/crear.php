@@ -1,4 +1,4 @@
-<div style="max-width:680px;">
+<div style="max-width:680px;margin:0 auto;">
 <form method="POST" action="/empresas/crear">
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);box-shadow:0 1px 4px rgba(0,0,0,0.06);overflow:hidden;">
         <div style="padding:20px 24px;border-bottom:1px solid var(--gc-line);background:var(--gc-bg);">

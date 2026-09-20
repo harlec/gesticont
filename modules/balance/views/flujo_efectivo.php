@@ -4,7 +4,7 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
 
-<div style="max-width:750px;">
+<div style="max-width:750px;margin:0 auto;">
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
@@ -24,12 +24,17 @@ $fmt = fn($v) => number_format((float)$v, 2);
 
     <?php if ($resultado): ?>
 
-    <?php if (abs($resultado['descuadre']) > 0.01): ?>
-    <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        ⚠ El Saldo Final calculado (S/ <?= $fmt($resultado['saldo_final_calculado']) ?>) no coincide con el saldo real de Caja y Bancos en el Balance (S/ <?= $fmt($resultado['saldo_real_caja']) ?>) —
-        diferencia S/ <?= $fmt($resultado['descuadre']) ?>. Regenera los asientos del <a href="/empresas/<?= $empresa['id'] ?>/diario" style="color:var(--gc-neg);text-decoration:underline;">Libro Diario</a> o revisa movimientos de Caja sin cuenta asignada.
-    </div>
-    <?php else: ?>
+    <?php if (abs($resultado['descuadre']) > 0.01):
+        $falertTipo = 'neg';
+        $falertId = 'falert-flujo-efectivo';
+        $falertResumen = 'Saldo Final no coincide con Caja — diferencia S/ ' . $fmt($resultado['descuadre']);
+        ob_start(); ?>
+        El Saldo Final calculado (S/ <?= $fmt($resultado['saldo_final_calculado']) ?>) no coincide con el saldo real de Caja y Bancos en el Balance (S/ <?= $fmt($resultado['saldo_real_caja']) ?>).
+        Regenera los asientos del <a href="/empresas/<?= $empresa['id'] ?>/diario" style="color:var(--gc-neg);text-decoration:underline;">Libro Diario</a> o revisa movimientos de Caja sin cuenta asignada.
+        <?php
+        $falertDetalleHtml = ob_get_clean();
+        require ROOT . '/views/layout/floating_alert.php';
+    else: ?>
     <div style="background:var(--gc-pos-soft-2);color:var(--gc-pos);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
         ✓ Saldo Final de Efectivo = saldo real de Caja y Bancos = S/ <?= $fmt($resultado['saldo_final_calculado']) ?>
     </div>

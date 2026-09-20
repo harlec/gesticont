@@ -74,6 +74,15 @@ $navCoincide = function (string $href) use ($navPath, $todosLosHrefs): bool {
 };
 
 $user = \Auth::user() ?? ['nombre' => '', 'rol' => ''];
+
+// Sección actual, para mostrarla junto a la empresa en la barra de
+// identidad — libera el espacio que antes ocupaba el bloque de breadcrumb
+// + título repetido en base.php (ver ahí: solo se muestra para pantallas
+// fuera de una empresa, donde no hay otro lugar que lo indique).
+$seccionActual = null;
+if ($dentroDeEmpresa && isset($pageTitle)) {
+    $seccionActual = strpos($pageTitle, ' — ') !== false ? explode(' — ', $pageTitle)[0] : 'Resumen';
+}
 ?>
 <div style="position:sticky;top:0;z-index:40;width:100%;">
     <!-- Barra de identidad — dos bloques atómicos (izquierda/derecha) que
@@ -93,6 +102,10 @@ $user = \Auth::user() ?? ['nombre' => '', 'rol' => ''];
                 <span style="font-size:12.5px;font-weight:700;color:var(--gc-on-brand);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($empresa['razon_social']) ?></span>
                 <span style="font-size:9.5px;color:rgba(255,255,255,0.65);font-family:monospace;white-space:nowrap;">RUC <?= htmlspecialchars($empresa['ruc']) ?></span>
             </a>
+            <?php endif; ?>
+            <?php if ($seccionActual): ?>
+            <div class="gc-hide-narrow" style="width:1px;height:22px;background:rgba(255,255,255,0.18);flex-shrink:0;"></div>
+            <span class="gc-hide-narrow" style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($seccionActual) ?></span>
             <?php endif; ?>
         </div>
         <div style="display:flex;align-items:center;gap:14px;flex-shrink:0;">

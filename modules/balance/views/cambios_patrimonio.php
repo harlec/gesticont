@@ -4,7 +4,7 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
 
-<div style="max-width:950px;">
+<div style="max-width:1200px;margin:0 auto;">
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>

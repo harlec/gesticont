@@ -1,7 +1,7 @@
 <?php
 $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'Régimen Especial','rus'=>'Nuevo RUS'];
 ?>
-<div style="max-width:700px;">
+<div style="max-width:700px;margin:0 auto;">
 
     <?php if ($cert): ?>
     <div style="background:var(--gc-pos-soft);border:1px solid var(--gc-pos-border);border-radius:12px;padding:14px 20px;margin-bottom:20px;font-size:13px;color:var(--gc-pos);">

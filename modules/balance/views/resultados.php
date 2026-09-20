@@ -13,7 +13,7 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
 };
 ?>
 
-<div style="max-width:750px;">
+<div style="max-width:750px;margin:0 auto;">
 
     <!-- Encabezado -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">

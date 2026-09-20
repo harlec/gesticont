@@ -4,7 +4,7 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
 
-<div style="max-width:1000px;">
+<div style="max-width:1600px;margin:0 auto;">
 
     <!-- Encabezado -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
@@ -44,12 +44,12 @@ $fmt = fn($v) => number_format((float)$v, 2);
         $descuadreEsperado = round($resultado['impuesto_renta_pendiente'] - $resultado['pendiente_inventariable'], 2);
         $diferenciaSinExplicar = round($resultado['descuadre'] - $descuadreEsperado, 2);
     ?>
-    <?php if (abs($resultado['descuadre']) > 0.01): ?>
-    <div style="background:<?= abs($diferenciaSinExplicar) > 0.01 ? 'var(--gc-neg-soft)' : 'var(--gc-warn-soft)' ?>;color:<?= abs($diferenciaSinExplicar) > 0.01 ? 'var(--gc-neg)' : 'var(--gc-warn)' ?>;border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;">
-        <div style="font-weight:700;margin-bottom:6px;">⚠ Activo ≠ Pasivo + Patrimonio — diferencia S/ <?= $fmt($resultado['descuadre']) ?></div>
-        <div style="margin-bottom:6px;">
-            Explicado por dos cosas que todavía faltan construir, no por un error de datos:
-        </div>
+    <?php if (abs($resultado['descuadre']) > 0.01):
+        $falertTipo = abs($diferenciaSinExplicar) > 0.01 ? 'neg' : 'warn';
+        $falertId = 'falert-balance-general';
+        $falertResumen = 'Activo ≠ Pasivo + Patrimonio — diferencia S/ ' . $fmt($resultado['descuadre']);
+        ob_start(); ?>
+        <div style="margin-bottom:6px;">Explicado por dos cosas que todavía faltan construir, no por un error de datos:</div>
         <ul style="margin:0 0 6px 18px;padding:0;">
             <li>Compras pendientes de reclasificar a existencias/costo de venta (sin Kardex todavía): <strong>S/ <?= $fmt($resultado['pendiente_inventariable']) ?></strong></li>
             <li>Impuesto a la Renta ya restado de la utilidad pero sin su asiento de provisión (falta el Cierre de Período, 2.16): <strong>S/ <?= $fmt($resultado['impuesto_renta_pendiente']) ?></strong></li>
@@ -63,8 +63,10 @@ $fmt = fn($v) => number_format((float)$v, 2);
             Coincide exactamente — no hay ningún error, solo falta construir esas dos piezas.
             <?php endif; ?>
         </div>
-    </div>
-    <?php else: ?>
+        <?php
+        $falertDetalleHtml = ob_get_clean();
+        require ROOT . '/views/layout/floating_alert.php';
+    else: ?>
     <div style="background:var(--gc-pos-soft-2);color:var(--gc-pos);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
         ✓ Activo = Pasivo + Patrimonio = S/ <?= $fmt($resultado['total_activo']) ?>
     </div>

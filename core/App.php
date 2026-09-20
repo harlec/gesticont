@@ -43,11 +43,26 @@ class App {
         $router->get('/empresas/{id}/balance', 'balance/BalanceController@comprobacion');
         // Motor contable — Estado de Resultados
         $router->get('/empresas/{id}/resultados', 'balance/EstadoResultadosController@index');
+        // Motor contable — Estado de Cambios en el Patrimonio
+        $router->get('/empresas/{id}/cambios-patrimonio', 'balance/CambiosPatrimonioController@index');
+        // Motor contable — Estado de Flujo de Efectivo
+        $router->get('/empresas/{id}/flujo-efectivo', 'balance/FlujoEfectivoController@index');
+        // Motor contable — Cierre de Período
+        $router->get('/empresas/{id}/cierre',        'cierre/CierreController@index');
+        $router->post('/empresas/{id}/cierre/cerrar','cierre/CierreController@cerrar');
         // Motor contable — Balance General
         $router->get('/empresas/{id}/balance-general', 'balance/BalanceGeneralController@index');
         // Motor contable — Inventario Inicial (Saldos de Apertura)
         $router->get('/empresas/{id}/apertura',          'apertura/AperturaController@index');
         $router->post('/empresas/{id}/apertura/guardar', 'apertura/AperturaController@guardar');
+        // Motor contable — Planillas
+        $router->get('/empresas/{id}/planillas',                 'planillas/PlanillaController@index');
+        $router->post('/empresas/{id}/planillas',                'planillas/PlanillaController@store');
+        $router->post('/empresas/{id}/planillas/{pid}/eliminar', 'planillas/PlanillaController@eliminar');
+        // Motor contable — Caja y Bancos
+        $router->get('/empresas/{id}/caja',              'caja/CajaMovimientoController@index');
+        $router->post('/empresas/{id}/caja',             'caja/CajaMovimientoController@store');
+        $router->post('/empresas/{id}/caja/{cid}/eliminar', 'caja/CajaMovimientoController@eliminar');
         $router->get('/comprobantes',               'comprobantes/ComprobanteController@index');
         $router->get('/guias',                      'guias/GuiaController@index');
         $router->get('/declaraciones',              'declaraciones/DeclaracionController@index');

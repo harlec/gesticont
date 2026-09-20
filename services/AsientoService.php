@@ -39,6 +39,15 @@ class AsientoService
             $asientoVentas = self::generarAsientoVentas($pdo, $empresaId, $periodoContableId, $periodo, $usuarioId);
             if ($asientoVentas) $resultado['asientos']['ventas'] = $asientoVentas;
 
+            $asientoPlanillas = self::generarAsientoPlanillas($pdo, $empresaId, $periodoContableId, $periodo, $usuarioId);
+            if ($asientoPlanillas) $resultado['asientos']['planillas'] = $asientoPlanillas;
+
+            $asientoCajaIngresos = self::generarAsientoCaja($pdo, $empresaId, $periodoContableId, $periodo, 'ingreso');
+            if ($asientoCajaIngresos) $resultado['asientos']['caja_ingresos'] = $asientoCajaIngresos;
+
+            $asientoCajaEgresos = self::generarAsientoCaja($pdo, $empresaId, $periodoContableId, $periodo, 'egreso');
+            if ($asientoCajaEgresos) $resultado['asientos']['caja_egresos'] = $asientoCajaEgresos;
+
             $asientoDestino = self::generarAsientoReclasificacion($pdo, $empresaId, $periodoContableId, $periodo, $usuarioId, $parametros);
             if ($asientoDestino) $resultado['asientos']['reclasificacion'] = $asientoDestino;
 
@@ -208,10 +217,99 @@ class AsientoService
     }
 
     /**
+     * Asiento de planillas (spec 2.7 "Por Planillas"). La spec original
+     * proponía cuentas que no existen en el PCGE 2019 (625 Gratificaciones,
+     * 6251, 6252) — se corrige con las oficiales vigentes: 621
+     * Remuneraciones (bruto) y 627 Seguridad, Previsión Social y Otras
+     * Contribuciones (ESSALUD, aporte del empleador). El neto a pagar, el
+     * ESSALUD por pagar y la retención de pensión (ONP o AFP según cada
+     * trabajador) quedan separados en el Haber porque son pasivos distintos.
+     */
+    private static function generarAsientoPlanillas(PDO $pdo, int $empresaId, int $periodoContableId, string $periodo, int $usuarioId): ?array
+    {
+        $stmt = $pdo->prepare("
+            SELECT
+                COALESCE(SUM(sueldo + gratificacion + asignacion_familiar), 0) AS bruto,
+                COALESCE(SUM(essalud), 0) AS essalud,
+                COALESCE(SUM(CASE WHEN regimen_pension = 'onp' THEN retencion_pension ELSE 0 END), 0) AS retencion_onp,
+                COALESCE(SUM(CASE WHEN regimen_pension = 'afp' THEN retencion_pension ELSE 0 END), 0) AS retencion_afp,
+                COALESCE(SUM(retencion_pension), 0) AS retencion_total,
+                COUNT(*) AS cant
+            FROM planillas
+            WHERE empresa_id = ? AND periodo = ?
+        ");
+        $stmt->execute([$empresaId, $periodo]);
+        $tot = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ((int)$tot['cant'] === 0) return null;
+
+        $bruto  = round((float)$tot['bruto'], 2);
+        $essalud = round((float)$tot['essalud'], 2);
+        $retOnp  = round((float)$tot['retencion_onp'], 2);
+        $retAfp  = round((float)$tot['retencion_afp'], 2);
+        $neto    = round($bruto - (float)$tot['retencion_total'], 2);
+
+        $glosa = "Centralización de Planillas {$periodo}";
+        self::borrarAsientoPrevio($pdo, $empresaId, $glosa);
+
+        $lineas = [
+            ['cuenta_id' => self::cuentaId($pdo, '621'), 'debe' => $bruto, 'haber' => 0],
+        ];
+        if ($essalud > 0) $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '627'), 'debe' => $essalud, 'haber' => 0];
+        $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '411'), 'debe' => 0, 'haber' => $neto];
+        if ($essalud > 0) $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '4031'), 'debe' => 0, 'haber' => $essalud];
+        if ($retOnp > 0)  $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '4032'), 'debe' => 0, 'haber' => $retOnp];
+        if ($retAfp > 0)  $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '417'),  'debe' => 0, 'haber' => $retAfp];
+
+        $fecha = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
+        return self::insertarAsiento($pdo, $empresaId, $periodoContableId, $fecha, $glosa, 'planilla', $lineas);
+    }
+
+    /**
+     * Asiento de Caja y Bancos (spec 2.7 "Por Caja"). Se usa siempre la
+     * cuenta 101 (Caja) como contrapartida — el módulo no distingue caja
+     * física de cuenta bancaria (no hay conciliación bancaria todavía), así
+     * que "Caja y Bancos" se trata como una sola bolsa por simplicidad.
+     * Ingresos y egresos se generan como dos asientos separados (igual que
+     * Compras/Ventas), no uno combinado, para mantener cada uno auditable
+     * por su propio origen.
+     */
+    private static function generarAsientoCaja(PDO $pdo, int $empresaId, int $periodoContableId, string $periodo, string $tipo): ?array
+    {
+        $stmt = $pdo->prepare("
+            SELECT cuenta_id, SUM(monto) AS monto
+            FROM caja_movimientos
+            WHERE empresa_id = ? AND tipo = ? AND DATE_FORMAT(fecha, '%Y%m') = ? AND cuenta_id IS NOT NULL
+            GROUP BY cuenta_id
+        ");
+        $stmt->execute([$empresaId, $tipo, $periodo]);
+        $porCuenta = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($porCuenta)) return null;
+
+        $total = round(array_sum(array_column($porCuenta, 'monto')), 2);
+        $etiqueta = $tipo === 'ingreso' ? 'Ingresos' : 'Egresos';
+        $glosa = "Centralización de Caja - {$etiqueta} {$periodo}";
+        self::borrarAsientoPrevio($pdo, $empresaId, $glosa);
+
+        $lineas = [];
+        if ($tipo === 'ingreso') {
+            $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '101'), 'debe' => $total, 'haber' => 0];
+            foreach ($porCuenta as $c) $lineas[] = ['cuenta_id' => (int)$c['cuenta_id'], 'debe' => 0, 'haber' => round((float)$c['monto'], 2)];
+        } else {
+            foreach ($porCuenta as $c) $lineas[] = ['cuenta_id' => (int)$c['cuenta_id'], 'debe' => round((float)$c['monto'], 2), 'haber' => 0];
+            $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '101'), 'debe' => 0, 'haber' => $total];
+        }
+
+        $fecha = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
+        return self::insertarAsiento($pdo, $empresaId, $periodoContableId, $fecha, $glosa, 'caja', $lineas);
+    }
+
+    /**
      * Reclasifica hacia 94/95 (Gastos de Administración / Gastos de Venta)
-     * solo las cuentas de Compras marcadas es_inventariable = 0 — la
-     * mercadería/materia prima (601/602/603/604) se queda en 60 hasta que
-     * exista el módulo de Kardex/Inventario Final (spec 2.6).
+     * las cuentas de Compras marcadas es_inventariable = 0 (la mercadería/
+     * materia prima 601/602/603/604 se queda en 60 hasta que exista el
+     * módulo de Kardex/Inventario Final, spec 2.6) más el gasto de personal
+     * de Planillas (621+627) — un trabajador también se reparte por destino
+     * igual que cualquier otro gasto operativo.
      */
     private static function generarAsientoReclasificacion(PDO $pdo, int $empresaId, int $periodoContableId, string $periodo, int $usuarioId, array $parametros): ?array
     {
@@ -224,7 +322,16 @@ class AsientoService
               AND c.tipo = 'gasto' AND c.es_inventariable = 0
         ");
         $stmt->execute([$empresaId, $periodo]);
-        $total = (float)$stmt->fetchColumn();
+        $totalCompras = (float)$stmt->fetchColumn();
+
+        $stmtPlanilla = $pdo->prepare("
+            SELECT COALESCE(SUM(sueldo + gratificacion + asignacion_familiar + essalud), 0)
+            FROM planillas WHERE empresa_id = ? AND periodo = ?
+        ");
+        $stmtPlanilla->execute([$empresaId, $periodo]);
+        $totalPlanilla = (float)$stmtPlanilla->fetchColumn();
+
+        $total = round($totalCompras + $totalPlanilla, 2);
         if ($total <= 0) return null;
 
         $pctAdmin  = (float)$parametros['pct_gastos_admin'];

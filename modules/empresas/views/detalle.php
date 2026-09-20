@@ -93,6 +93,26 @@ $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'
            style="background:#f3f4f6;color:#374151;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
             📋 Inventario Inicial
         </a>
+        <a href="/empresas/<?= $empresa['id'] ?>/planillas"
+           style="background:#ecfccb;color:#3f6212;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+            👥 Planillas
+        </a>
+        <a href="/empresas/<?= $empresa['id'] ?>/caja"
+           style="background:#fef9c3;color:#854d0e;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+            💰 Caja
+        </a>
+        <a href="/empresas/<?= $empresa['id'] ?>/cambios-patrimonio"
+           style="background:#ede9fe;color:#5b21b6;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+            📈 Cambios Patrimonio
+        </a>
+        <a href="/empresas/<?= $empresa['id'] ?>/flujo-efectivo"
+           style="background:#cffafe;color:#155e75;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+            💵 Flujo Efectivo
+        </a>
+        <a href="/empresas/<?= $empresa['id'] ?>/cierre"
+           style="background:#fee2e2;color:#991b1b;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+            🔒 Cierre
+        </a>
     </div>
 </div>
 

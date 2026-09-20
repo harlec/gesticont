@@ -52,12 +52,22 @@ class BalanceGeneralService
         $capitalSocial        = ($porCodigo['501']['pasivo'] ?? 0.0) - ($porCodigo['501']['activo'] ?? 0.0);
         $resultadosAcumulados = ($porCodigo['591']['pasivo'] ?? 0.0) - ($porCodigo['591']['activo'] ?? 0.0);
 
-        // El resultado del ejercicio EN CURSO todavía no está asentado en
-        // 5911/5912 (eso solo ocurre en el Cierre de Período, 2.16) — se
-        // toma directo del Estado de Resultados para que el Balance
-        // General de un período abierto muestre la utilidad corrida.
+        // El resultado del ejercicio tiene dos posibles fuentes, que se
+        // suman en vez de elegir una: si el período sigue abierto, 5911/5912
+        // están en cero (nadie los ha tocado todavía) y el monto sale del
+        // Estado de Resultados en curso; si el período YA se cerró (2.16),
+        // el Estado de Resultados da 0 (las cuentas 6/7/9 quedaron
+        // zonificadas por el asiento de cierre) y el monto real ya está
+        // posteado en 5911 (utilidad) o 5912 (pérdida). Sumar ambas fuentes
+        // cubre los dos casos sin necesidad de preguntar si está cerrado.
+        $resultado5911 = ($porCodigo['5911']['pasivo'] ?? 0.0) - ($porCodigo['5911']['activo'] ?? 0.0);
+        $resultado5912 = ($porCodigo['5912']['activo'] ?? 0.0) - ($porCodigo['5912']['pasivo'] ?? 0.0);
+        $resultadoYaCerrado = $resultado5911 - $resultado5912;
+
         $estadoResultados = EstadoResultadosService::generar($empresaId, $periodoContableId, $fechaCorte, $parametros);
-        $resultadoEjercicio = $estadoResultados['utilidad_ejercicio'];
+        $resultadoEnCurso = $estadoResultados['utilidad_ejercicio'];
+
+        $resultadoEjercicio = round($resultadoEnCurso + $resultadoYaCerrado, 2);
 
         $patrimonio = round($capitalSocial + $resultadosAcumulados + $resultadoEjercicio, 2);
         $totalPasivoPatrimonio = round($totalPasivo + $patrimonio, 2);

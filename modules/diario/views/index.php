@@ -5,16 +5,6 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 
 <div style="max-width:1100px;margin:0 auto;">
 
-    <!-- Encabezado -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-        <div>
-            <div style="font-size:20px;font-weight:700;color:var(--gc-ink);">📖 Libro Diario</div>
-            <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;">
-                <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
-            </div>
-        </div>
-    </div>
-
     <?php foreach (['diario_error' => ['var(--gc-neg-soft)', 'var(--gc-neg)', '⚠'], 'diario_aviso' => ['var(--gc-warn-soft)', 'var(--gc-warn)', 'ℹ'], 'diario_ok' => ['var(--gc-pos-soft-2)', 'var(--gc-pos)', '✓']] as $key => [$bg, $fg, $icon]):
         if (empty($_SESSION[$key])) continue; ?>
     <div style="background:<?= $bg ?>;color:<?= $fg ?>;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">

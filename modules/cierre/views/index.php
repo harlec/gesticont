@@ -5,13 +5,6 @@ $fmt = fn($v) => number_format((float)$v, 2);
 
 <div style="max-width:750px;margin:0 auto;">
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-        <div>
-            <div style="font-size:20px;font-weight:700;color:var(--gc-ink);">🔒 Cierre de Período</div>
-            <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;"><?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?></div>
-        </div>
-    </div>
-
     <?php if (!empty($_SESSION['cierre_error'])): ?>
     <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">⚠ <?= htmlspecialchars($_SESSION['cierre_error']) ?></div>
     <?php unset($_SESSION['cierre_error']); endif; ?>

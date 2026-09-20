@@ -4,16 +4,6 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
 
 <div style="max-width:1100px;margin:0 auto;">
 
-    <!-- Encabezado -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-        <div>
-            <div style="font-size:20px;font-weight:700;color:var(--gc-ink);">📋 Inventario Inicial (Saldos de Apertura)</div>
-            <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;">
-                <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
-            </div>
-        </div>
-    </div>
-
     <?php if (!empty($_SESSION['apertura_error'])): ?>
     <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
         ⚠ <?= htmlspecialchars($_SESSION['apertura_error']) ?>

@@ -6,13 +6,6 @@ $fmt = fn($v) => number_format((float)$v, 2);
 
 <div style="max-width:750px;margin:0 auto;">
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-        <div>
-            <div style="font-size:20px;font-weight:700;color:var(--gc-ink);">💵 Estado de Flujo de Efectivo</div>
-            <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;"><?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?></div>
-        </div>
-    </div>
-
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
         <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Acumulado hasta:</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">

@@ -9,16 +9,6 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
 <div style="max-width:1100px;margin:0 auto;">
     <?php $subtabActiva = $esVentas ? 'ventas' : 'compras'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
 
-    <!-- Encabezado -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-        <div>
-            <div style="font-size:20px;font-weight:700;color:var(--gc-ink);"><?= $titulo ?></div>
-            <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;">
-                <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
-            </div>
-        </div>
-    </div>
-
     <!-- Selector de período -->
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
         <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Período:</label>

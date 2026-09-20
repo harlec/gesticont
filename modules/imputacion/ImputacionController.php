@@ -102,6 +102,7 @@ class ImputacionController
         require_once ROOT . '/views/layout/base.php';
     }
 
+    /** Fallback sin JS: formulario clásico, redirige de vuelta al listado. */
     public function clasificar(int $empresaId): void
     {
         Auth::require();
@@ -112,13 +113,70 @@ class ImputacionController
         $empresa = $this->_getEmpresa($empresaId);
         if (!$empresa) { http_response_code(403); die('Sin acceso'); }
 
-        $origen      = $_POST['origen'] ?? '';
-        $documentoId = (int)($_POST['documento_id'] ?? 0);
-        $tipoGastoId = (int)($_POST['tipo_gasto_id'] ?? 0);
+        $resultado = $this->_clasificarUno(
+            $empresaId,
+            $_POST['origen'] ?? '',
+            (int)($_POST['documento_id'] ?? 0),
+            (int)($_POST['tipo_gasto_id'] ?? 0)
+        );
 
-        if (!in_array($origen, ['venta', 'compra'], true) || !$documentoId || !$tipoGastoId) {
-            $_SESSION['imputacion_error'] = 'Datos incompletos.';
+        if (!$resultado['ok']) {
+            $_SESSION['imputacion_error'] = $resultado['error'];
             header("Location: /empresas/{$empresaId}/imputacion"); exit;
+        }
+
+        header("Location: /empresas/{$empresaId}/imputacion?ok=1"); exit;
+    }
+
+    /**
+     * Clasificación por AJAX — acepta uno o varios comprobantes en un solo
+     * request (selección múltiple con la misma cuenta), sin recargar la
+     * página. Body JSON: {"items":[{"origen":"venta","documento_id":5,
+     * "tipo_gasto_id":3}, ...]}
+     */
+    public function clasificarLote(int $empresaId): void
+    {
+        // Buffer de salida: cualquier warning/notice de PHP que se imprima
+        // antes del JSON (con APP_DEBUG=true) rompería el fetch().json()
+        // del navegador. Se descarta cualquier salida previa y solo se
+        // emite el JSON al final.
+        ob_start();
+        Auth::require();
+        header('Content-Type: application/json');
+
+        $salida = function (array $data, int $status = 200) {
+            ob_end_clean();
+            http_response_code($status);
+            echo json_encode($data);
+        };
+
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) { $salida(['error' => 'Sin acceso'], 403); return; }
+
+        $body  = json_decode(file_get_contents('php://input'), true);
+        $items = is_array($body['items'] ?? null) ? $body['items'] : [];
+        if (empty($items)) { $salida(['error' => 'Nada que clasificar'], 400); return; }
+
+        $resultados = [];
+        foreach ($items as $item) {
+            $r = $this->_clasificarUno(
+                $empresaId,
+                $item['origen'] ?? '',
+                (int)($item['documento_id'] ?? 0),
+                (int)($item['tipo_gasto_id'] ?? 0)
+            );
+            $r['documento_id'] = (int)($item['documento_id'] ?? 0);
+            $r['origen']       = $item['origen'] ?? '';
+            $resultados[] = $r;
+        }
+
+        $salida(['resultados' => $resultados]);
+    }
+
+    private function _clasificarUno(int $empresaId, string $origen, int $documentoId, int $tipoGastoId): array
+    {
+        if (!in_array($origen, ['venta', 'compra'], true) || !$documentoId || !$tipoGastoId) {
+            return ['ok' => false, 'error' => 'Datos incompletos.'];
         }
 
         $tabla = $origen === 'venta' ? 'registro_ventas' : 'registro_compras';
@@ -133,16 +191,18 @@ class ImputacionController
         $stmtDoc->execute([$documentoId, $empresaId]);
         $doc = $stmtDoc->fetch(PDO::FETCH_ASSOC);
         if (!$doc) {
-            $_SESSION['imputacion_error'] = 'El comprobante ya no está pendiente o no existe.';
-            header("Location: /empresas/{$empresaId}/imputacion"); exit;
+            return ['ok' => false, 'error' => 'El comprobante ya no está pendiente o no existe.'];
         }
 
-        $stmtTipo = $pdo->prepare("SELECT cuenta_id FROM tipos_gasto WHERE id = ? AND activo = 1 LIMIT 1");
+        $stmtTipo = $pdo->prepare("
+            SELECT tg.cuenta_id, c.codigo, c.nombre
+            FROM tipos_gasto tg JOIN cuentas_contables c ON c.id = tg.cuenta_id
+            WHERE tg.id = ? AND tg.activo = 1 LIMIT 1
+        ");
         $stmtTipo->execute([$tipoGastoId]);
         $tipo = $stmtTipo->fetch(PDO::FETCH_ASSOC);
         if (!$tipo) {
-            $_SESSION['imputacion_error'] = 'Tipo de clasificación inválido.';
-            header("Location: /empresas/{$empresaId}/imputacion"); exit;
+            return ['ok' => false, 'error' => 'Tipo de clasificación inválido.'];
         }
 
         // Monto que se imputa a la cuenta de gasto/ingreso por naturaleza: el
@@ -163,11 +223,10 @@ class ImputacionController
             Model::commit();
         } catch (Exception $e) {
             Model::rollback();
-            $_SESSION['imputacion_error'] = 'Error al guardar la clasificación.';
-            header("Location: /empresas/{$empresaId}/imputacion"); exit;
+            return ['ok' => false, 'error' => 'Error al guardar la clasificación.'];
         }
 
-        header("Location: /empresas/{$empresaId}/imputacion?ok=1"); exit;
+        return ['ok' => true, 'cuenta_codigo' => $tipo['codigo'], 'cuenta_nombre' => $tipo['nombre']];
     }
 
     private function _getEmpresa(int $id): ?array

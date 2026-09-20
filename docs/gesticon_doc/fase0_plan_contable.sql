@@ -269,7 +269,9 @@ INSERT INTO cuentas_contables (codigo, nombre, nivel, padre_codigo, naturaleza, 
 INSERT INTO cuentas_contables (codigo, nombre, nivel, padre_codigo, naturaleza, tipo) VALUES
 ('70',   'Ventas',                                          2, NULL, 'acreedora', 'ingreso'),
 ('701',  'Mercaderías',                                     3, '70', 'acreedora', 'ingreso'),  -- confirmado: uso agregado, tal cual lo hace el Diario de AVIMAS. Las divisionarias oficiales 7011/7012 distinguen exportación vs. venta local, NO gravado vs. no gravado (Valencia y la spec usan 7011/7012 así, mal) — si se necesita esa distinción para el cálculo de IGV, se resuelve con divisionarias propias bajo 701 o con los campos exonerado/inafecto que ya trae el dato de SIRE, no reusando 7011/7012
+('702',  'Productos Terminados',                            3, '70', 'acreedora', 'ingreso'),  -- venta de bienes fabricados por la propia empresa (manufactura), distinto de 701 que es reventa de mercadería comprada
 ('703',  'Servicios Terminados',                            3, '70', 'acreedora', 'ingreso'),  -- Valencia y la spec usan "704" para Prestación de Servicios; en el PCGE 2019 ese código pasó a significar "Subproductos, desechos y desperdicios" — el código vigente para servicios es 703
+('704',  'Subproductos, Desechos y Desperdicios',           3, '70', 'acreedora', 'ingreso'),  -- venta de remanentes/sobrantes del proceso productivo (empresas de manufactura)
 ('75',   'Otros Ingresos de Gestión',                       2, NULL, 'acreedora', 'ingreso'),
 ('759',  'Otros Ingresos de Gestión',                       3, '75', 'acreedora', 'ingreso'),
 ('77',   'Ingresos Financieros',                            2, NULL, 'acreedora', 'ingreso'),
@@ -363,7 +365,9 @@ JOIN cuentas_contables c ON c.codigo = v.codigo AND c.empresa_id IS NULL;
 INSERT INTO tipos_gasto (nombre_visible, cuenta_id, aplica_a, orden)
 SELECT v.nombre_visible, c.id, 'venta', v.orden FROM (
     SELECT 'Mercadería' AS nombre_visible, '701' AS codigo, 10 AS orden
+    UNION ALL SELECT 'Productos Terminados (manufactura)', '702', 15
     UNION ALL SELECT 'Servicios', '703', 20
+    UNION ALL SELECT 'Subproductos y Desechos', '704', 25
 ) AS v
 JOIN cuentas_contables c ON c.codigo = v.codigo AND c.empresa_id IS NULL;
 

@@ -1,57 +1,9 @@
 <?php
-$totalEmpresas = 0;
-$totalAlertas  = 0;
-$empresas      = [];
-$alertas       = [];
-
-try {
-    $db = Model::db();
-
-    $totalEmpresas = (int)$db->query("SELECT COUNT(*) FROM empresas WHERE activo = 1")->fetchColumn();
-    $totalAlertas  = (int)$db->query("SELECT COUNT(*) FROM alertas WHERE resuelta = 0")->fetchColumn();
-
-    $stmtEmp = $db->prepare("
-        SELECT e.id, e.ruc, e.razon_social, e.regimen,
-               ec.cert_hasta,
-               DATEDIFF(ec.cert_hasta, CURDATE()) as dias_cert,
-               CASE
-                   WHEN ec.cert_hasta IS NULL THEN 'sin_cert'
-                   WHEN ec.cert_hasta < CURDATE() THEN 'vencido'
-                   WHEN DATEDIFF(ec.cert_hasta, CURDATE()) <= 7 THEN 'critico'
-                   WHEN DATEDIFF(ec.cert_hasta, CURDATE()) <= 30 THEN 'por_vencer'
-                   ELSE 'vigente'
-               END as estado_cert
-        FROM empresas e
-        LEFT JOIN empresa_certificados ec ON ec.empresa_id = e.id AND ec.estado = 'activo'
-        WHERE e.activo = 1
-        ORDER BY e.razon_social
-        LIMIT 10
-    ");
-    $stmtEmp->execute();
-    $empresas = $stmtEmp->fetchAll(PDO::FETCH_ASSOC);
-
-    $stmtAl = $db->prepare("
-        SELECT a.*, e.razon_social
-        FROM alertas a
-        JOIN empresas e ON e.id = a.empresa_id
-        WHERE a.resuelta = 0
-        ORDER BY a.fecha_vence ASC
-        LIMIT 5
-    ");
-    $stmtAl->execute();
-    $alertas = $stmtAl->fetchAll(PDO::FETCH_ASSOC);
-
-} catch (Exception $ex) {
-    $dbError = $ex->getMessage();
-}
+$totalEmpresas = $totalEmpresas ?? 0;
+$totalAlertas  = $totalAlertas ?? 0;
+$empresas      = $empresas ?? [];
+$alertas       = $alertas ?? [];
 ?>
-
-<?php if (isset($dbError)): ?>
-<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:20px;color:#991b1b;font-size:13px;">
-    <strong>Error BD:</strong> <?= htmlspecialchars($dbError) ?>
-    <br><small>Verifica que ejecutaste gesticont_db.sql en phpMyAdmin</small>
-</div>
-<?php endif; ?>
 
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
     <div style="background:white;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,0.05);">

@@ -1,19 +1,4 @@
-<?php
-try {
-    $db = Model::db();
-    $empresas = $db->query("
-        SELECT e.*, ec.cert_hasta, ec.estado as cert_estado,
-               DATEDIFF(ec.cert_hasta, CURDATE()) as dias_cert
-        FROM empresas e
-        LEFT JOIN empresa_certificados ec ON ec.empresa_id = e.id AND ec.estado = 'activo'
-        WHERE e.activo = 1
-        ORDER BY e.razon_social
-    ")->fetchAll();
-} catch (Exception $ex) {
-    $empresas = [];
-    $error = $ex->getMessage();
-}
-?>
+<?php $empresas = $empresas ?? []; ?>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
     <div>
         <div style="font-size:13px;color:#94a3b8;margin-bottom:4px;"><?= count($empresas) ?> empresa(s) registrada(s)</div>

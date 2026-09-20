@@ -1,16 +1,10 @@
-/* Anchos de contenido — antes cada vista traía su propio
- * style="max-width:Npx;margin:0 auto;" a mano, con 9 valores distintos
- * (540/680/700/750/900/1100/1200/1300/1600) sin ningún criterio entre
- * ellos. Centralizado en 6 niveles con nombre: cambiar uno acá afecta a
- * todas las vistas que lo usan, en vez de tener que tocar archivo por
- * archivo. Consolida valores casi iguales (540→680, 1200→1300) en vez de
- * arrastrar la fragmentación a las clases.
+/* Anchos de contenido — un solo ancho para todas las pantallas dentro de
+ * una empresa (mismo criterio que Balance General), más uno angosto para
+ * formularios simples (crear/editar usuario o empresa, certificado) que
+ * no son tablas ni reportes. Antes había 6 niveles distintos y se veían
+ * inconsistentes entre pestañas hermanas — ahora es una sola clase.
  */
 .gc-content { margin: 0 auto; }
 
-.gc-w-form  { max-width: 680px;  }  /* formularios: usuarios, empresas, certificado */
-.gc-w-doc   { max-width: 750px;  }  /* estados financieros angostos: resultados, flujo, cierre */
-.gc-w-panel { max-width: 900px;  }  /* sync, clasificar */
-.gc-w-table { max-width: 1100px; }  /* tablas estándar: ventas/compras, diario, planillas, caja, apertura */
-.gc-w-table-lg { max-width: 1300px; } /* tablas anchas: balance de comprobación, cambios en el patrimonio */
-.gc-w-grid  { max-width: 1600px; }  /* balance general (grid de 2 columnas) */
+.gc-w-form    { max-width: 680px;  }  /* formularios simples: usuarios, empresas, certificado */
+.gc-w-content { max-width: 1600px; }  /* todo lo demás: ventas/compras, diario, planillas, caja, apertura, balance, resultados, flujo, patrimonio, cierre, sync, clasificar */

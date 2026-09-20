@@ -6,7 +6,7 @@ $urlOtro   = "/empresas/{$empresa['id']}/" . ($esVentas ? 'compras' : 'ventas');
 $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
 ?>
 
-<div class="gc-content gc-w-table">
+<div class="gc-content gc-w-content">
     <?php $subtabActiva = $esVentas ? 'ventas' : 'compras'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
 
     <!-- Selector de período -->

@@ -3,6 +3,7 @@ $rolesDisponibles = Auth::isSuperadmin()
     ? ['superadmin'=>'Super Admin','contador'=>'Contador','operador'=>'Operador','cliente'=>'Cliente']
     : ['operador'=>'Operador','cliente'=>'Cliente'];
 ?>
+<div class="gc-content gc-w-content">
 <div class="gc-content gc-w-form">
 <?php if ($error): ?>
 <div style="background:var(--gc-neg-soft);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 18px;margin-bottom:20px;font-size:13px;color:var(--gc-neg);">
@@ -77,6 +78,8 @@ $rolesDisponibles = Auth::isSuperadmin()
         <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);padding:11px 28px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">Crear usuario</button>
     </div>
 </form>
+</div>
+</div>
 <script>
 const info = {
     superadmin:'Ve y gestiona TODO el sistema — todos los contadores y empresas.',

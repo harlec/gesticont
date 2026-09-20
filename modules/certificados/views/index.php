@@ -1,6 +1,7 @@
 <?php
 $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'Régimen Especial','rus'=>'Nuevo RUS'];
 ?>
+<div class="gc-content gc-w-content">
 <div class="gc-content gc-w-form">
 
     <?php if ($cert): ?>
@@ -117,4 +118,5 @@ $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'
             </button>
         </div>
     </form>
+</div>
 </div>

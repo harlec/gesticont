@@ -1,3 +1,4 @@
+<div class="gc-content gc-w-content">
 <div class="gc-content gc-w-form">
 <form method="POST" action="/empresas/crear">
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);box-shadow:0 1px 4px rgba(0,0,0,0.06);overflow:hidden;">
@@ -66,4 +67,5 @@
         <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);padding:11px 28px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">Guardar empresa</button>
     </div>
 </form>
+</div>
 </div>

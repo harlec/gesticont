@@ -3,7 +3,7 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
 
-<div class="gc-content gc-w-doc">
+<div class="gc-content gc-w-content">
 
     <?php if (!empty($_SESSION['cierre_error'])): ?>
     <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">⚠ <?= htmlspecialchars($_SESSION['cierre_error']) ?></div>

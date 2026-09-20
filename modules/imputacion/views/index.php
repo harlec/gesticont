@@ -3,7 +3,7 @@ $tipoLabel = ['01' => 'FAC', '03' => 'BOL', '07' => 'NC ', '08' => 'ND ', '00' =
 $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p, 4, 2) . '-01'));
 ?>
 
-<div class="gc-content gc-w-panel">
+<div class="gc-content gc-w-content">
     <?php $subtabActiva = 'imputacion'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
 
     <?php if (!empty($_SESSION['imputacion_error'])): ?>

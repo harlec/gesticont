@@ -11,7 +11,7 @@ function badgeFuente(?string $fuente): string {
 }
 ?>
 
-<div class="gc-content gc-w-panel">
+<div class="gc-content gc-w-content">
     <?php $subtabActiva = 'sync'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
 
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;margin-bottom:20px;">

@@ -3,7 +3,7 @@ $periodos = [];
 for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 ?>
 
-<div class="gc-content gc-w-table">
+<div class="gc-content gc-w-content">
 
     <?php foreach (['diario_error' => ['var(--gc-neg-soft)', 'var(--gc-neg)', '⚠'], 'diario_aviso' => ['var(--gc-warn-soft)', 'var(--gc-warn)', 'ℹ'], 'diario_ok' => ['var(--gc-pos-soft-2)', 'var(--gc-pos)', '✓']] as $key => [$bg, $fg, $icon]):
         if (empty($_SESSION[$key])) continue; ?>

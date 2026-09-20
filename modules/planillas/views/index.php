@@ -4,7 +4,7 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
 
-<div class="gc-content gc-w-table">
+<div class="gc-content gc-w-content">
 
     <?php if (!empty($_SESSION['planilla_error'])): ?>
     <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">

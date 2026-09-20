@@ -4,11 +4,11 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 $fila = function (string $label, float $val, bool $bold = false, bool $resta = false, ?string $sub = null) use ($fmt) {
     $signo = $resta ? '(−) ' : '';
-    echo '<tr style="' . ($bold ? 'border-top:2px solid #e2e8f0;font-weight:700;background:#f8fafc;' : 'border-top:1px solid #f1f5f9;') . '">';
-    echo '<td style="padding:9px 20px;color:' . ($bold ? '#1e293b' : '#475569') . ';">' . $signo . htmlspecialchars($label);
-    if ($sub) echo '<div style="font-size:11px;color:#94a3b8;font-weight:400;margin-top:2px;">' . htmlspecialchars($sub) . '</div>';
+    echo '<tr style="' . ($bold ? 'border-top:2px solid var(--gc-line);font-weight:700;background:var(--gc-bg);' : 'border-top:1px solid var(--gc-surface-2);') . '">';
+    echo '<td style="padding:9px 20px;color:' . ($bold ? 'var(--gc-ink)' : 'var(--gc-label)') . ';">' . $signo . htmlspecialchars($label);
+    if ($sub) echo '<div style="font-size:11px;color:var(--gc-muted);font-weight:400;margin-top:2px;">' . htmlspecialchars($sub) . '</div>';
     echo '</td>';
-    echo '<td style="padding:9px 20px;text-align:right;font-family:monospace;' . ($val < 0 ? 'color:#991b1b;' : '') . '">S/ ' . $fmt($val) . '</td>';
+    echo '<td style="padding:9px 20px;text-align:right;font-family:monospace;' . ($val < 0 ? 'color:var(--gc-neg);' : '') . '">S/ ' . $fmt($val) . '</td>';
     echo '</tr>';
 };
 ?>
@@ -18,16 +18,16 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
     <!-- Encabezado -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
-            <div style="font-size:20px;font-weight:700;color:#1e293b;">📊 Estado de Resultados</div>
-            <div style="font-size:13px;color:#94a3b8;margin-top:2px;">
+            <div style="font-size:20px;font-weight:700;color:var(--gc-ink);">📊 Estado de Resultados</div>
+            <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;">
                 <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
             </div>
         </div>
     </div>
 
     <!-- Selector de período -->
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <label style="font-size:13px;font-weight:700;color:#475569;">Acumulado hasta:</label>
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Acumulado hasta:</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <?php foreach ($periodos as $p):
                 $activo = $p === $periodo;
@@ -35,7 +35,7 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
             ?>
             <a href="/empresas/<?= $empresa['id'] ?>/resultados?periodo=<?= $p ?>"
                style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                      background:<?= $activo ? '#1e3a8a' : '#f1f5f9' ?>;color:<?= $activo ? 'white' : '#475569' ?>;">
+                      background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
                 <?= $label ?>
             </a>
             <?php endforeach; ?>
@@ -45,12 +45,12 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
     <?php if ($resultado): ?>
 
     <?php if ($resultado['costo_ventas'] == 0): ?>
-    <div style="background:#fef3c7;color:#92400e;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
+    <div style="background:var(--gc-warn-soft);color:var(--gc-warn);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
         ℹ El Costo de Ventas aparece en S/ 0.00 — todavía no existe el módulo de Inventario Final/Kardex (spec 2.6), así que la Utilidad Bruta por ahora coincide con los Ingresos.
     </div>
     <?php endif; ?>
 
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <tbody>
                 <?php
@@ -78,13 +78,13 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
     </div>
 
     <?php else: ?>
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:60px;text-align:center;color:#94a3b8;">
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
         <div style="font-size:40px;margin-bottom:16px;">📊</div>
-        <div style="font-size:16px;font-weight:600;color:#475569;margin-bottom:8px;">
+        <div style="font-size:16px;font-weight:600;color:var(--gc-label);margin-bottom:8px;">
             Sin datos para este período
         </div>
         <div style="font-size:13px;">
-            Genera los asientos del <a href="/empresas/<?= $empresa['id'] ?>/diario" style="color:#1e3a8a;text-decoration:underline;">Libro Diario</a> primero.
+            Genera los asientos del <a href="/empresas/<?= $empresa['id'] ?>/diario" style="color:var(--gc-brand);text-decoration:underline;">Libro Diario</a> primero.
         </div>
     </div>
     <?php endif; ?>

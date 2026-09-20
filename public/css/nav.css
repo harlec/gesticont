@@ -1,0 +1,29 @@
+/* Navegación horizontal de GestiCont — reglas que no se pueden expresar
+   con estilos inline (media queries). Ver views/layout/nav.php. */
+
+/* La barra de menú se ajusta al ancho completo y salta a una segunda
+   línea si no caben los ítems, en vez de recortar con scroll horizontal
+   (eso último rompía los desplegables: overflow-x:auto en un contenedor
+   sin overflow-y explícito fuerza overflow-y:auto y recorta cualquier
+   panel absoluto que sobresalga hacia abajo). */
+.gc-menu-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    width: 100%;
+}
+
+.gc-identity-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    row-gap: 8px;
+    column-gap: 14px;
+}
+
+@media (max-width: 720px) {
+    .gc-identity-bar { padding: 8px 14px; gap: 10px; }
+    .gc-hide-narrow { display: none; }
+    .gc-empresa-pill { max-width: 150px; overflow: hidden; }
+    .gc-empresa-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+}

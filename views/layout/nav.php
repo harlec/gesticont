@@ -75,39 +75,77 @@ $navCoincide = function (string $href) use ($navPath, $todosLosHrefs): bool {
 
 $user = \Auth::user() ?? ['nombre' => '', 'rol' => ''];
 ?>
-<div style="position:sticky;top:0;z-index:40;">
-    <!-- Barra de identidad -->
-    <div style="background:#1e3a8a;padding:9px 24px;display:flex;align-items:center;gap:14px;">
-        <a href="/dashboard" style="display:flex;align-items:center;gap:9px;text-decoration:none;">
-            <div style="width:30px;height:30px;background:rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:16px;font-weight:700;color:white;">G</div>
-            <div style="font-family:Lora,serif;font-size:15px;font-weight:600;color:white;">Gesti<span style="color:#93c5fd;">Cont</span></div>
-        </a>
-        <?php if ($dentroDeEmpresa): ?>
-        <div style="width:1px;height:22px;background:rgba(255,255,255,0.18);"></div>
-        <a href="/empresas/<?= $empresa['id'] ?>" style="display:flex;flex-direction:column;text-decoration:none;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.1);">
-            <span style="font-size:12.5px;font-weight:700;color:white;line-height:1.3;"><?= htmlspecialchars($empresa['razon_social']) ?></span>
-            <span style="font-size:9.5px;color:rgba(255,255,255,0.65);font-family:monospace;">RUC <?= htmlspecialchars($empresa['ruc']) ?></span>
-        </a>
-        <?php endif; ?>
-        <div style="flex:1;"></div>
-        <span style="font-size:11px;color:rgba(255,255,255,0.65);font-family:monospace;"><?= date('d/m/Y') ?></span>
-        <a href="/alertas" title="Alertas" style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px;">🔔</a>
-        <div style="width:1px;height:26px;background:rgba(255,255,255,0.18);"></div>
-        <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;flex-shrink:0;">
-                <?= strtoupper(substr($user['nombre'] ?: 'U', 0, 2)) ?>
+<div style="position:sticky;top:0;z-index:40;width:100%;">
+    <!-- Barra de identidad — dos bloques atómicos (izquierda/derecha) que
+         se envuelven completos a una segunda línea si no caben juntos, en
+         vez de que cada ítem intente encogerse por su cuenta (eso es lo
+         que rompía el diseño en pantallas angostas: unos ítems no podían
+         encoger y el resto no alcanzaba a envolver a tiempo). -->
+    <div class="gc-identity-bar" style="background:var(--gc-brand);padding:9px 24px;">
+        <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1 1 auto;">
+            <a href="/dashboard" style="display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0;">
+                <div style="width:30px;height:30px;background:rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:16px;font-weight:700;color:var(--gc-on-brand);">G</div>
+                <div style="font-family:Lora,serif;font-size:15px;font-weight:600;color:var(--gc-on-brand);">Gesti<span style="color:var(--gc-accent-light);">Cont</span></div>
+            </a>
+            <?php if ($dentroDeEmpresa): ?>
+            <div class="gc-hide-narrow" style="width:1px;height:22px;background:rgba(255,255,255,0.18);flex-shrink:0;"></div>
+            <a href="/empresas/<?= $empresa['id'] ?>" class="gc-empresa-pill" style="display:flex;flex-direction:column;text-decoration:none;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.1);min-width:0;overflow:hidden;">
+                <span style="font-size:12.5px;font-weight:700;color:var(--gc-on-brand);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($empresa['razon_social']) ?></span>
+                <span style="font-size:9.5px;color:rgba(255,255,255,0.65);font-family:monospace;white-space:nowrap;">RUC <?= htmlspecialchars($empresa['ruc']) ?></span>
+            </a>
+            <?php endif; ?>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-shrink:0;">
+            <div style="position:relative;display:inline-block;">
+                <button type="button" class="gc-menu-trigger" data-menu="menu-tema" title="Tema"
+                        style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.14);color:var(--gc-on-brand);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">
+                    <span id="gc-tema-dot" style="width:11px;height:11px;border-radius:50%;background:var(--gc-brand);border:1px solid rgba(255,255,255,0.4);"></span>
+                    <span id="gc-tema-label" class="gc-hide-narrow">Claro</span> <span style="font-size:8px;">▾</span>
+                </button>
+                <div class="gc-dropdown" id="menu-tema" style="display:none;position:absolute;top:100%;right:0;left:auto;min-width:190px;background:var(--gc-surface);border:1px solid var(--gc-line);border-radius:0 0 10px 10px;box-shadow:0 16px 34px -18px rgba(22,41,79,0.35);padding:6px 0;z-index:50;">
+                    <div style="padding:6px 14px 3px;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--gc-muted);text-transform:uppercase;">Tema</div>
+                    <?php foreach ([
+                        ['claro', 'Claro', '#1e3a8a'],
+                        ['menta', 'Menta', '#1f5136'],
+                        ['lavanda', 'Lavanda', '#3f3566'],
+                        ['durazno', 'Durazno', '#6d3125'],
+                        ['oscuro', 'Oscuro', '#23262e'],
+                    ] as [$val, $lbl, $dot]): ?>
+                    <button type="button" class="gc-tema-opt" data-tema="<?= $val ?>" style="display:flex;align-items:center;gap:9px;width:100%;padding:7px 14px;font-size:13px;color:var(--gc-ink);background:none;border:none;cursor:pointer;text-align:left;font-family:inherit;">
+                        <span style="width:12px;height:12px;border-radius:50%;background:<?= $dot ?>;flex-shrink:0;"></span>
+                        <?= $lbl ?>
+                    </button>
+                    <?php endforeach; ?>
+                    <div style="padding:8px 14px 3px;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--gc-muted);text-transform:uppercase;border-top:1px solid var(--gc-line);margin-top:4px;">Acento</div>
+                    <div style="display:flex;gap:8px;padding:8px 14px 4px;">
+                        <?php foreach ([
+                            ['azul', '#1e3a8a'], ['verde', '#1f5136'], ['morado', '#5a2b5c'], ['marron', '#7a3b18'],
+                        ] as [$val, $dot]): ?>
+                        <button type="button" class="gc-acento-opt" data-acento="<?= $val ?>" title="<?= ucfirst($val) ?>"
+                                style="width:22px;height:22px;border-radius:50%;background:<?= $dot ?>;border:2px solid transparent;cursor:pointer;padding:0;"></button>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
             </div>
-            <div style="line-height:1.25;">
-                <div style="font-size:12px;font-weight:600;color:white;white-space:nowrap;"><?= htmlspecialchars($user['nombre'] ?? '') ?></div>
-                <div style="font-size:9.5px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:.5px;"><?= htmlspecialchars($user['rol'] ?? '') ?></div>
+            <span class="gc-hide-narrow" style="font-size:11px;color:rgba(255,255,255,0.65);font-family:monospace;"><?= date('d/m/Y') ?></span>
+            <a href="/alertas" title="Alertas" style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px;flex-shrink:0;">🔔</a>
+            <div class="gc-hide-narrow" style="width:1px;height:26px;background:rgba(255,255,255,0.18);"></div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:var(--gc-on-brand);font-size:12px;font-weight:700;flex-shrink:0;">
+                    <?= strtoupper(substr($user['nombre'] ?: 'U', 0, 2)) ?>
+                </div>
+                <div class="gc-hide-narrow" style="line-height:1.25;">
+                    <div style="font-size:12px;font-weight:600;color:var(--gc-on-brand);white-space:nowrap;"><?= htmlspecialchars($user['nombre'] ?? '') ?></div>
+                    <div style="font-size:9.5px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:.5px;"><?= htmlspecialchars($user['rol'] ?? '') ?></div>
+                </div>
+                <a href="/logout" title="Cerrar sesión" style="color:rgba(255,255,255,0.7);font-size:15px;text-decoration:none;margin-left:2px;">↪</a>
             </div>
-            <a href="/logout" title="Cerrar sesión" style="color:rgba(255,255,255,0.7);font-size:15px;text-decoration:none;margin-left:2px;">↪</a>
         </div>
     </div>
 
     <!-- Barra de menú -->
-    <div style="background:white;border-bottom:1px solid #e2e8f0;padding:0 20px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;">
-        <div style="display:inline-flex;gap:2px;" id="gc-menu-bar">
+    <div style="background:var(--gc-surface);border-bottom:1px solid var(--gc-line);padding:0 20px;">
+        <div class="gc-menu-bar" id="gc-menu-bar">
         <?php foreach ($items as $i => $item):
             $tieneHijos = !empty($item['hijos']);
             $activo = false;
@@ -116,8 +154,8 @@ $user = \Auth::user() ?? ['nombre' => '', 'rol' => ''];
             } else {
                 $activo = $navCoincide($item['href']);
             }
-            $colorActivo = $activo ? '#1e3a8a' : '#64748b';
-            $borderActivo = $activo ? '#1e3a8a' : 'transparent';
+            $colorActivo = $activo ? 'var(--gc-brand)' : 'var(--gc-label-2)';
+            $borderActivo = $activo ? 'var(--gc-brand)' : 'transparent';
         ?>
             <?php if ($tieneHijos): ?>
             <div style="position:relative;display:inline-block;">
@@ -126,11 +164,11 @@ $user = \Auth::user() ?? ['nombre' => '', 'rol' => ''];
                                border-bottom:2px solid <?= $borderActivo ?>;color:<?= $colorActivo ?>;">
                     <?= htmlspecialchars($item['label']) ?> <span style="font-size:9px;">▾</span>
                 </button>
-                <div class="gc-dropdown" id="menu-<?= $i ?>" style="display:none;position:absolute;top:100%;left:0;min-width:250px;background:white;border:1px solid #e2e8f0;border-radius:0 0 10px 10px;box-shadow:0 16px 34px -18px rgba(22,41,79,0.35);padding:6px 0;z-index:50;white-space:nowrap;">
+                <div class="gc-dropdown" id="menu-<?= $i ?>" style="display:none;position:absolute;top:100%;left:0;min-width:250px;background:var(--gc-surface);border:1px solid var(--gc-line);border-radius:0 0 10px 10px;box-shadow:0 16px 34px -18px rgba(22,41,79,0.35);padding:6px 0;z-index:50;white-space:nowrap;">
                     <?php foreach ($item['hijos'] as [$href, $label]):
                         $itemActivo = $navCoincide($href);
                     ?>
-                    <a href="<?= $href ?>" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;font-size:13px;text-decoration:none;color:<?= $itemActivo ? '#1e3a8a' : '#1e293b' ?>;font-weight:<?= $itemActivo ? '700' : '500' ?>;background:<?= $itemActivo ? '#eff6ff' : 'transparent' ?>;">
+                    <a href="<?= $href ?>" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;font-size:13px;text-decoration:none;color:<?= $itemActivo ? 'var(--gc-brand)' : 'var(--gc-ink)' ?>;font-weight:<?= $itemActivo ? '700' : '500' ?>;background:<?= $itemActivo ? 'var(--gc-brand-soft)' : 'transparent' ?>;">
                         <?= htmlspecialchars($label) ?>
                         <?php if ($itemActivo): ?><span>✓</span><?php endif; ?>
                     </a>
@@ -176,5 +214,35 @@ $user = \Auth::user() ?? ['nombre' => '', 'rol' => ''];
     });
     document.addEventListener('click', cerrar);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrar(); });
+
+    var temaLabels = { claro: 'Claro', menta: 'Menta', lavanda: 'Lavanda', durazno: 'Durazno', oscuro: 'Oscuro' };
+    var temaDots = { claro: '#1e3a8a', menta: '#1f5136', lavanda: '#3f3566', durazno: '#6d3125', oscuro: '#23262e' };
+    function pintarPildora() {
+        var tema = document.documentElement.getAttribute('data-theme') || 'claro';
+        var dot = document.getElementById('gc-tema-dot');
+        var lbl = document.getElementById('gc-tema-label');
+        if (dot) dot.style.background = temaDots[tema] || temaDots.claro;
+        if (lbl) lbl.textContent = temaLabels[tema] || 'Claro';
+    }
+    pintarPildora();
+    document.querySelectorAll('.gc-tema-opt').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var tema = btn.getAttribute('data-tema');
+            document.documentElement.setAttribute('data-theme', tema);
+            try { localStorage.setItem('gc_theme', tema); } catch (err) {}
+            pintarPildora();
+            cerrar();
+        });
+    });
+    document.querySelectorAll('.gc-acento-opt').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var acento = btn.getAttribute('data-acento');
+            document.documentElement.setAttribute('data-accent', acento);
+            try { localStorage.setItem('gc_accent', acento); } catch (err) {}
+            cerrar();
+        });
+    });
 })();
 </script>

@@ -9,15 +9,15 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
     <!-- Encabezado -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
-            <div style="font-size:20px;font-weight:700;color:#1e293b;">🏷️ Clasificación de comprobantes</div>
-            <div style="font-size:13px;color:#94a3b8;margin-top:2px;">
+            <div style="font-size:20px;font-weight:700;color:var(--gc-ink);">🏷️ Clasificación de comprobantes</div>
+            <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;">
                 <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
             </div>
         </div>
     </div>
 
     <?php if (!empty($_SESSION['imputacion_error'])): ?>
-    <div style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
+    <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
         ⚠ <?= htmlspecialchars($_SESSION['imputacion_error']) ?>
     </div>
     <?php unset($_SESSION['imputacion_error']); endif; ?>
@@ -25,38 +25,38 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
     <div id="im-feedback"></div>
 
     <!-- Filtros: período + tipo -->
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:16px 20px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px;">
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px;">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <label style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Período</label>
+            <label style="font-size:12px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;">Período</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <?php if (empty($periodosConPendientes)): ?>
-                    <span style="font-size:13px;color:#94a3b8;">Sin pendientes en ningún período</span>
+                    <span style="font-size:13px;color:var(--gc-muted);">Sin pendientes en ningún período</span>
                 <?php endif; ?>
                 <?php foreach ($periodosConPendientes as $p):
                     $activo = $p === $periodo;
                 ?>
                 <a href="?periodo=<?= $p ?>&tipo=<?= $tipoFiltro ?>"
                    style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                          background:<?= $activo ? '#1e3a8a' : '#f1f5f9' ?>;color:<?= $activo ? 'white' : '#475569' ?>;">
+                          background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
                     <?= $labelMes($p) ?>
                 </a>
                 <?php endforeach; ?>
                 <?php if (!in_array($periodo, $periodosConPendientes, true)): ?>
-                <span style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;background:#1e3a8a;color:white;">
+                <span style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;background:var(--gc-brand);color:var(--gc-on-brand);">
                     <?= $labelMes($periodo) ?> (sin pendientes)
                 </span>
                 <?php endif; ?>
             </div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <label style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Tipo</label>
+            <label style="font-size:12px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;">Tipo</label>
             <div style="display:flex;gap:8px;">
                 <?php foreach (['todos' => 'Todos', 'ventas' => 'Solo ventas', 'compras' => 'Solo compras'] as $val => $lbl):
                     $activo = $tipoFiltro === $val;
                 ?>
                 <a href="?periodo=<?= $periodo ?>&tipo=<?= $val ?>"
                    style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                          background:<?= $activo ? '#5b21b6' : '#f1f5f9' ?>;color:<?= $activo ? 'white' : '#475569' ?>;">
+                          background:<?= $activo ? 'var(--gc-purple)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
                     <?= $lbl ?>
                 </a>
                 <?php endforeach; ?>
@@ -67,15 +67,15 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
     <?php if (!empty($pendientes)): ?>
 
     <!-- Barra de selección múltiple -->
-    <div id="im-bulkbar" style="display:none;position:sticky;top:0;z-index:10;background:#1e293b;color:white;border-radius:12px;padding:12px 18px;margin-bottom:12px;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div id="im-bulkbar" style="display:none;position:sticky;top:0;z-index:10;background:var(--gc-brand);color:var(--gc-on-brand);border-radius:12px;padding:12px 18px;margin-bottom:12px;align-items:center;gap:12px;flex-wrap:wrap;">
         <span id="im-bulk-count" style="font-weight:700;font-size:13px;"></span>
         <select id="im-bulk-select" style="flex:1;min-width:200px;padding:7px 10px;border-radius:8px;border:none;font-size:13px;">
             <option value="">Seleccionar cuenta para todos…</option>
         </select>
-        <button id="im-bulk-apply" style="background:#1e3a8a;color:white;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+        <button id="im-bulk-apply" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
             ✓ Aplicar a seleccionados
         </button>
-        <button id="im-bulk-clear" type="button" style="background:transparent;color:#cbd5e1;border:none;font-size:12px;cursor:pointer;text-decoration:underline;">
+        <button id="im-bulk-clear" type="button" style="background:transparent;color:rgba(255,255,255,0.7);border:none;font-size:12px;cursor:pointer;text-decoration:underline;">
             Cancelar selección
         </button>
         <span id="im-bulk-warning" style="color:#fca5a5;font-size:12px;font-weight:600;"></span>
@@ -86,21 +86,21 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
         $cantCompras = count(array_filter($pendientes, fn($d) => $d['origen'] === 'compra'));
     ?>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-        <span style="font-size:12px;color:#94a3b8;font-weight:700;">Seleccionar:</span>
+        <span style="font-size:12px;color:var(--gc-muted);font-weight:700;">Seleccionar:</span>
         <?php if ($cantVentas > 0): ?>
         <button type="button" class="im-select-todos" data-origen="venta"
-                style="background:#dcfce7;color:#166534;border:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+                style="background:var(--gc-pos-soft);color:var(--gc-pos);border:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
             Todas las ventas (<?= $cantVentas ?>)
         </button>
         <?php endif; ?>
         <?php if ($cantCompras > 0): ?>
         <button type="button" class="im-select-todos" data-origen="compra"
-                style="background:#fef3c7;color:#92400e;border:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+                style="background:var(--gc-warn-soft);color:var(--gc-warn);border:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
             Todas las compras (<?= $cantCompras ?>)
         </button>
         <?php endif; ?>
         <button type="button" id="im-select-ninguno"
-                style="background:#f1f5f9;color:#475569;border:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+                style="background:var(--gc-surface-2);color:var(--gc-label);border:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
             Ninguno
         </button>
     </div>
@@ -112,28 +112,28 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
             $sugerida = $sugerencias[$doc['origen'] . ':' . $doc['contraparte_doc']] ?? null;
         ?>
         <div class="im-card" data-origen="<?= $doc['origen'] ?>" data-id="<?= $doc['id'] ?>"
-             style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:14px 18px;transition:opacity .25s;">
+             style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:14px 18px;transition:opacity .25s;">
             <div style="display:flex;align-items:flex-start;gap:12px;">
                 <input type="checkbox" class="im-check" style="margin-top:4px;width:16px;height:16px;flex-shrink:0;">
                 <div style="flex:1;min-width:0;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
                         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                            <span style="background:<?= $esVenta ? '#dcfce7' : '#fef3c7' ?>;color:<?= $esVenta ? '#166534' : '#92400e' ?>;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">
+                            <span style="background:<?= $esVenta ? 'var(--gc-pos-soft)' : 'var(--gc-warn-soft)' ?>;color:<?= $esVenta ? 'var(--gc-pos)' : 'var(--gc-warn)' ?>;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">
                                 <?= $esVenta ? 'VENTA' : 'COMPRA' ?>
                             </span>
-                            <span style="font-family:monospace;font-weight:700;color:#475569;font-size:12px;">
+                            <span style="font-family:monospace;font-weight:700;color:var(--gc-label);font-size:12px;">
                                 <?= $tipoLabel[$doc['tipo_comp']] ?? $doc['tipo_comp'] ?>
                             </span>
                             <span style="font-family:monospace;font-weight:600;">
                                 <?= htmlspecialchars($doc['serie']) ?>-<?= htmlspecialchars($doc['correlativo']) ?>
                             </span>
-                            <span style="color:#94a3b8;font-size:12px;">· <?= $doc['fecha_emision'] ?></span>
+                            <span style="color:var(--gc-muted);font-size:12px;">· <?= $doc['fecha_emision'] ?></span>
                         </div>
-                        <div style="font-family:monospace;font-weight:700;font-size:15px;color:#1e293b;">
+                        <div style="font-family:monospace;font-weight:700;font-size:15px;color:var(--gc-ink);">
                             S/ <?= number_format((float)$doc['monto_neto'], 2) ?>
                         </div>
                     </div>
-                    <div style="font-size:13px;color:#475569;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                    <div style="font-size:13px;color:var(--gc-label);margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
                          title="<?= htmlspecialchars($doc['contraparte_nombre']) ?>">
                         <?= htmlspecialchars($doc['contraparte_nombre']) ?>
                     </div>
@@ -141,7 +141,7 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
                         <input type="hidden" name="origen" value="<?= $doc['origen'] ?>">
                         <input type="hidden" name="documento_id" value="<?= $doc['id'] ?>">
                         <select name="tipo_gasto_id" required
-                                style="flex:1;min-width:0;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#1e293b;">
+                                style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;color:var(--gc-ink);">
                             <option value="">Seleccionar cuenta…</option>
                             <?php foreach ($tipos as $t): ?>
                             <option value="<?= $t['id'] ?>" <?= $t['id'] === $sugerida ? 'selected' : '' ?>>
@@ -149,7 +149,7 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
                             </option>
                             <?php endforeach; ?>
                         </select>
-                        <button type="submit" class="im-btn" style="flex-shrink:0;background:#1e3a8a;color:white;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+                        <button type="submit" class="im-btn" style="flex-shrink:0;background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
                             ✓ Confirmar
                         </button>
                     </form>
@@ -159,15 +159,15 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
         <?php endforeach; ?>
     </div>
 
-    <div id="im-vacio" style="display:none;background:white;border-radius:12px;border:1px solid #e2e8f0;padding:60px;text-align:center;color:#94a3b8;">
+    <div id="im-vacio" style="display:none;background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
         <div style="font-size:40px;margin-bottom:16px;">✅</div>
-        <div style="font-size:16px;font-weight:600;color:#475569;">Todo clasificado en este período.</div>
+        <div style="font-size:16px;font-weight:600;color:var(--gc-label);">Todo clasificado en este período.</div>
     </div>
 
     <?php else: ?>
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:60px;text-align:center;color:#94a3b8;">
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
         <div style="font-size:40px;margin-bottom:16px;">✅</div>
-        <div style="font-size:16px;font-weight:600;color:#475569;margin-bottom:8px;">
+        <div style="font-size:16px;font-weight:600;color:var(--gc-label);margin-bottom:8px;">
             No hay comprobantes pendientes en <?= $labelMes($periodo) ?><?= $tipoFiltro !== 'todos' ? ' (' . ($tipoFiltro === 'ventas' ? 'ventas' : 'compras') . ')' : '' ?>
         </div>
         <div style="font-size:13px;">
@@ -192,7 +192,7 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
 
     function feedback(msg, ok) {
         const box = document.getElementById('im-feedback');
-        box.innerHTML = '<div style="background:' + (ok ? '#f0fdf4' : '#fef2f2') + ';color:' + (ok ? '#166534' : '#991b1b') +
+        box.innerHTML = '<div style="background:' + (ok ? 'var(--gc-pos-soft-2)' : 'var(--gc-neg-soft)') + ';color:' + (ok ? 'var(--gc-pos)' : 'var(--gc-neg)') +
             ';border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">' +
             (ok ? '✓ ' : '⚠ ') + msg + '</div>';
         setTimeout(() => { box.innerHTML = ''; }, 4000);

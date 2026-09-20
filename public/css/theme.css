@@ -1,0 +1,141 @@
+/* Sistema de temas de GestiCont — variables CSS por rol semántico.
+ * "Claro" (:root, sin atributo) reproduce EXACTAMENTE los colores que la
+ * app ya usaba antes de este cambio — la migración de cada vista a
+ * var(--gc-*) no debe alterar nada visualmente mientras el tema activo
+ * sea el default. Los otros 4 temas (3 pasteles + oscuro) solo se ven al
+ * elegirlos desde el selector de la barra de identidad (views/layout/nav.php).
+ *
+ * pos/neg/warn (éxito/error/advertencia) se mantienen iguales en Claro y
+ * en los 3 pasteles a propósito — son colores de estado con significado
+ * fijo (verde=ok, rojo=error, ámbar=alerta) en toda la app real
+ * (declarado/propuesta, vigente/vencido, etc.); solo Oscuro los reajusta
+ * porque el contraste sobre fondo oscuro lo exige.
+ */
+:root {
+    --gc-bg: #f8fafc;
+    --gc-surface: #ffffff;
+    --gc-surface-2: #f1f5f9;
+    --gc-line: #e2e8f0;
+    --gc-ink: #1e293b;
+    --gc-label: #475569;
+    --gc-label-2: #64748b;
+    --gc-muted: #94a3b8;
+    --gc-brand: #1e3a8a;
+    --gc-brand-soft: #eff6ff;
+    --gc-on-brand: #ffffff;
+    --gc-link: #2563eb;
+    --gc-pos: #166534;
+    --gc-pos-soft: #dcfce7;
+    --gc-pos-soft-2: #f0fdf4;
+    --gc-pos-border: #bbf7d0;
+    --gc-neg: #991b1b;
+    --gc-neg-soft: #fef2f2;
+    --gc-neg-soft-2: #fee2e2;
+    --gc-neg-border: #fecaca;
+    --gc-neg-strong: #dc2626;
+    --gc-neg-strong-2: #ef4444;
+    --gc-neg-soft-3: #fca5a5;
+    --gc-warn: #92400e;
+    --gc-warn-soft: #fef3c7;
+    --gc-warn-soft-2: #fffbeb;
+    --gc-warn-border: #fde68a;
+    --gc-neutral-bg: #f3f4f6;
+    --gc-neutral-text: #374151;
+    --gc-neutral-border: #cbd5e1;
+    --gc-accent-light: #93c5fd;
+    --gc-link-bg: #dbeafe;
+    --gc-purple: #5b21b6;
+    --gc-success-strong: #22c55e;
+    /* Fondo de botón "peligro" (ej. cerrar período) — siempre saturado y
+     * apto para texto blanco encima, a diferencia de --gc-neg (que en
+     * Oscuro se aclara para funcionar como TEXTO sobre fondo oscuro, no
+     * como fondo de botón). */
+    --gc-neg-action: #dc2626;
+}
+
+:root[data-theme="menta"] {
+    --gc-bg: #f1f6f3;
+    --gc-surface-2: #e9f2ed;
+    --gc-line: #dbe8e0;
+    --gc-ink: #1c2b22;
+    --gc-label: #3d5346;
+    --gc-label-2: #52705f;
+    --gc-muted: #7fa08d;
+    --gc-brand: #1f5136;
+    --gc-brand-soft: #e3f0e8;
+    --gc-link: #2f7a52;
+}
+
+:root[data-theme="lavanda"] {
+    --gc-bg: #f5f3fa;
+    --gc-surface-2: #ede9f5;
+    --gc-line: #ded6ee;
+    --gc-ink: #241f36;
+    --gc-label: #453a5e;
+    --gc-label-2: #5c4f78;
+    --gc-muted: #9184ab;
+    --gc-brand: #3f3566;
+    --gc-brand-soft: #ece7f7;
+    --gc-link: #6952a3;
+}
+
+:root[data-theme="durazno"] {
+    --gc-bg: #fbf4ef;
+    --gc-surface-2: #f6e9e0;
+    --gc-line: #eeded2;
+    --gc-ink: #35241d;
+    --gc-label: #5c4033;
+    --gc-label-2: #78584a;
+    --gc-muted: #b08b78;
+    --gc-brand: #6d3125;
+    --gc-brand-soft: #f6e7e1;
+    --gc-link: #a1503a;
+}
+
+:root[data-theme="oscuro"] {
+    --gc-bg: #141519;
+    --gc-surface: #1c1e24;
+    --gc-surface-2: #23262e;
+    --gc-line: #2e323b;
+    --gc-ink: #eceae5;
+    --gc-label: #c7c3ba;
+    --gc-label-2: #a9a49b;
+    --gc-muted: #7d7970;
+    --gc-brand: #3b5288;
+    --gc-brand-soft: #202a40;
+    --gc-link: #9db9ee;
+    --gc-pos: #7cc295;
+    --gc-pos-soft: #1c3326;
+    --gc-pos-soft-2: #17281f;
+    --gc-pos-border: #2f5240;
+    --gc-neg: #e08b8b;
+    --gc-neg-soft: #3a2222;
+    --gc-neg-soft-2: #33201f;
+    --gc-neg-border: #5c3535;
+    --gc-neg-strong: #e08b8b;
+    --gc-neg-strong-2: #e08b8b;
+    --gc-neg-soft-3: #e08b8b;
+    --gc-warn: #edc873;
+    --gc-warn-soft: #3a2e12;
+    --gc-warn-soft-2: #332a14;
+    --gc-warn-border: #5c4a22;
+    --gc-neutral-bg: #2a2d34;
+    --gc-neutral-text: #c7c3ba;
+    --gc-neutral-border: #3a3e47;
+    --gc-accent-light: #9db9ee;
+    --gc-link-bg: #202a40;
+    --gc-purple: #a992e0;
+    --gc-success-strong: #7cc295;
+    --gc-neg-action: #b3261e;
+}
+
+/* Acento — 4 opciones fijas que sobrescriben solo el color de marca,
+ * igual que el prototipo de referencia. No se aplica sobre Oscuro (ahí
+ * el brand ya está calibrado para contraste sobre fondo oscuro). */
+:root[data-accent="azul"]    { --gc-brand: #1e3a8a; --gc-brand-soft: #eff6ff; --gc-link: #2563eb; }
+:root[data-accent="verde"]   { --gc-brand: #1f5136; --gc-brand-soft: #e3f0e8; --gc-link: #2f7a52; }
+:root[data-accent="morado"]  { --gc-brand: #5a2b5c; --gc-brand-soft: #f5e9f5; --gc-link: #86408a; }
+:root[data-accent="marron"]  { --gc-brand: #7a3b18; --gc-brand-soft: #f7ebe2; --gc-link: #a85527; }
+:root[data-theme="oscuro"][data-accent] { --gc-brand: #3b5288; --gc-brand-soft: #202a40; --gc-link: #9db9ee; }
+
+body { background: var(--gc-bg); color: var(--gc-ink); }

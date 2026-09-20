@@ -5,8 +5,8 @@ $resultado  = $_SESSION['sync_resultado'] ?? null;
 if ($resultado) unset($_SESSION['sync_resultado']);
 
 function badgeFuente(?string $fuente): string {
-    if ($fuente === 'declarado') return '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">✓ Declarado</span>';
-    if ($fuente === 'propuesta') return '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">⚠ Propuesta</span>';
+    if ($fuente === 'declarado') return '<span style="background:var(--gc-pos-soft);color:var(--gc-pos);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">✓ Declarado</span>';
+    if ($fuente === 'propuesta') return '<span style="background:var(--gc-warn-soft);color:var(--gc-warn);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">⚠ Propuesta</span>';
     return '';
 }
 ?>
@@ -14,44 +14,44 @@ function badgeFuente(?string $fuente): string {
 <div style="max-width:900px;">
     <?php $subtabActiva = 'sync'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
 
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;margin-bottom:20px;">
-        <div style="padding:18px 24px;border-bottom:1px solid #e2e8f0;background:#eff6ff;display:flex;align-items:center;gap:12px;">
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;margin-bottom:20px;">
+        <div style="padding:18px 24px;border-bottom:1px solid var(--gc-line);background:var(--gc-brand-soft);display:flex;align-items:center;gap:12px;">
             <span style="font-size:24px;">🔄</span>
             <div>
-                <div style="font-weight:700;font-size:16px;color:#1e3a8a;">Sincronizar con SIRE — SUNAT</div>
-                <div style="font-size:13px;color:#475569;margin-top:2px;">
+                <div style="font-weight:700;font-size:16px;color:var(--gc-brand);">Sincronizar con SIRE — SUNAT</div>
+                <div style="font-size:13px;color:var(--gc-label);margin-top:2px;">
                     <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
                 </div>
             </div>
         </div>
 
-        <div style="padding:14px 24px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:13px;color:#475569;">
-            <strong style="color:#166534;">✓ Declarado</strong> = datos presentados ante SUNAT &nbsp;|&nbsp;
-            <strong style="color:#92400e;">⚠ Propuesta</strong> = sugerencia de SUNAT (período no presentado en SIRE)
+        <div style="padding:14px 24px;background:var(--gc-bg);border-bottom:1px solid var(--gc-line);font-size:13px;color:var(--gc-label);">
+            <strong style="color:var(--gc-pos);">✓ Declarado</strong> = datos presentados ante SUNAT &nbsp;|&nbsp;
+            <strong style="color:var(--gc-warn);">⚠ Propuesta</strong> = sugerencia de SUNAT (período no presentado en SIRE)
         </div>
 
         <form method="POST" action="/empresas/<?= $empresa['id'] ?>/sync/ejecutar"
               onsubmit="return confirmarSync(this);">
             <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;">
                 <div>
-                    <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">¿Qué sincronizar?</label>
-                    <select name="tipo" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;background:white;font-family:inherit;">
+                    <label style="display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">¿Qué sincronizar?</label>
+                    <select name="tipo" style="width:100%;padding:10px 14px;border:1.5px solid var(--gc-line);border-radius:8px;font-size:14px;background:var(--gc-surface);font-family:inherit;">
                         <option value="ambos">Ventas + Compras</option>
                         <option value="ventas">Solo Ventas</option>
                         <option value="compras">Solo Compras</option>
                     </select>
                 </div>
                 <div>
-                    <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Rango</label>
+                    <label style="display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Rango</label>
                     <select name="rango" id="selRango" onchange="togglePeriodo(this.value)"
-                        style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;background:white;font-family:inherit;">
+                        style="width:100%;padding:10px 14px;border:1.5px solid var(--gc-line);border-radius:8px;font-size:14px;background:var(--gc-surface);font-family:inherit;">
                         <option value="periodo">Un período específico</option>
                         <option value="todo">Últimos 12 meses (solo faltante)</option>
                     </select>
                 </div>
                 <div id="divPeriodo" style="grid-column:1/-1;">
-                    <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Período</label>
-                    <select name="periodo" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;background:white;font-family:inherit;">
+                    <label style="display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Período</label>
+                    <select name="periodo" style="width:100%;padding:10px 14px;border:1.5px solid var(--gc-line);border-radius:8px;font-size:14px;background:var(--gc-surface);font-family:inherit;">
                         <?php foreach ($periodos as $p):
                             $ym   = substr($p,0,4).'-'.substr($p,4,2);
                             $etV  = isset($ventasIdx[$p])  ? ' ✓V' : '';
@@ -65,13 +65,13 @@ function badgeFuente(?string $fuente): string {
                         <option value="<?= $p ?>"><?= $label ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <div style="font-size:12px;color:#64748b;margin-top:6px;">✓V/✓C = datos guardados · ★ = declarado · ~ = propuesta</div>
+                    <div style="font-size:12px;color:var(--gc-label-2);margin-top:6px;">✓V/✓C = datos guardados · ★ = declarado · ~ = propuesta</div>
                 </div>
             </div>
             <div style="padding:0 24px 24px;display:flex;justify-content:flex-end;gap:12px;">
-                <a href="/empresas/<?= $empresa['id'] ?>" style="background:#f1f5f9;color:#475569;padding:11px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Cancelar</a>
+                <a href="/empresas/<?= $empresa['id'] ?>" style="background:var(--gc-surface-2);color:var(--gc-label);padding:11px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Cancelar</a>
                 <button type="submit" id="btnSync"
-                    style="background:#1e3a8a;color:white;padding:11px 28px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">
+                    style="background:var(--gc-brand);color:var(--gc-on-brand);padding:11px 28px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;">
                     <span id="btnIcon">🔄</span> <span id="btnText">Sincronizar ahora</span>
                 </button>
             </div>
@@ -79,17 +79,17 @@ function badgeFuente(?string $fuente): string {
     </div>
 
     <?php if ($resultado): ?>
-    <div style="background:white;border-radius:12px;border:1px solid #bbf7d0;overflow:hidden;margin-bottom:20px;">
-        <div style="padding:14px 24px;border-bottom:1px solid #e2e8f0;background:#f0fdf4;font-weight:700;color:#166534;">✅ Sincronización completada</div>
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-pos-border);overflow:hidden;margin-bottom:20px;">
+        <div style="padding:14px 24px;border-bottom:1px solid var(--gc-line);background:var(--gc-pos-soft-2);font-weight:700;color:var(--gc-pos);">✅ Sincronización completada</div>
         <div style="padding:16px 24px;">
             <?php foreach (['ventas','compras'] as $tipo): ?>
             <?php if (!empty($resultado[$tipo])): ?>
-            <div style="font-weight:600;color:#1e293b;margin-bottom:8px;margin-top:<?= $tipo==='compras'?'12px':'0' ?>;"><?= ucfirst($tipo) ?>:</div>
+            <div style="font-weight:600;color:var(--gc-ink);margin-bottom:8px;margin-top:<?= $tipo==='compras'?'12px':'0' ?>;"><?= ucfirst($tipo) ?>:</div>
             <?php foreach ($resultado[$tipo] as $p => $r): ?>
-            <div style="font-size:13px;color:#475569;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+            <div style="font-size:13px;color:var(--gc-label);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
                 <strong><?= substr($p,0,4).'-'.substr($p,4,2) ?>:</strong>
                 <?php if (isset($r['error'])): ?>
-                    <span style="color:#dc2626;">⚠ <?= htmlspecialchars($r['error']) ?></span>
+                    <span style="color:var(--gc-neg-strong);">⚠ <?= htmlspecialchars($r['error']) ?></span>
                 <?php elseif ($r['total'] === 0): ?>
                     <span>Sin datos en SIRE</span>
                 <?php else: ?>
@@ -105,18 +105,18 @@ function badgeFuente(?string $fuente): string {
     <?php endif; ?>
 
     <?php if (!empty($ventasSinc) || !empty($comprasSinc)): ?>
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:14px 24px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#1e293b;">Datos sincronizados</div>
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;">
+        <div style="padding:14px 24px;border-bottom:1px solid var(--gc-line);font-weight:700;color:var(--gc-ink);">Datos sincronizados</div>
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
-                <tr style="background:#f8fafc;">
-                    <th style="padding:10px 20px;text-align:left;color:#64748b;font-weight:600;">Período</th>
-                    <th style="padding:10px 12px;text-align:right;color:#64748b;font-weight:600;">Ventas</th>
-                    <th style="padding:10px 12px;text-align:right;color:#64748b;font-weight:600;">Total ventas</th>
-                    <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:600;">Fuente V</th>
-                    <th style="padding:10px 12px;text-align:right;color:#64748b;font-weight:600;">Compras</th>
-                    <th style="padding:10px 12px;text-align:right;color:#64748b;font-weight:600;">Total compras</th>
-                    <th style="padding:10px 20px;text-align:center;color:#64748b;font-weight:600;">Fuente C</th>
+                <tr style="background:var(--gc-bg);">
+                    <th style="padding:10px 20px;text-align:left;color:var(--gc-label-2);font-weight:600;">Período</th>
+                    <th style="padding:10px 12px;text-align:right;color:var(--gc-label-2);font-weight:600;">Ventas</th>
+                    <th style="padding:10px 12px;text-align:right;color:var(--gc-label-2);font-weight:600;">Total ventas</th>
+                    <th style="padding:10px 12px;text-align:center;color:var(--gc-label-2);font-weight:600;">Fuente V</th>
+                    <th style="padding:10px 12px;text-align:right;color:var(--gc-label-2);font-weight:600;">Compras</th>
+                    <th style="padding:10px 12px;text-align:right;color:var(--gc-label-2);font-weight:600;">Total compras</th>
+                    <th style="padding:10px 20px;text-align:center;color:var(--gc-label-2);font-weight:600;">Fuente C</th>
                 </tr>
             </thead>
             <tbody>
@@ -129,15 +129,15 @@ function badgeFuente(?string $fuente): string {
             foreach ($todos as $idx => $p):
                 $v  = $ventasIdx[$p]  ?? null;
                 $c  = $comprasIdx[$p] ?? null;
-                $bg = $idx % 2 === 0 ? 'white' : '#f8fafc';
+                $bg = $idx % 2 === 0 ? 'var(--gc-surface)' : 'var(--gc-bg)';
             ?>
-            <tr style="background:<?= $bg ?>;border-top:1px solid #f1f5f9;">
-                <td style="padding:10px 20px;font-weight:600;color:#1e293b;"><?= date('M Y', strtotime(substr($p,0,4).'-'.substr($p,4,2).'-01')) ?></td>
-                <td style="padding:10px 12px;text-align:right;color:#475569;"><?= $v ? $v['cant'].' comp.' : '—' ?></td>
-                <td style="padding:10px 12px;text-align:right;color:#1e3a8a;font-weight:600;"><?= $v ? 'S/'.number_format($v['total'],2) : '—' ?></td>
+            <tr style="background:<?= $bg ?>;border-top:1px solid var(--gc-surface-2);">
+                <td style="padding:10px 20px;font-weight:600;color:var(--gc-ink);"><?= date('M Y', strtotime(substr($p,0,4).'-'.substr($p,4,2).'-01')) ?></td>
+                <td style="padding:10px 12px;text-align:right;color:var(--gc-label);"><?= $v ? $v['cant'].' comp.' : '—' ?></td>
+                <td style="padding:10px 12px;text-align:right;color:var(--gc-brand);font-weight:600;"><?= $v ? 'S/'.number_format($v['total'],2) : '—' ?></td>
                 <td style="padding:10px 12px;text-align:center;"><?= badgeFuente($v['fuente'] ?? null) ?></td>
-                <td style="padding:10px 12px;text-align:right;color:#475569;"><?= $c ? $c['cant'].' comp.' : '—' ?></td>
-                <td style="padding:10px 12px;text-align:right;color:#166534;font-weight:600;"><?= $c ? 'S/'.number_format($c['total'],2) : '—' ?></td>
+                <td style="padding:10px 12px;text-align:right;color:var(--gc-label);"><?= $c ? $c['cant'].' comp.' : '—' ?></td>
+                <td style="padding:10px 12px;text-align:right;color:var(--gc-pos);font-weight:600;"><?= $c ? 'S/'.number_format($c['total'],2) : '—' ?></td>
                 <td style="padding:10px 20px;text-align:center;"><?= badgeFuente($c['fuente'] ?? null) ?></td>
             </tr>
             <?php endforeach; ?>

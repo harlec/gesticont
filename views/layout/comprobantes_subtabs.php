@@ -19,7 +19,7 @@ $subtabs = [
     ?>
     <a href="/empresas/<?= $empresa['id'] ?>/<?= $ruta ?>"
        style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-              background:<?= $activo ? '#1e3a8a' : '#f1f5f9' ?>;color:<?= $activo ? 'white' : '#475569' ?>;">
+              background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
         <span><?= $icon ?></span><?= $label ?>
     </a>
     <?php endforeach; ?>

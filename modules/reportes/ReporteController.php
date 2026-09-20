@@ -5,7 +5,7 @@ class ReporteController {
     public function index(): void {
         Auth::require();
         $pageTitle = 'Reportes';
-        echo '<div style="padding:40px;text-align:center;color:#94a3b8;">Módulo en desarrollo</div>';
+        echo '<div style="padding:40px;text-align:center;color:var(--gc-muted);">Módulo en desarrollo</div>';
     }
     public function store(): void { Auth::require(); header('Location: /' . strtolower(str_replace('Controller','','ReporteController'))); exit; }
     public function subir(): void { $this->store(); }

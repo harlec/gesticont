@@ -12,16 +12,16 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
     <!-- Encabezado -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
-            <div style="font-size:20px;font-weight:700;color:#1e293b;"><?= $titulo ?></div>
-            <div style="font-size:13px;color:#94a3b8;margin-top:2px;">
+            <div style="font-size:20px;font-weight:700;color:var(--gc-ink);"><?= $titulo ?></div>
+            <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;">
                 <?= htmlspecialchars($empresa['razon_social']) ?> · RUC: <?= $empresa['ruc'] ?>
             </div>
         </div>
     </div>
 
     <!-- Selector de período -->
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <label style="font-size:13px;font-weight:700;color:#475569;">Período:</label>
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Período:</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <?php foreach ($periodos as $p):
                 $activo = $p === $periodo;
@@ -29,13 +29,13 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
             ?>
             <a href="<?= $urlBase ?>?periodo=<?= $p ?>"
                style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                      background:<?= $activo ? '#1e3a8a' : '#f1f5f9' ?>;
-                      color:<?= $activo ? 'white' : '#475569' ?>;">
+                      background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;
+                      color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
                 <?= $label ?>
             </a>
             <?php endforeach; ?>
             <?php if (empty($periodos)): ?>
-            <span style="font-size:13px;color:#94a3b8;">Sin datos — sincroniza primero</span>
+            <span style="font-size:13px;color:var(--gc-muted);">Sin datos — sincroniza primero</span>
             <?php endif; ?>
         </div>
     </div>
@@ -46,38 +46,38 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
         <?php
         $cards = [
-            ['Comprobantes', number_format($resumen['cant']), '#1e3a8a', '#eff6ff'],
-            ['Base imponible', 'S/ ' . number_format((float)$resumen['base'], 2), '#166534', '#f0fdf4'],
-            ['IGV', 'S/ ' . number_format((float)$resumen['igv'], 2), '#92400e', '#fef3c7'],
-            ['Total', 'S/ ' . number_format((float)$resumen['total'], 2), '#1e293b', '#f8fafc'],
+            ['Comprobantes', number_format($resumen['cant']), 'var(--gc-brand)', 'var(--gc-brand-soft)'],
+            ['Base imponible', 'S/ ' . number_format((float)$resumen['base'], 2), 'var(--gc-pos)', 'var(--gc-pos-soft-2)'],
+            ['IGV', 'S/ ' . number_format((float)$resumen['igv'], 2), 'var(--gc-warn)', 'var(--gc-warn-soft)'],
+            ['Total', 'S/ ' . number_format((float)$resumen['total'], 2), 'var(--gc-ink)', 'var(--gc-bg)'],
         ];
         foreach ($cards as [$label, $valor, $color, $bg]):
         ?>
-        <div style="background:<?= $bg ?>;border-radius:12px;padding:16px 18px;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;"><?= $label ?></div>
+        <div style="background:<?= $bg ?>;border-radius:12px;padding:16px 18px;border:1px solid var(--gc-line);">
+            <div style="font-size:11px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;"><?= $label ?></div>
             <div style="font-size:20px;font-weight:700;color:<?= $color ?>;"><?= $valor ?></div>
         </div>
         <?php endforeach; ?>
     </div>
 
     <!-- Tabla -->
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;">
         <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
-                <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
-                    <th style="padding:10px 16px;text-align:left;color:#64748b;font-weight:700;white-space:nowrap;">#</th>
-                    <th style="padding:10px 16px;text-align:left;color:#64748b;font-weight:700;white-space:nowrap;">Tipo</th>
-                    <th style="padding:10px 16px;text-align:left;color:#64748b;font-weight:700;white-space:nowrap;">Serie-Número</th>
-                    <th style="padding:10px 16px;text-align:left;color:#64748b;font-weight:700;white-space:nowrap;">Fecha</th>
-                    <th style="padding:10px 16px;text-align:left;color:#64748b;font-weight:700;"><?= $esVentas ? 'Cliente' : 'Proveedor' ?></th>
+                <tr style="background:var(--gc-bg);border-bottom:2px solid var(--gc-line);">
+                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">#</th>
+                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Tipo</th>
+                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Serie-Número</th>
+                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Fecha</th>
+                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;"><?= $esVentas ? 'Cliente' : 'Proveedor' ?></th>
                     <?php if (!$esVentas): ?>
-                    <th style="padding:10px 16px;text-align:left;color:#64748b;font-weight:700;white-space:nowrap;">RUC</th>
+                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">RUC</th>
                     <?php endif; ?>
-                    <th style="padding:10px 16px;text-align:right;color:#64748b;font-weight:700;white-space:nowrap;">Base</th>
-                    <th style="padding:10px 16px;text-align:right;color:#64748b;font-weight:700;white-space:nowrap;">IGV</th>
-                    <th style="padding:10px 16px;text-align:right;color:#64748b;font-weight:700;white-space:nowrap;">Total</th>
-                    <th style="padding:10px 16px;text-align:center;color:#64748b;font-weight:700;white-space:nowrap;">Estado</th>
+                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Base</th>
+                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">IGV</th>
+                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Total</th>
+                    <th style="padding:10px 16px;text-align:center;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Estado</th>
                 </tr>
             </thead>
             <tbody>
@@ -86,19 +86,19 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
             foreach ($registros as $r):
                 $tipo_label = $tipoLabel[$r['tipo_comp']] ?? $r['tipo_comp'];
                 $esNC  = in_array($r['tipo_comp'], ['07','08']);
-                $color = $esNC ? '#991b1b' : '#1e293b';
+                $color = $esNC ? 'var(--gc-neg)' : 'var(--gc-ink)';
                 $nombre = $esVentas
                     ? ($r['cliente_nombre'] ?? '-')
                     : ($r['proveedor_nombre'] ?? '-');
                 $rucProv = $esVentas ? null : ($r['proveedor_ruc'] ?? '');
-                $estado = $r['estado_sunat'] === '1' ? ['#dcfce7','#166534','Activo'] : ['#fef2f2','#991b1b','Anulado'];
+                $estado = $r['estado_sunat'] === '1' ? ['var(--gc-pos-soft)','var(--gc-pos)','Activo'] : ['var(--gc-neg-soft)','var(--gc-neg)','Anulado'];
             ?>
-            <tr style="border-top:1px solid #f1f5f9;color:<?= $color ?>;"
-                onmouseover="this.style.background='#f8fafc'"
-                onmouseout="this.style.background='white'">
-                <td style="padding:9px 16px;color:#94a3b8;"><?= $num++ ?></td>
+            <tr style="border-top:1px solid var(--gc-surface-2);color:<?= $color ?>;"
+                onmouseover="this.style.background='var(--gc-bg)'"
+                onmouseout="this.style.background='var(--gc-surface)'">
+                <td style="padding:9px 16px;color:var(--gc-muted);"><?= $num++ ?></td>
                 <td style="padding:9px 16px;">
-                    <span style="background:#f1f5f9;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:#475569;font-family:monospace;">
+                    <span style="background:var(--gc-surface-2);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:var(--gc-label);font-family:monospace;">
                         <?= $tipo_label ?>
                     </span>
                 </td>
@@ -111,7 +111,7 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
                     <?= htmlspecialchars(substr($nombre, 0, 40)) ?>
                 </td>
                 <?php if (!$esVentas): ?>
-                <td style="padding:9px 16px;font-family:monospace;color:#64748b;"><?= $rucProv ?></td>
+                <td style="padding:9px 16px;font-family:monospace;color:var(--gc-label-2);"><?= $rucProv ?></td>
                 <?php endif; ?>
                 <td style="padding:9px 16px;text-align:right;font-family:monospace;">
                     <?= $r['base_imponible'] != 0 ? 'S/ ' . number_format((float)$r['base_imponible'], 2) : '—' ?>
@@ -132,17 +132,17 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
             </tbody>
             <!-- Totales -->
             <tfoot>
-                <tr style="background:#f8fafc;border-top:2px solid #e2e8f0;font-weight:700;">
-                    <td colspan="<?= $esVentas ? 6 : 7 ?>" style="padding:10px 16px;color:#475569;">
+                <tr style="background:var(--gc-bg);border-top:2px solid var(--gc-line);font-weight:700;">
+                    <td colspan="<?= $esVentas ? 6 : 7 ?>" style="padding:10px 16px;color:var(--gc-label);">
                         Total <?= $resumen['cant'] ?> comprobantes
                     </td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;color:#166534;">
+                    <td style="padding:10px 16px;text-align:right;font-family:monospace;color:var(--gc-pos);">
                         S/ <?= number_format((float)$resumen['base'], 2) ?>
                     </td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;color:#92400e;">
+                    <td style="padding:10px 16px;text-align:right;font-family:monospace;color:var(--gc-warn);">
                         S/ <?= number_format((float)$resumen['igv'], 2) ?>
                     </td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;color:#1e3a8a;font-size:15px;">
+                    <td style="padding:10px 16px;text-align:right;font-family:monospace;color:var(--gc-brand);font-size:15px;">
                         S/ <?= number_format((float)$resumen['total'], 2) ?>
                     </td>
                     <td></td>
@@ -153,14 +153,14 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
 
         <!-- Paginación -->
         <?php if ($totalPages > 1): ?>
-        <div style="padding:14px 16px;border-top:1px solid #e2e8f0;display:flex;justify-content:center;gap:8px;">
+        <div style="padding:14px 16px;border-top:1px solid var(--gc-line);display:flex;justify-content:center;gap:8px;">
             <?php for ($p = 1; $p <= $totalPages; $p++):
                 $activo = $p === $page;
             ?>
             <a href="<?= $urlBase ?>?periodo=<?= $periodo ?>&page=<?= $p ?>"
                style="padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                      background:<?= $activo ? '#1e3a8a' : '#f1f5f9' ?>;
-                      color:<?= $activo ? 'white' : '#475569' ?>;">
+                      background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;
+                      color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
                 <?= $p ?>
             </a>
             <?php endfor; ?>
@@ -169,9 +169,9 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
     </div>
 
     <?php else: ?>
-    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;padding:60px;text-align:center;color:#94a3b8;">
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
         <div style="font-size:40px;margin-bottom:16px;"><?= $esVentas ? '📄' : '🧾' ?></div>
-        <div style="font-size:16px;font-weight:600;color:#475569;margin-bottom:8px;">
+        <div style="font-size:16px;font-weight:600;color:var(--gc-label);margin-bottom:8px;">
             Sin <?= $esVentas ? 'ventas' : 'compras' ?> para este período
         </div>
         <div style="font-size:13px;margin-bottom:20px;">
@@ -182,7 +182,7 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
             <?php endif; ?>
         </div>
         <a href="/empresas/<?= $empresa['id'] ?>/sync"
-           style="background:#1e3a8a;color:white;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">
+           style="background:var(--gc-brand);color:var(--gc-on-brand);padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">
             🔄 Sincronizar SIRE
         </a>
     </div>

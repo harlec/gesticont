@@ -1,7 +1,6 @@
 <?php
 $anios = range((int)date('Y'), (int)date('Y') - 4);
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:1100px;">
 

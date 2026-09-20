@@ -4,7 +4,6 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 $labelTipo = ['activo' => 'Cuentas de Ingreso/Cobro', 'pasivo' => 'Cuentas por Pagar / Obligaciones', 'gasto' => 'Pago Directo de Gasto'];
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:1100px;">
 

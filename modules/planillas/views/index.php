@@ -3,7 +3,6 @@ $periodos = [];
 for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:1100px;">
 

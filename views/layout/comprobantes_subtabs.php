@@ -1,8 +1,8 @@
 <?php
 /**
- * Sub-navegación de la pestaña "Comprobantes" — Ventas, Compras,
- * Sincronizar y Clasificar viven bajo un solo ítem en la barra principal
- * (empresa_tabs.php); esta franja secundaria, más chica, es la que deja
+ * Sub-navegación del desplegable "Comprobantes" — Ventas, Compras,
+ * Sincronizar y Clasificar viven bajo un solo ítem en el menú horizontal
+ * (views/layout/nav.php); esta franja secundaria, más chica, es la que deja
  * moverse entre esas 4 sin salir de la sección.
  * Requiere $empresa en el scope. $subtabActiva: 'ventas'|'compras'|'sync'|'imputacion'.
  */

@@ -1,7 +1,6 @@
 <?php
 $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'Régimen Especial','rus'=>'Nuevo RUS'];
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 <div style="max-width:700px;">
 
     <?php if ($cert): ?>

@@ -2,7 +2,6 @@
 $periodos = [];
 for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:1100px;">
 

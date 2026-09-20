@@ -2,7 +2,6 @@
 $anios = range((int)date('Y'), (int)date('Y') - 4);
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:750px;">
 

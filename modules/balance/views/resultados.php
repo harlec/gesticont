@@ -12,7 +12,6 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
     echo '</tr>';
 };
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:750px;">
 

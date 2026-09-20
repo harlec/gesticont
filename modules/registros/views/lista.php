@@ -5,7 +5,6 @@ $urlBase   = "/empresas/{$empresa['id']}/" . ($esVentas ? 'ventas' : 'compras');
 $urlOtro   = "/empresas/{$empresa['id']}/" . ($esVentas ? 'compras' : 'ventas');
 $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:1100px;">
     <?php $subtabActiva = $esVentas ? 'ventas' : 'compras'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>

@@ -10,7 +10,6 @@ function badgeFuente(?string $fuente): string {
     return '';
 }
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:900px;">
     <?php $subtabActiva = 'sync'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>

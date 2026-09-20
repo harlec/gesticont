@@ -29,7 +29,6 @@ try {
 
 $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'Régimen Especial','rus'=>'Nuevo RUS'];
 ?>
-<?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <?php if (isset($dbError)): ?>
 <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:20px;color:#991b1b;font-size:13px;">

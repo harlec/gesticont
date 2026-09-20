@@ -366,3 +366,30 @@ SELECT v.nombre_visible, c.id, 'venta', v.orden FROM (
     UNION ALL SELECT 'Servicios', '703', 20
 ) AS v
 JOIN cuentas_contables c ON c.codigo = v.codigo AND c.empresa_id IS NULL;
+
+-- ============================================================
+-- 8. SALDOS DE APERTURA (Inventario Inicial)
+-- Completa la sección "Períodos" de la spec, que agrupa esta tabla junto
+-- a periodos_contables. Se llena manualmente al arrancar una empresa en
+-- el sistema; en años siguientes se genera sola desde el cierre del
+-- período anterior (ver cierres_periodo en Fase 1).
+-- ============================================================
+CREATE TABLE saldos_apertura (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    empresa_id  INT UNSIGNED NOT NULL,
+    periodo_id  INT UNSIGNED NOT NULL,
+    cuenta_id   INT UNSIGNED NOT NULL,
+    debe        DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    haber       DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    FOREIGN KEY (periodo_id) REFERENCES periodos_contables(id) ON DELETE CASCADE,
+    FOREIGN KEY (cuenta_id)  REFERENCES cuentas_contables(id),
+    UNIQUE KEY uk_periodo_cuenta (periodo_id, cuenta_id)
+) ENGINE=InnoDB;
+
+-- NOTA: la validación "suma de activo = suma de pasivo + patrimonio" (2.1 de
+-- la spec) no se hace aquí a nivel de base de datos (MySQL/MariaDB no valida
+-- across-rows en un CHECK simple) — se implementa en la capa de servicio de
+-- PHP antes de insertar, rechazando el guardado si no cuadra. Documentado
+-- para que no se asuma que la tabla sola ya garantiza esa regla.

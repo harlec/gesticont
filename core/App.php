@@ -32,6 +32,9 @@ class App {
         // Sincronización SIRE
         $router->get('/empresas/{id}/sync',          'sync/SyncController@index');
         $router->post('/empresas/{id}/sync/ejecutar','sync/SyncController@ejecutar');
+        // Motor contable — clasificación (imputación) manual
+        $router->get('/empresas/{id}/imputacion',            'imputacion/ImputacionController@index');
+        $router->post('/empresas/{id}/imputacion/clasificar','imputacion/ImputacionController@clasificar');
         $router->get('/comprobantes',               'comprobantes/ComprobanteController@index');
         $router->get('/guias',                      'guias/GuiaController@index');
         $router->get('/declaraciones',              'declaraciones/DeclaracionController@index');

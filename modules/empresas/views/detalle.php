@@ -69,6 +69,10 @@ $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'
            style="background:#1e3a8a;color:white;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
             🔄 Sincronizar
         </a>
+        <a href="/empresas/<?= $empresa['id'] ?>/imputacion"
+           style="background:#ede9fe;color:#5b21b6;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+            🏷️ Clasificar
+        </a>
     </div>
 </div>
 

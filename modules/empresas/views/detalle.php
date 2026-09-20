@@ -87,6 +87,7 @@ $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'
                 Ambiente: <?= ucfirst($cert['ambiente'] ?? 'beta') ?>
                 <?php if (!empty($cert['api_client_id'])): ?> · API SIRE ✓<?php endif; ?>
             </div>
+            <a href="/empresas/<?= $empresa['id'] ?>/certificado" style="font-size:12px;color:#2563eb;text-decoration:none;margin-top:4px;display:block;">Gestionar →</a>
         <?php else: ?>
             <div style="font-size:14px;font-weight:700;color:#92400e;">⚠ Sin credenciales SOL</div>
             <a href="/empresas/<?= $empresa['id'] ?>/certificado" style="font-size:12px;color:#2563eb;text-decoration:none;margin-top:4px;display:block;">Configurar ahora →</a>

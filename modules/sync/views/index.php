@@ -13,6 +13,7 @@ function badgeFuente(?string $fuente): string {
 <?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:900px;">
+    <?php $subtabActiva = 'sync'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
 
     <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;margin-bottom:20px;">
         <div style="padding:18px 24px;border-bottom:1px solid #e2e8f0;background:#eff6ff;display:flex;align-items:center;gap:12px;">

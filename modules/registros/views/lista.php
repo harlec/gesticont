@@ -8,6 +8,7 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
 <?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:1100px;">
+    <?php $subtabActiva = $esVentas ? 'ventas' : 'compras'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
 
     <!-- Encabezado -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">

@@ -5,6 +5,7 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
 <?php require ROOT . '/views/layout/empresa_tabs.php'; ?>
 
 <div style="max-width:900px;">
+    <?php $subtabActiva = 'imputacion'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
 
     <!-- Encabezado -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">

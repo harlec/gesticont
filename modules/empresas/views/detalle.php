@@ -77,6 +77,10 @@ $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'
            style="background:#e0e7ff;color:#3730a3;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
             📖 Diario
         </a>
+        <a href="/empresas/<?= $empresa['id'] ?>/balance"
+           style="background:#fce7f3;color:#9d174d;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+            ⚖️ Balance
+        </a>
     </div>
 </div>
 

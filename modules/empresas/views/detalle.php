@@ -73,6 +73,10 @@ $regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'
            style="background:#ede9fe;color:#5b21b6;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
             🏷️ Clasificar
         </a>
+        <a href="/empresas/<?= $empresa['id'] ?>/diario"
+           style="background:#e0e7ff;color:#3730a3;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
+            📖 Diario
+        </a>
     </div>
 </div>
 

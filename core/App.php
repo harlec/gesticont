@@ -35,6 +35,9 @@ class App {
         // Motor contable — clasificación (imputación) manual
         $router->get('/empresas/{id}/imputacion',            'imputacion/ImputacionController@index');
         $router->post('/empresas/{id}/imputacion/clasificar','imputacion/ImputacionController@clasificar');
+        // Motor contable — Libro Diario (generación de asientos)
+        $router->get('/empresas/{id}/diario',          'diario/DiarioController@index');
+        $router->post('/empresas/{id}/diario/generar', 'diario/DiarioController@generar');
         $router->get('/comprobantes',               'comprobantes/ComprobanteController@index');
         $router->get('/guias',                      'guias/GuiaController@index');
         $router->get('/declaraciones',              'declaraciones/DeclaracionController@index');

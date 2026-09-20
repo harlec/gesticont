@@ -4,7 +4,7 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
 $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
 ?>
 
-<div style="max-width:1300px;margin:0 auto;">
+<div class="gc-content gc-w-table-lg">
 
     <!-- Selector de período -->
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">

@@ -1,4 +1,4 @@
-<div style="max-width:680px;margin:0 auto;">
+<div class="gc-content gc-w-form">
 <form method="POST" action="/empresas/<?= $empresa['id'] ?>/editar">
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;">
         <div style="padding:20px 24px;border-bottom:1px solid var(--gc-line);background:var(--gc-bg);">

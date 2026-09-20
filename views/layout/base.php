@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link href="/public/css/theme.css" rel="stylesheet">
 <link href="/public/css/nav.css" rel="stylesheet">
+<link href="/public/css/layout.css" rel="stylesheet">
 <style>body{font-family:'Plus Jakarta Sans',sans-serif;overflow-x:hidden;}a{text-decoration:none;}</style>
 <script>
 (function () {

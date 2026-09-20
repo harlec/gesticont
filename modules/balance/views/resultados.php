@@ -13,7 +13,7 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
 };
 ?>
 
-<div style="max-width:750px;margin:0 auto;">
+<div class="gc-content gc-w-doc">
 
     <!-- Selector de período -->
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">

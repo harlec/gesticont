@@ -2,7 +2,7 @@
 $anios = range((int)date('Y'), (int)date('Y') - 4);
 ?>
 
-<div style="max-width:1100px;margin:0 auto;">
+<div class="gc-content gc-w-table">
 
     <?php if (!empty($_SESSION['apertura_error'])): ?>
     <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">

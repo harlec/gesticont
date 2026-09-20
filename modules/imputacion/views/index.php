@@ -84,6 +84,30 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
         <span id="im-bulk-warning" style="color:#fca5a5;font-size:12px;font-weight:600;"></span>
     </div>
 
+    <?php
+        $cantVentas  = count(array_filter($pendientes, fn($d) => $d['origen'] === 'venta'));
+        $cantCompras = count(array_filter($pendientes, fn($d) => $d['origen'] === 'compra'));
+    ?>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:#94a3b8;font-weight:700;">Seleccionar:</span>
+        <?php if ($cantVentas > 0): ?>
+        <button type="button" class="im-select-todos" data-origen="venta"
+                style="background:#dcfce7;color:#166534;border:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+            Todas las ventas (<?= $cantVentas ?>)
+        </button>
+        <?php endif; ?>
+        <?php if ($cantCompras > 0): ?>
+        <button type="button" class="im-select-todos" data-origen="compra"
+                style="background:#fef3c7;color:#92400e;border:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+            Todas las compras (<?= $cantCompras ?>)
+        </button>
+        <?php endif; ?>
+        <button type="button" id="im-select-ninguno"
+                style="background:#f1f5f9;color:#475569;border:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+            Ninguno
+        </button>
+    </div>
+
     <div id="im-lista" style="display:flex;flex-direction:column;gap:10px;">
         <?php foreach ($pendientes as $doc):
             $esVenta  = $doc['origen'] === 'venta';
@@ -265,6 +289,22 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
     });
 
     document.getElementById('im-bulk-clear').addEventListener('click', function () {
+        checksSeleccionados().forEach(c => c.checked = false);
+        actualizarBarra();
+    });
+
+    document.querySelectorAll('.im-select-todos').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const origen = this.dataset.origen;
+            lista.querySelectorAll('.im-card').forEach(card => {
+                const check = card.querySelector('.im-check');
+                check.checked = card.dataset.origen === origen;
+            });
+            actualizarBarra();
+        });
+    });
+
+    document.getElementById('im-select-ninguno').addEventListener('click', function () {
         checksSeleccionados().forEach(c => c.checked = false);
         actualizarBarra();
     });

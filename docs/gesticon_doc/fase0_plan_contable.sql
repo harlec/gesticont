@@ -68,6 +68,7 @@ CREATE TABLE parametros_contables (
     tasa_ir           DECIMAL(5,2) NOT NULL DEFAULT 29.50,  -- % Impuesto a la Renta anual
     pct_gastos_admin  DECIMAL(5,2) NOT NULL DEFAULT 30.00,
     pct_gastos_ventas DECIMAL(5,2) NOT NULL DEFAULT 70.00,
+    pct_reserva_legal DECIMAL(5,2) NOT NULL DEFAULT 10.00,
     moneda            CHAR(3) NOT NULL DEFAULT 'PEN',
     FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
     FOREIGN KEY (periodo_id) REFERENCES periodos_contables(id) ON DELETE CASCADE,

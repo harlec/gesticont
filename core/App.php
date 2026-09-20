@@ -41,6 +41,8 @@ class App {
         $router->post('/empresas/{id}/diario/generar', 'diario/DiarioController@generar');
         // Motor contable — Balance de Comprobación
         $router->get('/empresas/{id}/balance', 'balance/BalanceController@comprobacion');
+        // Motor contable — Estado de Resultados
+        $router->get('/empresas/{id}/resultados', 'balance/EstadoResultadosController@index');
         $router->get('/comprobantes',               'comprobantes/ComprobanteController@index');
         $router->get('/guias',                      'guias/GuiaController@index');
         $router->get('/declaraciones',              'declaraciones/DeclaracionController@index');

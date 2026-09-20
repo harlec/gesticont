@@ -43,6 +43,8 @@ class App {
         $router->get('/empresas/{id}/balance', 'balance/BalanceController@comprobacion');
         // Motor contable — Estado de Resultados
         $router->get('/empresas/{id}/resultados', 'balance/EstadoResultadosController@index');
+        // Motor contable — Balance General
+        $router->get('/empresas/{id}/balance-general', 'balance/BalanceGeneralController@index');
         $router->get('/comprobantes',               'comprobantes/ComprobanteController@index');
         $router->get('/guias',                      'guias/GuiaController@index');
         $router->get('/declaraciones',              'declaraciones/DeclaracionController@index');

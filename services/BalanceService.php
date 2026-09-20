@@ -15,7 +15,7 @@ class BalanceService
         $pdo = Model::db();
 
         $stmt = $pdo->prepare("
-            SELECT c.id, c.codigo, c.nombre, c.tipo, c.naturaleza,
+            SELECT c.id, c.codigo, c.nombre, c.tipo, c.naturaleza, c.es_inventariable,
                    COALESCE(sa.debe, 0)  + COALESCE(m.debe, 0)  AS suma_debe,
                    COALESCE(sa.haber, 0) + COALESCE(m.haber, 0) AS suma_haber
             FROM cuentas_contables c
@@ -60,6 +60,7 @@ class BalanceService
 
             $resultado[] = [
                 'codigo' => $f['codigo'], 'nombre' => $f['nombre'], 'tipo' => $f['tipo'],
+                'es_inventariable' => (bool)$f['es_inventariable'],
                 'debe' => $debe, 'haber' => $haber,
                 'deudor' => $deudor, 'acreedor' => $acreedor,
                 'activo' => $activo, 'pasivo' => $pasivo,

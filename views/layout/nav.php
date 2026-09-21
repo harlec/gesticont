@@ -35,6 +35,7 @@ if ($dentroDeEmpresa) {
         ['label' => 'Caja', 'href' => $base . '/caja'],
         ['label' => 'Contabilidad', 'hijos' => [
             [$base . '/diario', 'Libro Diario'],
+            [$base . '/mayor', 'Libro Mayor'],
             [$base . '/balance', 'Balance de Comprobación'],
             [$base . '/balance-general', 'Balance General'],
             [$base . '/resultados', 'Estado de Resultados'],

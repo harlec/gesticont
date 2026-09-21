@@ -117,7 +117,9 @@ class ImputacionController
             $empresaId,
             $_POST['origen'] ?? '',
             (int)($_POST['documento_id'] ?? 0),
-            (int)($_POST['tipo_gasto_id'] ?? 0)
+            (int)($_POST['tipo_gasto_id'] ?? 0),
+            !empty($_POST['cobrado']),
+            $_POST['fecha_cobro'] ?? null
         );
 
         if (!$resultado['ok']) {
@@ -163,7 +165,9 @@ class ImputacionController
                 $empresaId,
                 $item['origen'] ?? '',
                 (int)($item['documento_id'] ?? 0),
-                (int)($item['tipo_gasto_id'] ?? 0)
+                (int)($item['tipo_gasto_id'] ?? 0),
+                !empty($item['cobrado']),
+                $item['fecha'] ?? null
             );
             $r['documento_id'] = (int)($item['documento_id'] ?? 0);
             $r['origen']       = $item['origen'] ?? '';
@@ -173,7 +177,7 @@ class ImputacionController
         $salida(['resultados' => $resultados]);
     }
 
-    private function _clasificarUno(int $empresaId, string $origen, int $documentoId, int $tipoGastoId): array
+    private function _clasificarUno(int $empresaId, string $origen, int $documentoId, int $tipoGastoId, bool $cobrado = false, ?string $fecha = null): array
     {
         if (!in_array($origen, ['venta', 'compra'], true) || !$documentoId || !$tipoGastoId) {
             return ['ok' => false, 'error' => 'Datos incompletos.'];
@@ -210,6 +214,10 @@ class ImputacionController
         // en el asiento: 4011). Cubre gravado + exonerado + inafecto.
         $montoNeto = (float)$doc['total'] - (float)$doc['igv'];
 
+        // Fecha del cobro/pago: si no la mandan, se asume la del comprobante
+        // (caso más común — pagado/cobrado al contado el mismo día).
+        $fechaCobro = $fecha ?: $doc['fecha_emision'];
+
         Model::beginTransaction();
         try {
             $pdo->prepare("
@@ -220,13 +228,38 @@ class ImputacionController
             $pdo->prepare("UPDATE {$tabla} SET estado_imputacion = 'imputado' WHERE id = ?")
                 ->execute([$documentoId]);
 
+            // Cobro/pago declarado en este mismo paso — nunca inferido de SIRE
+            // (SUNAT no reporta si un comprobante fue cobrado, solo que se
+            // emitió). Genera el movimiento de Caja contra la cuenta por
+            // cobrar/pagar (121/421) que la clasificación normal deja abierta,
+            // para no tener que repetir el dato a mano en la pantalla de Caja.
+            if ($cobrado) {
+                $campoEstado = $origen === 'venta' ? 'cobrado' : 'pagado';
+                $campoFecha  = $origen === 'venta' ? 'fecha_cobro' : 'fecha_pago';
+                $pdo->prepare("UPDATE {$tabla} SET {$campoEstado} = 1, {$campoFecha} = ? WHERE id = ?")
+                    ->execute([$fechaCobro, $documentoId]);
+
+                $cuentaCajaCod = $origen === 'venta' ? '121' : '421';
+                $stmtCC = $pdo->prepare("SELECT id FROM cuentas_contables WHERE codigo = ? AND empresa_id IS NULL LIMIT 1");
+                $stmtCC->execute([$cuentaCajaCod]);
+                $cuentaContrapartida = (int)$stmtCC->fetchColumn();
+
+                $tipoMov = $origen === 'venta' ? 'ingreso' : 'egreso';
+                $descripcion = ($origen === 'venta' ? 'Cobro' : 'Pago') . " {$doc['serie']}-{$doc['correlativo']}";
+
+                $pdo->prepare("
+                    INSERT INTO caja_movimientos (empresa_id, tipo, cuenta_id, {$col}, descripcion, monto, fecha, registrado_por)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ")->execute([$empresaId, $tipoMov, $cuentaContrapartida, $documentoId, $descripcion, (float)$doc['total'], $fechaCobro, Auth::id()]);
+            }
+
             Model::commit();
         } catch (Exception $e) {
             Model::rollback();
             return ['ok' => false, 'error' => 'Error al guardar la clasificación.'];
         }
 
-        return ['ok' => true, 'cuenta_codigo' => $tipo['codigo'], 'cuenta_nombre' => $tipo['nombre']];
+        return ['ok' => true, 'cuenta_codigo' => $tipo['codigo'], 'cuenta_nombre' => $tipo['nombre'], 'cobrado' => $cobrado];
     }
 
     private function _getEmpresa(int $id): ?array

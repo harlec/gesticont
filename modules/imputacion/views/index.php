@@ -62,6 +62,12 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
         <select id="im-bulk-select" style="flex:1;min-width:200px;padding:7px 10px;border-radius:8px;border:none;font-size:13px;">
             <option value="">Seleccionar cuenta para todos…</option>
         </select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;white-space:nowrap;">
+            <input type="checkbox" id="im-bulk-cobrado" style="width:14px;height:14px;">
+            <span id="im-bulk-cobrado-label">¿Ya se cobró/pagó?</span>
+            <input type="date" id="im-bulk-fecha" disabled value="<?= date('Y-m-d') ?>"
+                   style="padding:3px 6px;border:none;border-radius:6px;font-size:12px;">
+        </label>
         <button id="im-bulk-apply" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
             ✓ Aplicar a seleccionados
         </button>
@@ -127,21 +133,29 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
                          title="<?= htmlspecialchars($doc['contraparte_nombre']) ?>">
                         <?= htmlspecialchars($doc['contraparte_nombre']) ?>
                     </div>
-                    <form class="im-form" method="POST" action="/empresas/<?= $empresa['id'] ?>/imputacion/clasificar" style="display:flex;gap:8px;">
+                    <form class="im-form" method="POST" action="/empresas/<?= $empresa['id'] ?>/imputacion/clasificar" style="display:flex;flex-direction:column;gap:8px;">
                         <input type="hidden" name="origen" value="<?= $doc['origen'] ?>">
                         <input type="hidden" name="documento_id" value="<?= $doc['id'] ?>">
-                        <select name="tipo_gasto_id" required
-                                style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;color:var(--gc-ink);">
-                            <option value="">Seleccionar cuenta…</option>
-                            <?php foreach ($tipos as $t): ?>
-                            <option value="<?= $t['id'] ?>" <?= $t['id'] === $sugerida ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($t['nombre_visible']) ?>
-                            </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <button type="submit" class="im-btn" style="flex-shrink:0;background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
-                            ✓ Confirmar
-                        </button>
+                        <div style="display:flex;gap:8px;">
+                            <select name="tipo_gasto_id" required
+                                    style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;color:var(--gc-ink);">
+                                <option value="">Seleccionar cuenta…</option>
+                                <?php foreach ($tipos as $t): ?>
+                                <option value="<?= $t['id'] ?>" <?= $t['id'] === $sugerida ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($t['nombre_visible']) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="submit" class="im-btn" style="flex-shrink:0;background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+                                ✓ Confirmar
+                            </button>
+                        </div>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gc-label);cursor:pointer;">
+                            <input type="checkbox" class="im-cobrado" name="cobrado" style="width:14px;height:14px;">
+                            <?= $esVenta ? '¿Ya se cobró?' : '¿Ya se pagó?' ?>
+                            <input type="date" name="fecha_cobro" class="im-fecha-cobro" value="<?= $doc['fecha_emision'] ?>" disabled
+                                   style="padding:3px 6px;border:1px solid var(--gc-line);border-radius:6px;font-size:12px;color:var(--gc-label);">
+                        </label>
                     </form>
                 </div>
             </div>
@@ -188,6 +202,17 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
         setTimeout(() => { box.innerHTML = ''; }, 4000);
     }
 
+    // Habilita el campo de fecha solo si el checkbox de cobro/pago está
+    // marcado — evita mandar una fecha "fantasma" cuando no aplica.
+    lista.addEventListener('change', function (e) {
+        if (!e.target.classList.contains('im-cobrado')) return;
+        const fecha = e.target.closest('.im-form').querySelector('.im-fecha-cobro');
+        fecha.disabled = !e.target.checked;
+    });
+    document.getElementById('im-bulk-cobrado').addEventListener('change', function () {
+        document.getElementById('im-bulk-fecha').disabled = !this.checked;
+    });
+
     function quitarTarjeta(card) {
         card.style.opacity = '0';
         setTimeout(() => {
@@ -221,16 +246,20 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
         if (!select.value) return;
 
         btn.disabled = true; btn.textContent = 'Guardando…';
+        const cobradoChk = form.querySelector('.im-cobrado');
+        const fechaInput = form.querySelector('.im-fecha-cobro');
         const item = {
             origen: form.origen.value,
             documento_id: parseInt(form.documento_id.value, 10),
-            tipo_gasto_id: parseInt(select.value, 10)
+            tipo_gasto_id: parseInt(select.value, 10),
+            cobrado: cobradoChk.checked,
+            fecha: cobradoChk.checked ? fechaInput.value : null
         };
         try {
             const data = await clasificarLote([item]);
             const r = (data.resultados || [])[0];
             if (r && r.ok) {
-                feedback('Clasificado como ' + r.cuenta_codigo + ' - ' + r.cuenta_nombre + '.', true);
+                feedback('Clasificado como ' + r.cuenta_codigo + ' - ' + r.cuenta_nombre + (r.cobrado ? ' · registrado en Caja' : '') + '.', true);
                 quitarTarjeta(card);
             } else {
                 feedback((r && r.error) || 'No se pudo clasificar.', false);
@@ -303,9 +332,14 @@ $labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p,
         if (!checks.length) return;
 
         this.disabled = true; this.textContent = 'Aplicando…';
+        const bulkCobrado = document.getElementById('im-bulk-cobrado').checked;
+        const bulkFecha   = document.getElementById('im-bulk-fecha').value;
         const items = checks.map(c => {
             const card = c.closest('.im-card');
-            return { origen: card.dataset.origen, documento_id: parseInt(card.dataset.id, 10), tipo_gasto_id: parseInt(select.value, 10) };
+            return {
+                origen: card.dataset.origen, documento_id: parseInt(card.dataset.id, 10), tipo_gasto_id: parseInt(select.value, 10),
+                cobrado: bulkCobrado, fecha: bulkCobrado ? bulkFecha : null
+            };
         });
 
         try {

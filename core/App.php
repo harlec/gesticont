@@ -29,6 +29,8 @@ class App {
         $router->post('/empresas/{id}/editar',      'empresas/EmpresaController@update');
         $router->get('/empresas/{id}/certificado',  'certificados/CertificadoController@index');
         $router->post('/empresas/{id}/certificado', 'certificados/CertificadoController@subir');
+        // Período de trabajo activo (selector en la barra de identidad)
+        $router->get('/empresas/{id}/periodo', 'periodo/PeriodoController@set');
         // Sincronización SIRE
         $router->get('/empresas/{id}/sync',          'sync/SyncController@index');
         $router->post('/empresas/{id}/sync/ejecutar','sync/SyncController@ejecutar');

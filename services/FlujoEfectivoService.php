@@ -95,7 +95,14 @@ class FlujoEfectivoService
         $balance = BalanceService::comprobacion($empresaId, $periodoContableId, $fechaCorte);
         $saldoRealCaja = 0.0;
         foreach ($balance['filas'] as $f) {
-            if (in_array($f['codigo'], ['101', '104'], true)) $saldoRealCaja += $f['activo'];
+            // Neto de las dos columnas, no solo "activo": si Caja queda
+            // sobregirada (más egresos que saldo disponible) el Balance la
+            // voltea a la columna "pasivo" — mismo criterio ya aplicado en
+            // BalanceGeneralService para cuentas del elemento 4 en posición
+            // deudora. Leer solo "activo" aquí subestimaba el saldo real
+            // exactamente en esos casos (detectado al simular un período
+            // con más pagos que caja disponible).
+            if (in_array($f['codigo'], ['101', '104'], true)) $saldoRealCaja += $f['activo'] - $f['pasivo'];
         }
         $saldoRealCaja = round($saldoRealCaja, 2);
 

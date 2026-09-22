@@ -12,6 +12,8 @@
  * contable editable, Centro de Costos, Recibos por Honorarios, Boletas de
  * pago aparte, Transferencias) porque no hay pantalla real detrás todavía.
  */
+require_once ROOT . '/core/Model.php';
+
 $dentroDeEmpresa = isset($empresa) && $empresa;
 $navPath = rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/') ?: '/';
 
@@ -84,6 +86,53 @@ $seccionActual = null;
 if ($dentroDeEmpresa && isset($pageTitle)) {
     $seccionActual = strpos($pageTitle, ' — ') !== false ? explode(' — ', $pageTitle)[0] : 'Resumen';
 }
+
+// Empresas asignadas al usuario, para el selector de la barra de identidad
+// — antes el nombre era solo texto, y cambiar de empresa exigía salir a
+// "Todas mis empresas" e ir a buscarla. Se conserva la sub-ruta actual al
+// cambiar (ver $navSufijo) para no perder la pantalla en la que se estaba.
+$misEmpresas = [];
+$navSufijo = '';
+if ($dentroDeEmpresa) {
+    $pdo = Model::db();
+    if (\Auth::isSuperadmin()) {
+        $misEmpresas = $pdo->query("SELECT id, razon_social, ruc FROM empresas WHERE activo = 1 ORDER BY razon_social")->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $stmtMis = $pdo->prepare("
+            SELECT e.id, e.razon_social, e.ruc FROM empresas e
+            INNER JOIN empresa_usuarios eu ON eu.empresa_id = e.id
+            WHERE e.activo = 1 AND eu.usuario_id = ? AND eu.activo = 1
+            ORDER BY e.razon_social
+        ");
+        $stmtMis->execute([\Auth::id()]);
+        $misEmpresas = $stmtMis->fetchAll(PDO::FETCH_ASSOC);
+    }
+    $baseActual = '/empresas/' . $empresa['id'];
+    if (strpos($navPath, $baseActual) === 0) $navSufijo = substr($navPath, strlen($baseActual));
+}
+
+// Período de trabajo activo, para el selector — mismo valor que cada
+// pantalla resuelve con Periodo::resolver(), así el desplegable siempre
+// muestra el período realmente aplicado, no uno adivinado aparte.
+require_once ROOT . '/core/Periodo.php';
+$periodoActivoNav = $dentroDeEmpresa ? Periodo::resolver($empresa['id']) : null;
+// Mismo rango (últimos 12 meses, sin el actual) que ya usa cada pantalla
+// en su propio selector local — si difirieran, un período elegido acá
+// podría no aparecer marcado en el selector de la pantalla misma.
+$opcionesPeriodo = [];
+for ($i = 1; $i <= 12; $i++) $opcionesPeriodo[] = date('Ym', strtotime("-{$i} month"));
+// Sin duplicar por si el período activo (elegido antes) ya no cae en ese
+// rango — se agrega igual para que el desplegable siempre pueda mostrarlo
+// marcado en vez de dejarlo "huérfano".
+if ($periodoActivoNav && !in_array($periodoActivoNav, $opcionesPeriodo, true)) array_unshift($opcionesPeriodo, $periodoActivoNav);
+
+// A dónde volver tras cambiar de período: la URL actual pero sin su propio
+// ?periodo=, para que la pantalla de destino tome el valor nuevo recién
+// guardado en sesión en vez de pisarlo de vuelta con el viejo de la URL.
+$volverPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+parse_str((string)parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), $volverQuery);
+unset($volverQuery['periodo']);
+$volverSinPeriodo = $volverPath . (empty($volverQuery) ? '' : '?' . http_build_query($volverQuery));
 ?>
 <div style="position:sticky;top:0;z-index:40;width:100%;">
     <!-- Barra de identidad — dos bloques atómicos (izquierda/derecha) que
@@ -99,10 +148,49 @@ if ($dentroDeEmpresa && isset($pageTitle)) {
             </a>
             <?php if ($dentroDeEmpresa): ?>
             <div class="gc-hide-narrow" style="width:1px;height:22px;background:rgba(255,255,255,0.18);flex-shrink:0;"></div>
-            <a href="/empresas/<?= $empresa['id'] ?>" class="gc-empresa-pill" style="display:flex;flex-direction:column;text-decoration:none;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.1);min-width:0;overflow:hidden;">
-                <span style="font-size:12.5px;font-weight:700;color:var(--gc-on-brand);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($empresa['razon_social']) ?></span>
-                <span style="font-size:9.5px;color:rgba(255,255,255,0.65);font-family:monospace;white-space:nowrap;">RUC <?= htmlspecialchars($empresa['ruc']) ?></span>
-            </a>
+            <div style="position:relative;display:inline-block;min-width:0;">
+                <button type="button" class="gc-menu-trigger gc-empresa-pill" data-menu="menu-empresa-switch"
+                        style="display:flex;align-items:center;gap:6px;text-decoration:none;padding:4px 8px 4px 10px;border-radius:8px;background:rgba(255,255,255,0.1);border:none;cursor:pointer;min-width:0;max-width:220px;font-family:inherit;">
+                    <span style="display:flex;flex-direction:column;min-width:0;overflow:hidden;text-align:left;">
+                        <span style="font-size:12.5px;font-weight:700;color:var(--gc-on-brand);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($empresa['razon_social']) ?></span>
+                        <span style="font-size:9.5px;color:rgba(255,255,255,0.65);font-family:monospace;white-space:nowrap;">RUC <?= htmlspecialchars($empresa['ruc']) ?></span>
+                    </span>
+                    <span style="font-size:8px;color:rgba(255,255,255,0.7);flex-shrink:0;">▾</span>
+                </button>
+                <div class="gc-dropdown" id="menu-empresa-switch" style="display:none;position:absolute;top:100%;left:0;min-width:270px;max-height:60vh;overflow-y:auto;background:var(--gc-surface);border:1px solid var(--gc-line);border-radius:0 0 10px 10px;box-shadow:0 16px 34px -18px rgba(22,41,79,0.35);padding:6px 0;z-index:50;">
+                    <div style="padding:6px 14px 3px;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--gc-muted);text-transform:uppercase;">Cambiar de empresa</div>
+                    <?php foreach ($misEmpresas as $emp): $esActual = $emp['id'] === $empresa['id']; ?>
+                    <a href="/empresas/<?= $emp['id'] ?><?= htmlspecialchars($navSufijo) ?>"
+                       style="display:flex;flex-direction:column;gap:1px;padding:7px 14px;font-size:13px;text-decoration:none;color:<?= $esActual ? 'var(--gc-brand)' : 'var(--gc-ink)' ?>;font-weight:<?= $esActual ? '700' : '500' ?>;background:<?= $esActual ? 'var(--gc-brand-soft)' : 'transparent' ?>;">
+                        <span style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                            <?= htmlspecialchars($emp['razon_social']) ?>
+                            <?php if ($esActual): ?><span>✓</span><?php endif; ?>
+                        </span>
+                        <span style="font-size:10.5px;color:var(--gc-muted);font-family:monospace;">RUC <?= htmlspecialchars($emp['ruc']) ?></span>
+                    </a>
+                    <?php endforeach; ?>
+                    <div style="border-top:1px solid var(--gc-line);margin-top:4px;padding-top:4px;">
+                        <a href="/empresas" style="display:block;padding:7px 14px;font-size:13px;color:var(--gc-label);text-decoration:none;">← Todas mis empresas</a>
+                    </div>
+                </div>
+            </div>
+            <div class="gc-hide-narrow" style="width:1px;height:22px;background:rgba(255,255,255,0.18);flex-shrink:0;"></div>
+            <div style="position:relative;display:inline-block;">
+                <button type="button" class="gc-menu-trigger" data-menu="menu-periodo-switch" title="Período de trabajo"
+                        style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.14);color:var(--gc-on-brand);font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">
+                    📅 <?= ucfirst(date('M Y', strtotime(substr($periodoActivoNav, 0, 4) . '-' . substr($periodoActivoNav, 4, 2) . '-01'))) ?> <span style="font-size:8px;">▾</span>
+                </button>
+                <div class="gc-dropdown" id="menu-periodo-switch" style="display:none;position:absolute;top:100%;left:0;min-width:160px;max-height:60vh;overflow-y:auto;background:var(--gc-surface);border:1px solid var(--gc-line);border-radius:0 0 10px 10px;box-shadow:0 16px 34px -18px rgba(22,41,79,0.35);padding:6px 0;z-index:50;">
+                    <div style="padding:6px 14px 3px;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--gc-muted);text-transform:uppercase;">Período de trabajo</div>
+                    <?php foreach ($opcionesPeriodo as $p): $esActual = $p === $periodoActivoNav; ?>
+                    <a href="/empresas/<?= $empresa['id'] ?>/periodo?periodo=<?= $p ?>&volver=<?= urlencode($volverSinPeriodo) ?>"
+                       style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 14px;font-size:13px;text-decoration:none;color:<?= $esActual ? 'var(--gc-brand)' : 'var(--gc-ink)' ?>;font-weight:<?= $esActual ? '700' : '500' ?>;background:<?= $esActual ? 'var(--gc-brand-soft)' : 'transparent' ?>;">
+                        <?= ucfirst(date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p, 4, 2) . '-01'))) ?>
+                        <?php if ($esActual): ?><span>✓</span><?php endif; ?>
+                    </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
             <?php endif; ?>
             <?php if ($seccionActual): ?>
             <div class="gc-hide-narrow" style="width:1px;height:22px;background:rgba(255,255,255,0.18);flex-shrink:0;"></div>

@@ -1,6 +1,7 @@
 <?php
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
+require_once ROOT . '/core/Periodo.php';
 require_once ROOT . '/services/BalanceService.php';
 
 class BalanceController
@@ -12,7 +13,7 @@ class BalanceController
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
         $pdo     = Model::db();
-        $periodo = $_GET['periodo'] ?? date('Ym', strtotime('-1 month'));
+        $periodo = Periodo::resolver($empresaId);
         $anio    = (int)substr($periodo, 0, 4);
 
         $stmtPer = $pdo->prepare("SELECT id, estado FROM periodos_contables WHERE empresa_id = ? AND anio = ?");

@@ -1,6 +1,7 @@
 <?php
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
+require_once ROOT . '/core/Periodo.php';
 
 class RegistroController
 {
@@ -11,7 +12,7 @@ class RegistroController
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
         $pdo     = Model::db();
-        $periodo = $_GET['periodo'] ?? date('Ym', strtotime('-1 month'));
+        $periodo = Periodo::resolver($empresaId);
         $page    = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 50;
         $offset  = ($page - 1) * $perPage;
@@ -74,7 +75,7 @@ class RegistroController
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
         $pdo     = Model::db();
-        $periodo = $_GET['periodo'] ?? date('Ym', strtotime('-1 month'));
+        $periodo = Periodo::resolver($empresaId);
         $page    = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 50;
         $offset  = ($page - 1) * $perPage;

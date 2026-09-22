@@ -1,6 +1,7 @@
 <?php
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
+require_once ROOT . '/core/Periodo.php';
 require_once ROOT . '/services/CierreService.php';
 require_once ROOT . '/services/BalanceService.php';
 
@@ -13,7 +14,7 @@ class CierreController
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
         $pdo  = Model::db();
-        $anio = (int)($_GET['anio'] ?? date('Y'));
+        $anio = Periodo::anio($empresaId);
 
         $stmtPer = $pdo->prepare("SELECT * FROM periodos_contables WHERE empresa_id = ? AND anio = ?");
         $stmtPer->execute([$empresaId, $anio]);

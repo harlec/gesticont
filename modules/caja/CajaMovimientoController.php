@@ -1,6 +1,7 @@
 <?php
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
+require_once ROOT . '/core/Periodo.php';
 
 /**
  * Caja y Bancos por empresa (spec 2.5) — distinto del CajaController
@@ -16,7 +17,7 @@ class CajaMovimientoController
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
         $pdo     = Model::db();
-        $periodo = $_GET['periodo'] ?? date('Ym', strtotime('-1 month'));
+        $periodo = Periodo::resolver($empresaId);
 
         $stmt = $pdo->prepare("
             SELECT cm.*, c.codigo AS cuenta_codigo, c.nombre AS cuenta_nombre
@@ -86,8 +87,37 @@ class CajaMovimientoController
         if (!$empresa) { http_response_code(403); die('Sin acceso'); }
 
         $periodo = $_POST['periodo'] ?? date('Ym');
-        Model::db()->prepare("DELETE FROM caja_movimientos WHERE id = ? AND empresa_id = ?")
-            ->execute([$id, $empresaId]);
+        $pdo = Model::db();
+
+        // Si este movimiento se generó automáticamente al marcar "cobrada"/
+        // "pagada" en Clasificación (ver ImputacionController::_clasificarUno),
+        // borrarlo aquí dejaría el comprobante marcado como cobrado/pagado
+        // sin ningún respaldo en Caja — inconsistencia silenciosa que nadie
+        // notaría hasta que algo no cuadre. Se revierte el flag junto con el
+        // movimiento, siempre en la misma transacción.
+        $stmtMov = $pdo->prepare("SELECT registro_venta_id, registro_compra_id FROM caja_movimientos WHERE id = ? AND empresa_id = ?");
+        $stmtMov->execute([$id, $empresaId]);
+        $mov = $stmtMov->fetch(PDO::FETCH_ASSOC);
+
+        Model::beginTransaction();
+        try {
+            $pdo->prepare("DELETE FROM caja_movimientos WHERE id = ? AND empresa_id = ?")
+                ->execute([$id, $empresaId]);
+
+            if ($mov && $mov['registro_venta_id']) {
+                $pdo->prepare("UPDATE registro_ventas SET cobrado = 0, fecha_cobro = NULL WHERE id = ?")
+                    ->execute([$mov['registro_venta_id']]);
+            } elseif ($mov && $mov['registro_compra_id']) {
+                $pdo->prepare("UPDATE registro_compras SET pagado = 0, fecha_pago = NULL WHERE id = ?")
+                    ->execute([$mov['registro_compra_id']]);
+            }
+
+            Model::commit();
+        } catch (Exception $e) {
+            Model::rollback();
+            $_SESSION['caja_error'] = 'No se pudo eliminar el movimiento.';
+            header("Location: /empresas/{$empresaId}/caja?periodo={$periodo}"); exit;
+        }
 
         header("Location: /empresas/{$empresaId}/caja?periodo={$periodo}"); exit;
     }

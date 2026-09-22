@@ -331,7 +331,22 @@ class AsientoService
         $stmtPlanilla->execute([$empresaId, $periodo]);
         $totalPlanilla = (float)$stmtPlanilla->fetchColumn();
 
-        $total = round($totalCompras + $totalPlanilla, 2);
+        // Gastos pagados DIRECTO por Caja (alquiler, servicios, honorarios,
+        // etc. sin pasar por una compra clasificada) — sin esto se quedaban
+        // atascados en el elemento 6 y nunca llegaban al Balance General,
+        // descuadrándolo en silencio (detectado al simular un egreso de
+        // Caja contra una cuenta de gasto).
+        $stmtCaja = $pdo->prepare("
+            SELECT COALESCE(SUM(cm.monto), 0)
+            FROM caja_movimientos cm
+            JOIN cuentas_contables c ON c.id = cm.cuenta_id
+            WHERE cm.empresa_id = ? AND cm.tipo = 'egreso' AND DATE_FORMAT(cm.fecha, '%Y%m') = ?
+              AND c.tipo = 'gasto' AND c.es_inventariable = 0
+        ");
+        $stmtCaja->execute([$empresaId, $periodo]);
+        $totalCaja = (float)$stmtCaja->fetchColumn();
+
+        $total = round($totalCompras + $totalPlanilla + $totalCaja, 2);
         if ($total <= 0) return null;
 
         $pctAdmin  = (float)$parametros['pct_gastos_admin'];

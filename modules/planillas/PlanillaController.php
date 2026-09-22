@@ -1,6 +1,7 @@
 <?php
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
+require_once ROOT . '/core/Periodo.php';
 
 class PlanillaController
 {
@@ -11,7 +12,7 @@ class PlanillaController
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
         $pdo     = Model::db();
-        $periodo = $_GET['periodo'] ?? date('Ym', strtotime('-1 month'));
+        $periodo = Periodo::resolver($empresaId);
 
         $stmt = $pdo->prepare("
             SELECT * FROM planillas WHERE empresa_id = ? AND periodo = ? ORDER BY trabajador

@@ -1,6 +1,7 @@
 <?php
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
+require_once ROOT . '/core/Periodo.php';
 
 /**
  * Inventario Inicial (saldos de apertura) — spec 2.1. Se llena manualmente
@@ -18,7 +19,7 @@ class AperturaController
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
         $pdo  = Model::db();
-        $anio = (int)($_GET['anio'] ?? date('Y'));
+        $anio = Periodo::anio($empresaId);
 
         $stmtPer = $pdo->prepare("SELECT id, estado FROM periodos_contables WHERE empresa_id = ? AND anio = ?");
         $stmtPer->execute([$empresaId, $anio]);

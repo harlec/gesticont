@@ -1,6 +1,7 @@
 <?php
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
+require_once ROOT . '/core/Periodo.php';
 
 class ImputacionController
 {
@@ -12,7 +13,7 @@ class ImputacionController
 
         $pdo = Model::db();
 
-        $periodo    = $_GET['periodo'] ?? date('Ym', strtotime('-1 month'));
+        $periodo    = Periodo::resolver($empresaId);
         $tipoFiltro = $_GET['tipo']    ?? 'todos'; // todos | ventas | compras
 
         $pendientes = [];

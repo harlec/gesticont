@@ -55,7 +55,7 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
                                 <div style="font-size:12px;color:var(--gc-ink);"><?= htmlspecialchars($c['nombre']) ?></div>
                             </td>
                             <td style="padding:6px 20px 6px 6px;width:130px;">
-                                <input type="text" inputmode="decimal" class="ap-input ap-activo" data-cuenta="<?= $c['id'] ?>"
+                                <input type="text" inputmode="decimal" class="ap-input ap-activo" data-cuenta="<?= $c['id'] ?>" data-naturaleza="<?= $c['naturaleza'] ?>"
                                        name="monto[<?= $c['id'] ?>]"
                                        value="<?= isset($saldosExistentes[$c['id']]) ? number_format($saldosExistentes[$c['id']], 2, '.', '') : '' ?>"
                                        placeholder="0.00"
@@ -86,7 +86,7 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
                                 <div style="font-size:12px;color:var(--gc-ink);"><?= htmlspecialchars($c['nombre']) ?></div>
                             </td>
                             <td style="padding:6px 20px 6px 6px;width:130px;">
-                                <input type="text" inputmode="decimal" class="ap-input ap-pasivo" data-cuenta="<?= $c['id'] ?>"
+                                <input type="text" inputmode="decimal" class="ap-input ap-pasivo" data-cuenta="<?= $c['id'] ?>" data-naturaleza="<?= $c['naturaleza'] ?>"
                                        name="monto[<?= $c['id'] ?>]"
                                        value="<?= isset($saldosExistentes[$c['id']]) ? number_format($saldosExistentes[$c['id']], 2, '.', '') : '' ?>"
                                        placeholder="0.00"
@@ -117,10 +117,23 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
 (function () {
     function num(v) { return parseFloat((v || '0').toString().replace(/,/g, '')) || 0; }
 
+    // El monto siempre se escribe en positivo (o negativo, da igual — se
+    // usa su valor absoluto); el signo con el que entra al total lo decide
+    // la naturaleza real de la cuenta, igual que en el backend
+    // (AperturaController::guardar). Sin esto, una cuenta contra-activo
+    // como 395 Depreciación Acumulada se sumaba al Activo en vez de
+    // restarse, y la alerta de "no cuadra" salía aunque el guardado real
+    // (que sí calcula bien) hubiera funcionado.
+    function neto(input) {
+        const v = Math.abs(num(input.value));
+        const esDeudora = input.dataset.naturaleza === 'deudora';
+        return esDeudora ? v : -v;
+    }
+
     function recalcular() {
         let totalActivo = 0, totalPasivo = 0;
-        document.querySelectorAll('.ap-activo').forEach(i => totalActivo += num(i.value));
-        document.querySelectorAll('.ap-pasivo').forEach(i => totalPasivo += num(i.value));
+        document.querySelectorAll('.ap-activo').forEach(i => totalActivo += neto(i));
+        document.querySelectorAll('.ap-pasivo').forEach(i => totalPasivo += -neto(i));
 
         document.getElementById('ap-total-activo').textContent = totalActivo.toFixed(2);
         document.getElementById('ap-total-pasivo').textContent = totalPasivo.toFixed(2);

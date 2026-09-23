@@ -28,13 +28,13 @@ class AperturaController
         // Solo cuentas de detalle (nivel >= 3) — las de nivel 2 son
         // agrupadores del elemento PCGE, no donde se registra un saldo real.
         $cuentasActivo = $pdo->query("
-            SELECT id, codigo, nombre FROM cuentas_contables
+            SELECT id, codigo, nombre, naturaleza FROM cuentas_contables
             WHERE empresa_id IS NULL AND tipo = 'activo' AND nivel >= 3
             ORDER BY codigo
         ")->fetchAll(PDO::FETCH_ASSOC);
 
         $cuentasPasivo = $pdo->query("
-            SELECT id, codigo, nombre, tipo FROM cuentas_contables
+            SELECT id, codigo, nombre, tipo, naturaleza FROM cuentas_contables
             WHERE empresa_id IS NULL AND tipo IN ('pasivo','patrimonio') AND nivel >= 3
             ORDER BY tipo = 'patrimonio', codigo
         ")->fetchAll(PDO::FETCH_ASSOC);

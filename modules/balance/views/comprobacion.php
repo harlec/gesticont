@@ -12,7 +12,7 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <?php foreach ($periodos as $p):
                 $activo = $p === $periodo;
-                $label  = date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p, 4, 2) . '-01'));
+                $label  = Periodo::etiqueta($p);
             ?>
             <a href="/empresas/<?= $empresa['id'] ?>/balance?periodo=<?= $p ?>"
                style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;

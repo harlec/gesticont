@@ -178,14 +178,14 @@ $volverSinPeriodo = $volverPath . (empty($volverQuery) ? '' : '?' . http_build_q
             <div style="position:relative;display:inline-block;">
                 <button type="button" class="gc-menu-trigger" data-menu="menu-periodo-switch" title="Período de trabajo"
                         style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.14);color:var(--gc-on-brand);font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">
-                    📅 <?= ucfirst(date('M Y', strtotime(substr($periodoActivoNav, 0, 4) . '-' . substr($periodoActivoNav, 4, 2) . '-01'))) ?> <span style="font-size:8px;">▾</span>
+                    📅 <?= Periodo::etiqueta($periodoActivoNav) ?> <span style="font-size:8px;">▾</span>
                 </button>
                 <div class="gc-dropdown" id="menu-periodo-switch" style="display:none;position:absolute;top:100%;left:0;min-width:160px;max-height:60vh;overflow-y:auto;background:var(--gc-surface);border:1px solid var(--gc-line);border-radius:0 0 10px 10px;box-shadow:0 16px 34px -18px rgba(22,41,79,0.35);padding:6px 0;z-index:50;">
                     <div style="padding:6px 14px 3px;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--gc-muted);text-transform:uppercase;">Período de trabajo</div>
                     <?php foreach ($opcionesPeriodo as $p): $esActual = $p === $periodoActivoNav; ?>
                     <a href="/empresas/<?= $empresa['id'] ?>/periodo?periodo=<?= $p ?>&volver=<?= urlencode($volverSinPeriodo) ?>"
                        style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 14px;font-size:13px;text-decoration:none;color:<?= $esActual ? 'var(--gc-brand)' : 'var(--gc-ink)' ?>;font-weight:<?= $esActual ? '700' : '500' ?>;background:<?= $esActual ? 'var(--gc-brand-soft)' : 'transparent' ?>;">
-                        <?= ucfirst(date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p, 4, 2) . '-01'))) ?>
+                        <?= Periodo::etiqueta($p) ?>
                         <?php if ($esActual): ?><span>✓</span><?php endif; ?>
                     </a>
                     <?php endforeach; ?>

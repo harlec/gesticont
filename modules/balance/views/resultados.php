@@ -21,7 +21,7 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <?php foreach ($periodos as $p):
                 $activo = $p === $periodo;
-                $label  = date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p, 4, 2) . '-01'));
+                $label  = Periodo::etiqueta($p);
             ?>
             <a href="/empresas/<?= $empresa['id'] ?>/resultados?periodo=<?= $p ?>"
                style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;

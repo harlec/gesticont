@@ -17,7 +17,7 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <?php foreach ($periodos as $p):
                 $activo = $p === $periodo;
-                $label  = date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p, 4, 2) . '-01'));
+                $label  = Periodo::etiqueta($p);
             ?>
             <a href="/empresas/<?= $empresa['id'] ?>/diario?periodo=<?= $p ?>"
                style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
@@ -29,7 +29,7 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
         <form method="POST" action="/empresas/<?= $empresa['id'] ?>/diario/generar">
             <input type="hidden" name="periodo" value="<?= $periodo ?>">
             <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
-                ⚙️ Generar / Regenerar asientos de <?= date('M Y', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01')) ?>
+                ⚙️ Generar / Regenerar asientos de <?= Periodo::etiqueta($periodo) ?>
             </button>
         </form>
     </div>

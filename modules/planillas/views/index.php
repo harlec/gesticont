@@ -26,7 +26,7 @@ $fmt = fn($v) => number_format((float)$v, 2);
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
         <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Período:</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <?php foreach ($periodos as $p): $activo = $p === $periodo; $label = date('M Y', strtotime(substr($p,0,4).'-'.substr($p,4,2).'-01')); ?>
+            <?php foreach ($periodos as $p): $activo = $p === $periodo; $label = Periodo::etiqueta($p); ?>
             <a href="?periodo=<?= $p ?>"
                style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
                       background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
@@ -38,7 +38,7 @@ $fmt = fn($v) => number_format((float)$v, 2);
 
     <!-- Formulario nuevo trabajador -->
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:18px 20px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--gc-label);margin-bottom:12px;">+ Agregar trabajador a <?= date('M Y', strtotime(substr($periodo,0,4).'-'.substr($periodo,4,2).'-01')) ?></div>
+        <div style="font-size:13px;font-weight:700;color:var(--gc-label);margin-bottom:12px;">+ Agregar trabajador a <?= Periodo::etiqueta($periodo) ?></div>
         <form method="POST" action="/empresas/<?= $empresa['id'] ?>/planillas" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
             <input type="hidden" name="periodo" value="<?= $periodo ?>">
             <div style="flex:2;min-width:180px;">
@@ -104,7 +104,7 @@ $fmt = fn($v) => number_format((float)$v, 2);
             <input type="file" name="archivo" accept=".csv" required
                    style="font-size:13px;">
             <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
-                📥 Importar a <?= date('M Y', strtotime(substr($periodo,0,4).'-'.substr($periodo,4,2).'-01')) ?>
+                📥 Importar a <?= Periodo::etiqueta($periodo) ?>
             </button>
         </form>
     </div>

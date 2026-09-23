@@ -1,6 +1,6 @@
 <?php
 $tipoLabel = ['01' => 'FAC', '03' => 'BOL', '07' => 'NC ', '08' => 'ND ', '00' => 'OTR'];
-$labelMes  = fn($p) => date('M Y', strtotime(substr($p, 0, 4) . '-' . substr($p, 4, 2) . '-01'));
+$labelMes  = fn($p) => Periodo::etiqueta($p);
 ?>
 
 <div class="gc-content gc-w-content">

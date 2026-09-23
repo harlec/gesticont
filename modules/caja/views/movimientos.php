@@ -17,7 +17,7 @@ $labelTipo = ['activo' => 'Cuentas de Ingreso/Cobro', 'pasivo' => 'Cuentas por P
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
         <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Período:</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <?php foreach ($periodos as $p): $activo = $p === $periodo; $label = date('M Y', strtotime(substr($p,0,4).'-'.substr($p,4,2).'-01')); ?>
+            <?php foreach ($periodos as $p): $activo = $p === $periodo; $label = Periodo::etiqueta($p); ?>
             <a href="?periodo=<?= $p ?>" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;"><?= $label ?></a>
             <?php endforeach; ?>
         </div>

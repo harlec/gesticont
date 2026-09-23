@@ -15,7 +15,7 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <?php foreach ($periodos as $p):
                 $activo = $p === $periodo;
-                $label  = date('M Y', strtotime(substr($p,0,4).'-'.substr($p,4,2).'-01'));
+                $label  = Periodo::etiqueta($p);
             ?>
             <a href="<?= $urlBase ?>?periodo=<?= $p ?>"
                style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
@@ -168,7 +168,7 @@ $tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
             <?php if (empty($periodos)): ?>
             Aún no se han sincronizado datos desde el SIRE.
             <?php else: ?>
-            No hay datos para <?= date('F Y', strtotime(substr($periodo,0,4).'-'.substr($periodo,4,2).'-01')) ?>.
+            No hay datos para <?= Periodo::etiqueta($periodo, true) ?>.
             <?php endif; ?>
         </div>
         <a href="/empresas/<?= $empresa['id'] ?>/sync"

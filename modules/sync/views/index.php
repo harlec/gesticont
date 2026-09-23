@@ -53,14 +53,13 @@ function badgeFuente(?string $fuente): string {
                     <label style="display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Período</label>
                     <select name="periodo" style="width:100%;padding:10px 14px;border:1.5px solid var(--gc-line);border-radius:8px;font-size:14px;background:var(--gc-surface);font-family:inherit;">
                         <?php foreach ($periodos as $p):
-                            $ym   = substr($p,0,4).'-'.substr($p,4,2);
                             $etV  = isset($ventasIdx[$p])  ? ' ✓V' : '';
                             $etC  = isset($comprasIdx[$p]) ? ' ✓C' : '';
                             $fV   = $ventasIdx[$p]['fuente']  ?? '';
                             $fC   = $comprasIdx[$p]['fuente'] ?? '';
                             $tagV = $fV === 'declarado' ? '★' : ($fV === 'propuesta' ? '~' : '');
                             $tagC = $fC === 'declarado' ? '★' : ($fC === 'propuesta' ? '~' : '');
-                            $label = date('F Y', strtotime($ym.'-01')) . $etV . $tagV . $etC . $tagC;
+                            $label = Periodo::etiqueta($p, true) . $etV . $tagV . $etC . $tagC;
                         ?>
                         <option value="<?= $p ?>"><?= $label ?></option>
                         <?php endforeach; ?>
@@ -132,7 +131,7 @@ function badgeFuente(?string $fuente): string {
                 $bg = $idx % 2 === 0 ? 'var(--gc-surface)' : 'var(--gc-bg)';
             ?>
             <tr style="background:<?= $bg ?>;border-top:1px solid var(--gc-surface-2);">
-                <td style="padding:10px 20px;font-weight:600;color:var(--gc-ink);"><?= date('M Y', strtotime(substr($p,0,4).'-'.substr($p,4,2).'-01')) ?></td>
+                <td style="padding:10px 20px;font-weight:600;color:var(--gc-ink);"><?= Periodo::etiqueta($p) ?></td>
                 <td style="padding:10px 12px;text-align:right;color:var(--gc-label);"><?= $v ? $v['cant'].' comp.' : '—' ?></td>
                 <td style="padding:10px 12px;text-align:right;color:var(--gc-brand);font-weight:600;"><?= $v ? 'S/'.number_format($v['total'],2) : '—' ?></td>
                 <td style="padding:10px 12px;text-align:center;"><?= badgeFuente($v['fuente'] ?? null) ?></td>

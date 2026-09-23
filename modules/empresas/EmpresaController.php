@@ -1,6 +1,8 @@
 <?php
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
+require_once ROOT . '/core/Periodo.php';
+require_once ROOT . '/services/DashboardEmpresaService.php';
 class EmpresaController {
     public function index(): void {
         Auth::require();
@@ -98,6 +100,15 @@ class EmpresaController {
         Auth::require();
         $empresa = $this->_getEmpresa($id);
         if (!$empresa) { http_response_code(404); die('Empresa no encontrada o sin acceso'); }
+
+        $periodoActivo = Periodo::resolver($id);
+        $anio = (int)($_GET['anio'] ?? substr($periodoActivo, 0, 4));
+        $dash = DashboardEmpresaService::generar($id, $anio, $periodoActivo);
+
+        $stmtCert = Model::db()->prepare("SELECT * FROM empresa_certificados WHERE empresa_id = ? AND estado = 'activo' LIMIT 1");
+        $stmtCert->execute([$id]);
+        $cert = $stmtCert->fetch(PDO::FETCH_ASSOC);
+
         $pageTitle = $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/empresas/views/detalle.php';

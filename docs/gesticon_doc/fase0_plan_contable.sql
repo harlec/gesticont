@@ -157,6 +157,9 @@ INSERT INTO cuentas_contables (codigo, nombre, nivel, padre_codigo, naturaleza, 
 ('334', 'Unidades de Transporte',                          3, '33', 'deudora', 'activo'),
 ('335', 'Muebles y Enseres',                               3, '33', 'deudora', 'activo'),
 ('336', 'Equipos Diversos',                                3, '33', 'deudora', 'activo'),
+-- NOTA: la cuenta 37 "Activo Diferido" / 371 "Activos Diferidos" faltaba
+-- acá — se agregó después vía fase0d_activo_diferido.sql en vez de
+-- editar este archivo (ya aplicado contra producción; ver esa migración).
 ('38',  'Otros Activos',                                   2, NULL, 'deudora', 'activo'),
 ('381', 'Bienes de Arte y Cultura',                        3, '38', 'deudora', 'activo'),  -- el Diario de AVIMAS ("383", que no existe) y el Balance de Valencia (que reusa "381" como "Otros Activos" genérico) NO corresponden al significado oficial de esta subcuenta (bienes de arte/cultura específicamente) — confirmar con cada contador a qué activo real corresponde ese monto antes de asentarlo aquí
 ('39',  'Depreciación, Amortización y Agotamiento Acumulados', 2, NULL, 'acreedora', 'activo'),

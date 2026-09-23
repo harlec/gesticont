@@ -70,32 +70,56 @@ class AperturaController
 
         $pdo = Model::db();
 
-        // Trae tipo/naturaleza de cada cuenta usada, para saber si el monto
-        // ingresado va a Debe (activo) o a Haber (pasivo/patrimonio) — nunca
-        // se confía en de qué columna del formulario vino, se valida contra
-        // el catálogo real.
+        // Trae tipo Y naturaleza de cada cuenta usada. El monto que se
+        // ingresa siempre es positivo (la magnitud del saldo) — a qué
+        // columna va (Debe/Haber) lo decide la NATURALEZA de la cuenta, no
+        // el tipo. Son cosas distintas: casi todo "activo" es deudora,
+        // pero cuentas contra-activo como 395 (Depreciación Acumulada) o
+        // 19 (Estimación de Cobranza Dudosa) son acreedoras aunque su tipo
+        // siga siendo "activo" — antes esto se decidía solo por tipo, así
+        // que la depreciación se habría sumado al Debe en vez de restarse,
+        // descuadrando cualquier apertura real que incluya activos usados.
         $cuentaIds = array_map('intval', array_keys($montos));
         $cuentas = [];
         if ($cuentaIds) {
             $in = implode(',', array_fill(0, count($cuentaIds), '?'));
-            $stmt = $pdo->prepare("SELECT id, tipo FROM cuentas_contables WHERE id IN ($in) AND empresa_id IS NULL");
+            $stmt = $pdo->prepare("SELECT id, tipo, naturaleza FROM cuentas_contables WHERE id IN ($in) AND empresa_id IS NULL");
             $stmt->execute($cuentaIds);
-            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $c) $cuentas[(int)$c['id']] = $c['tipo'];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $c) {
+                $cuentas[(int)$c['id']] = ['tipo' => $c['tipo'], 'naturaleza' => $c['naturaleza']];
+            }
         }
 
         $lineas = [];
         $sumaActivo = $sumaPasivoPatrimonio = 0.0;
         foreach ($montos as $cuentaId => $monto) {
             $cuentaId = (int)$cuentaId;
-            $monto = (float)str_replace(',', '', (string)$monto);
-            if ($monto <= 0 || !isset($cuentas[$cuentaId])) continue;
+            // abs(): el signo lo decide la naturaleza de la cuenta, nunca
+            // lo que haya tipeado la persona — pero es el hábito natural de
+            // cualquier contador escribir "-209,483" para una cuenta
+            // contra-activo, exactamente como aparece en el propio Estado
+            // de Situación Financiera de SUNAT (PDT 710). Antes un monto
+            // negativo simplemente se saltaba en silencio (línea completa
+            // ignorada), lo que hacía fallar el cuadre sin ninguna pista de
+            // por qué — "no soporta negativos" era el síntoma correcto.
+            $monto = abs((float)str_replace(',', '', (string)$monto));
+            if ($monto == 0.0 || !isset($cuentas[$cuentaId])) continue;
 
-            if ($cuentas[$cuentaId] === 'activo') {
-                $lineas[] = ['cuenta_id' => $cuentaId, 'debe' => $monto, 'haber' => 0];
-                $sumaActivo += $monto;
+            $c = $cuentas[$cuentaId];
+            $esDeudora = $c['naturaleza'] === 'deudora';
+            $lineas[] = $esDeudora
+                ? ['cuenta_id' => $cuentaId, 'debe' => $monto, 'haber' => 0]
+                : ['cuenta_id' => $cuentaId, 'debe' => 0, 'haber' => $monto];
+
+            // Neto por lado del balance: una cuenta "activo" de naturaleza
+            // acreedora (contra-activo) resta del total de Activo en vez de
+            // sumar; lo mismo para una "pasivo/patrimonio" de naturaleza
+            // deudora (ej. 5912 Pérdida del Ejercicio).
+            $signo = $esDeudora ? 1 : -1;
+            if ($c['tipo'] === 'activo') {
+                $sumaActivo += $monto * $signo;
             } else {
-                $lineas[] = ['cuenta_id' => $cuentaId, 'debe' => 0, 'haber' => $monto];
-                $sumaPasivoPatrimonio += $monto;
+                $sumaPasivoPatrimonio += $monto * -$signo;
             }
         }
 
@@ -103,10 +127,21 @@ class AperturaController
         $sumaPasivoPatrimonio = round($sumaPasivoPatrimonio, 2);
 
         // Control obligatorio de la spec (2.1): rechazar el guardado si no
-        // cuadra — nunca guardar un inventario inicial descuadrado.
-        if (empty($lineas) || abs($sumaActivo - $sumaPasivoPatrimonio) > 0.01) {
+        // cuadra — nunca guardar un inventario inicial descuadrado. El
+        // mensaje dice la diferencia y de qué lado falta directamente —
+        // antes solo mostraba los dos totales y había que restar a mano
+        // para entender qué faltaba (causa real de este reporte: alguien
+        // llenó solo una cuenta de Activo, sin su contrapartida).
+        if (empty($lineas)) {
+            $_SESSION['apertura_error'] = 'No se guardó: no ingresaste ningún monto.';
+            header("Location: /empresas/{$empresaId}/apertura?anio={$anio}"); exit;
+        }
+        if (abs($sumaActivo - $sumaPasivoPatrimonio) > 0.01) {
+            $diferencia = abs(round($sumaActivo - $sumaPasivoPatrimonio, 2));
+            $ladoFaltante = $sumaActivo > $sumaPasivoPatrimonio ? 'Pasivo + Patrimonio' : 'Activo';
             $_SESSION['apertura_error'] = sprintf(
-                'No se guardó: Activo (S/ %s) debe ser igual a Pasivo + Patrimonio (S/ %s).',
+                'No se guardó: falta S/ %s del lado de %s para que cuadre (Activo: S/ %s · Pasivo + Patrimonio: S/ %s).',
+                number_format($diferencia, 2), $ladoFaltante,
                 number_format($sumaActivo, 2), number_format($sumaPasivoPatrimonio, 2)
             );
             header("Location: /empresas/{$empresaId}/apertura?anio={$anio}"); exit;

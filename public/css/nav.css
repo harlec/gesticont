@@ -27,3 +27,16 @@
     .gc-empresa-pill { max-width: 150px; overflow: hidden; }
     .gc-empresa-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 }
+
+/* Imprimir / Guardar como PDF — oculta la navegación y cualquier control
+ * marcado .no-print (selectores de período, botones de acción) para que
+ * el PDF resultante sea solo el reporte, no la app entera. Cada pantalla
+ * exportable marca sus propios controles con .no-print; esto es lo
+ * compartido por todas. */
+@media print {
+    .gc-nav-wrapper, #gc-toast, .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    body { background: #fff !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+.print-only { display: none; }

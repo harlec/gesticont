@@ -6,8 +6,14 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
 
 <div class="gc-content gc-w-content">
 
+    <?php
+        $tituloReporte = 'Balance de Comprobación';
+        $subtituloReporte = 'Acumulado hasta ' . Periodo::etiqueta($periodo);
+        require ROOT . '/views/layout/print_header.php';
+    ?>
+
     <!-- Selector de período -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div class="no-print" style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
         <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Acumulado hasta:</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <?php foreach ($periodos as $p):

@@ -19,7 +19,7 @@ $falertBg     = $falertTipo === 'neg' ? 'var(--gc-neg-soft)'   : 'var(--gc-warn-
 $falertFg     = $falertTipo === 'neg' ? 'var(--gc-neg)'        : 'var(--gc-warn)';
 $falertBorder = $falertTipo === 'neg' ? 'var(--gc-neg-border)' : 'var(--gc-warn-border)';
 ?>
-<div id="<?= $falertId ?>" class="gc-float-alert" style="position:fixed;left:20px;bottom:24px;max-width:380px;z-index:9998;background:var(--gc-surface);border:1px solid <?= $falertBorder ?>;border-radius:12px;box-shadow:0 16px 34px -18px rgba(22,41,79,0.35);overflow:hidden;">
+<div id="<?= $falertId ?>" class="gc-float-alert no-print" style="position:fixed;left:20px;bottom:24px;max-width:380px;z-index:9998;background:var(--gc-surface);border:1px solid <?= $falertBorder ?>;border-radius:12px;box-shadow:0 16px 34px -18px rgba(22,41,79,0.35);overflow:hidden;">
     <button type="button" class="gc-float-alert-toggle" data-target="<?= $falertId ?>-body"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;background:<?= $falertBg ?>;color:<?= $falertFg ?>;border:none;cursor:pointer;text-align:left;font-family:inherit;">
         <span style="font-size:15px;flex-shrink:0;">⚠</span>

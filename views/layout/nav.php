@@ -134,7 +134,7 @@ parse_str((string)parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), $volverQuer
 unset($volverQuery['periodo']);
 $volverSinPeriodo = $volverPath . (empty($volverQuery) ? '' : '?' . http_build_query($volverQuery));
 ?>
-<div style="position:sticky;top:0;z-index:40;width:100%;">
+<div class="gc-nav-wrapper" style="position:sticky;top:0;z-index:40;width:100%;">
     <!-- Barra de identidad — dos bloques atómicos (izquierda/derecha) que
          se envuelven completos a una segunda línea si no caben juntos, en
          vez de que cada ítem intente encogerse por su cuenta (eso es lo

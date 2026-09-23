@@ -4,14 +4,20 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
 
 <div class="gc-content gc-w-content">
 
+    <?php
+        $tituloReporte = 'Inventario Inicial (Apertura)';
+        $subtituloReporte = 'Año ' . $anio;
+        require ROOT . '/views/layout/print_header.php';
+    ?>
+
     <?php if (!empty($_SESSION['apertura_error'])): ?>
-    <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
+    <div class="no-print" style="background:var(--gc-neg-soft);color:var(--gc-neg);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
         ⚠ <?= htmlspecialchars($_SESSION['apertura_error']) ?>
     </div>
     <?php unset($_SESSION['apertura_error']); endif; ?>
 
     <?php if (isset($_GET['ok'])): ?>
-    <div style="background:var(--gc-pos-soft-2);color:var(--gc-pos);border:1px solid var(--gc-pos-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
+    <div class="no-print" style="background:var(--gc-pos-soft-2);color:var(--gc-pos);border:1px solid var(--gc-pos-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
         ✓ Inventario inicial guardado.
     </div>
     <?php endif; ?>
@@ -23,7 +29,7 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
     <?php endif; ?>
 
     <!-- Selector de año -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div class="no-print" style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
         <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Año de apertura:</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <?php foreach ($anios as $a): $activo = $a === $anio; ?>
@@ -39,7 +45,7 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
     <form method="POST" action="/empresas/<?= $empresa['id'] ?>/apertura/guardar">
         <input type="hidden" name="anio" value="<?= $anio ?>">
 
-        <div id="ap-status" style="border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:700;"></div>
+        <div id="ap-status" class="no-print" style="border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:700;"></div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
             <!-- ACTIVO -->
@@ -48,18 +54,25 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
                 <div style="max-height:480px;overflow-y:auto;">
                 <table style="width:100%;border-collapse:collapse;font-size:13px;">
                     <tbody>
-                    <?php foreach ($cuentasActivo as $c): ?>
-                        <tr style="border-top:1px solid var(--gc-surface-2);">
+                    <?php foreach ($cuentasActivo as $c):
+                        $tieneValor = isset($saldosExistentes[$c['id']]);
+                        $valorFmt = $tieneValor ? number_format($saldosExistentes[$c['id']], 2, '.', '') : '';
+                    ?>
+                        <tr class="<?= $tieneValor ? '' : 'no-print' ?>" style="border-top:1px solid var(--gc-surface-2);">
                             <td style="padding:6px 10px 6px 20px;white-space:nowrap;">
                                 <span style="font-family:monospace;font-weight:700;color:var(--gc-label);font-size:12px;"><?= $c['codigo'] ?></span>
                                 <div style="font-size:12px;color:var(--gc-ink);"><?= htmlspecialchars($c['nombre']) ?></div>
                             </td>
                             <td style="padding:6px 20px 6px 6px;width:130px;">
-                                <input type="text" inputmode="decimal" class="ap-input ap-activo" data-cuenta="<?= $c['id'] ?>" data-naturaleza="<?= $c['naturaleza'] ?>"
+                                <input type="text" inputmode="decimal" class="ap-input ap-activo no-print" data-cuenta="<?= $c['id'] ?>" data-naturaleza="<?= $c['naturaleza'] ?>"
                                        name="monto[<?= $c['id'] ?>]"
-                                       value="<?= isset($saldosExistentes[$c['id']]) ? number_format($saldosExistentes[$c['id']], 2, '.', '') : '' ?>"
+                                       value="<?= $valorFmt ?>"
                                        placeholder="0.00"
                                        style="width:100%;padding:5px 8px;border:1px solid var(--gc-line);border-radius:6px;font-size:13px;text-align:right;font-family:monospace;">
+                                <!-- El navegador no siempre pinta el VALOR de un <input> al exportar a
+                                     PDF (es una propiedad, no texto real) — este span solo se ve al
+                                     imprimir y garantiza que el monto sí quede en el papel. -->
+                                <span class="print-only" style="text-align:right;font-family:monospace;font-size:13px;"><?= $valorFmt ?></span>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -78,19 +91,23 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
                 <div style="max-height:480px;overflow-y:auto;">
                 <table style="width:100%;border-collapse:collapse;font-size:13px;">
                     <tbody>
-                    <?php foreach ($cuentasPasivo as $c): ?>
-                        <tr style="border-top:1px solid var(--gc-surface-2);">
+                    <?php foreach ($cuentasPasivo as $c):
+                        $tieneValor = isset($saldosExistentes[$c['id']]);
+                        $valorFmt = $tieneValor ? number_format($saldosExistentes[$c['id']], 2, '.', '') : '';
+                    ?>
+                        <tr class="<?= $tieneValor ? '' : 'no-print' ?>" style="border-top:1px solid var(--gc-surface-2);">
                             <td style="padding:6px 10px 6px 20px;white-space:nowrap;">
                                 <span style="font-family:monospace;font-weight:700;color:var(--gc-label);font-size:12px;"><?= $c['codigo'] ?></span>
                                 <?php if ($c['tipo'] === 'patrimonio'): ?><span style="font-size:10px;color:var(--gc-muted);">· Patrimonio</span><?php endif; ?>
                                 <div style="font-size:12px;color:var(--gc-ink);"><?= htmlspecialchars($c['nombre']) ?></div>
                             </td>
                             <td style="padding:6px 20px 6px 6px;width:130px;">
-                                <input type="text" inputmode="decimal" class="ap-input ap-pasivo" data-cuenta="<?= $c['id'] ?>" data-naturaleza="<?= $c['naturaleza'] ?>"
+                                <input type="text" inputmode="decimal" class="ap-input ap-pasivo no-print" data-cuenta="<?= $c['id'] ?>" data-naturaleza="<?= $c['naturaleza'] ?>"
                                        name="monto[<?= $c['id'] ?>]"
-                                       value="<?= isset($saldosExistentes[$c['id']]) ? number_format($saldosExistentes[$c['id']], 2, '.', '') : '' ?>"
+                                       value="<?= $valorFmt ?>"
                                        placeholder="0.00"
                                        style="width:100%;padding:5px 8px;border:1px solid var(--gc-line);border-radius:6px;font-size:13px;text-align:right;font-family:monospace;">
+                                <span class="print-only" style="text-align:right;font-family:monospace;font-size:13px;"><?= $valorFmt ?></span>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -105,7 +122,7 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
         </div>
 
         <?php if (!$periodoContable || $periodoContable['estado'] !== 'cerrado'): ?>
-        <button type="submit" id="ap-submit"
+        <button type="submit" id="ap-submit" class="no-print"
                 style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
             💾 Guardar Inventario Inicial
         </button>

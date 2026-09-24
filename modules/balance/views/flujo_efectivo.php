@@ -9,6 +9,7 @@ $fmt = fn($v) => number_format((float)$v, 2);
     <?php
         $tituloReporte = 'Estado de Flujo de Efectivo';
         $subtituloReporte = 'Acumulado hasta ' . Periodo::etiqueta($periodo);
+        $pdfUrl = '/empresas/' . $empresa['id'] . '/flujo-efectivo/pdf?periodo=' . $periodo;
         require ROOT . '/views/layout/print_header.php';
     ?>
 

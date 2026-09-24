@@ -18,6 +18,7 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
     <?php
         $tituloReporte = 'Estado de Resultados';
         $subtituloReporte = 'Acumulado hasta ' . Periodo::etiqueta($periodo);
+        $pdfUrl = '/empresas/' . $empresa['id'] . '/resultados/pdf?periodo=' . $periodo;
         require ROOT . '/views/layout/print_header.php';
     ?>
 

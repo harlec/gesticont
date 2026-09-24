@@ -3,14 +3,76 @@ require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
 require_once ROOT . '/core/Periodo.php';
 require_once ROOT . '/services/EstadoResultadosService.php';
+require_once ROOT . '/services/PdfReport.php';
 
 class EstadoResultadosController
 {
     public function index(int $empresaId): void
     {
         Auth::require();
-        $empresa = $this->_getEmpresa($empresaId);
+        [$empresa, $periodo, $resultado] = $this->_datos($empresaId);
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
+
+        $pageTitle = 'Estado de Resultados - ' . $empresa['razon_social'];
+        ob_start();
+        require_once ROOT . '/modules/balance/views/resultados.php';
+        $content = ob_get_clean();
+        require_once ROOT . '/views/layout/base.php';
+    }
+
+    public function pdf(int $empresaId): void
+    {
+        Auth::require();
+        [$empresa, $periodo, $resultado] = $this->_datos($empresaId);
+        if (!$empresa) { http_response_code(404); die('No encontrado'); }
+
+        $fmt = fn($v) => 'S/ ' . number_format((float)$v, 2);
+        $pdf = new PdfReport($empresa, 'Estado de Resultados', 'Acumulado hasta ' . Periodo::etiqueta($periodo));
+
+        if (!$resultado) {
+            $pdf->alerta('Sin datos para este período. Genera los asientos del Libro Diario primero.', 'warn');
+            $pdf->salir('estado-resultados');
+        }
+
+        if ($resultado['costo_ventas'] == 0) {
+            $pdf->alerta('El Costo de Ventas aparece en S/ 0.00 - todavía no existe el módulo de Inventario Final/Kardex, así que la Utilidad Bruta por ahora coincide con los Ingresos.', 'warn');
+            $pdf->espacio(2);
+        }
+
+        $linea = fn($label, $val, $bold = false, $resta = false, $sub = null) =>
+            $pdf->fila(($resta ? '(-) ' : '') . $label, $fmt($val), $bold, $bold, $sub);
+
+        $linea('Ingresos por Ventas', $resultado['ingresos_ventas'], false, false, 'Cuentas 701-704');
+        $linea('Costo de Ventas', $resultado['costo_ventas'], false, true, 'Cuenta 691');
+        $linea('Utilidad Bruta', $resultado['utilidad_bruta'], true);
+        $pdf->espacio(1);
+
+        $linea('Costo de Producción', $resultado['costo_produccion'], false, true, 'Cuenta 92');
+        $linea('Gastos de Administración', $resultado['gastos_admin'], false, true, 'Cuenta 94');
+        $linea('Gastos de Venta', $resultado['gastos_venta'], false, true, 'Cuenta 95');
+        $linea('Gastos Financieros', $resultado['gastos_financieros'], false, true, 'Cuenta 96');
+        $linea('Utilidad Operativa', $resultado['utilidad_operativa'], true);
+        $pdf->espacio(1);
+
+        $linea('Ingresos Financieros', $resultado['ingresos_financieros'], false, false, 'Cuenta 779');
+        $linea('Utilidad Antes de Impuestos', $resultado['utilidad_antes_impuestos'], true);
+        $pdf->espacio(1);
+
+        $linea('Impuesto a la Renta (' . number_format($resultado['tasa_ir'], 2) . '%)', $resultado['impuesto_renta'], false, true);
+        $linea('Utilidad del Ejercicio', $resultado['utilidad_ejercicio'], true);
+        $pdf->espacio(1);
+
+        $linea('Reserva Legal (' . number_format($resultado['pct_reserva_legal'], 2) . '%)', $resultado['reserva_legal'], false, true);
+        $linea('Utilidad Antes de Repartición', $resultado['utilidad_antes_reparticion'], true);
+
+        $pdf->salir('estado-resultados');
+    }
+
+    /** @return array{0: ?array, 1: string, 2: ?array} */
+    private function _datos(int $empresaId): array
+    {
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) return [null, '', null];
 
         $pdo     = Model::db();
         $periodo = Periodo::resolver($empresaId);
@@ -32,11 +94,7 @@ class EstadoResultadosController
             }
         }
 
-        $pageTitle = 'Estado de Resultados — ' . $empresa['razon_social'];
-        ob_start();
-        require_once ROOT . '/modules/balance/views/resultados.php';
-        $content = ob_get_clean();
-        require_once ROOT . '/views/layout/base.php';
+        return [$empresa, $periodo, $resultado];
     }
 
     private function _getEmpresa(int $id): ?array

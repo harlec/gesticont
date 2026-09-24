@@ -2,6 +2,7 @@
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
 require_once ROOT . '/core/Periodo.php';
+require_once ROOT . '/services/PdfReport.php';
 
 /**
  * Inventario Inicial (saldos de apertura) — spec 2.1. Se llena manualmente
@@ -15,8 +16,64 @@ class AperturaController
     public function index(int $empresaId): void
     {
         Auth::require();
-        $empresa = $this->_getEmpresa($empresaId);
+        [$empresa, $anio, $periodoContable, $cuentasActivo, $cuentasPasivo, $saldosExistentes] = $this->_datos($empresaId);
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
+
+        $pageTitle = 'Inventario Inicial — ' . $empresa['razon_social'];
+        ob_start();
+        require_once ROOT . '/modules/apertura/views/index.php';
+        $content = ob_get_clean();
+        require_once ROOT . '/views/layout/base.php';
+    }
+
+    public function pdf(int $empresaId): void
+    {
+        Auth::require();
+        [$empresa, $anio, $periodoContable, $cuentasActivo, $cuentasPasivo, $saldosExistentes] = $this->_datos($empresaId);
+        if (!$empresa) { http_response_code(404); die('No encontrado'); }
+
+        $fmt = fn($v) => number_format((float)$v, 2);
+        $pdf = new PdfReport($empresa, 'Inventario Inicial (Apertura)', 'Año ' . $anio);
+
+        if (empty($saldosExistentes)) {
+            $pdf->alerta('Sin saldos de apertura guardados para este año.', 'warn');
+            $pdf->salir('apertura');
+        }
+
+        // Mismo criterio de signo que el backend (guardar()) y el JS de la
+        // vista: el monto se ingresa siempre en positivo, y a qué lado del
+        // balance suma lo decide la naturaleza real de la cuenta, no su
+        // tipo — así una contra-activo como 395 resta del Activo en vez de
+        // sumar.
+        $totalActivo = 0.0;
+        $pdf->seccion('ACTIVO (Debe)', PdfReport::BRAND_SOFT, [30, 58, 138]);
+        foreach ($cuentasActivo as $c) {
+            if (!isset($saldosExistentes[$c['id']])) continue;
+            $monto = $saldosExistentes[$c['id']];
+            $totalActivo += $c['naturaleza'] === 'deudora' ? $monto : -$monto;
+            $pdf->fila($c['codigo'] . '  ' . $c['nombre'], $fmt($monto));
+        }
+        $pdf->fila('TOTAL ACTIVO', $fmt($totalActivo), true, true);
+        $pdf->espacio(3);
+
+        $totalPasivo = 0.0;
+        $pdf->seccion('PASIVO Y PATRIMONIO (Haber)', PdfReport::WARN_SOFT, [146, 64, 14]);
+        foreach ($cuentasPasivo as $c) {
+            if (!isset($saldosExistentes[$c['id']])) continue;
+            $monto = $saldosExistentes[$c['id']];
+            $totalPasivo += $c['naturaleza'] === 'deudora' ? -$monto : $monto;
+            $pdf->fila($c['codigo'] . '  ' . $c['nombre'], $fmt($monto));
+        }
+        $pdf->fila('TOTAL PASIVO Y PATRIMONIO', $fmt($totalPasivo), true, true);
+
+        $pdf->salir('apertura');
+    }
+
+    /** @return array{0: ?array, 1: int, 2: ?array, 3: array, 4: array, 5: array} */
+    private function _datos(int $empresaId): array
+    {
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) return [null, 0, null, [], [], []];
 
         $pdo  = Model::db();
         $anio = Periodo::anio($empresaId);
@@ -48,11 +105,7 @@ class AperturaController
             }
         }
 
-        $pageTitle = 'Inventario Inicial — ' . $empresa['razon_social'];
-        ob_start();
-        require_once ROOT . '/modules/apertura/views/index.php';
-        $content = ob_get_clean();
-        require_once ROOT . '/views/layout/base.php';
+        return [$empresa, $anio, $periodoContable ?: null, $cuentasActivo, $cuentasPasivo, $saldosExistentes];
     }
 
     public function guardar(int $empresaId): void

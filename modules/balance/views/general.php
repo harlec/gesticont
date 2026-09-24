@@ -9,6 +9,7 @@ $fmt = fn($v) => number_format((float)$v, 2);
     <?php
         $tituloReporte = 'Balance General';
         $subtituloReporte = 'Al cierre de ' . Periodo::etiqueta($periodo);
+        $pdfUrl = '/empresas/' . $empresa['id'] . '/balance-general/pdf?periodo=' . $periodo;
         require ROOT . '/views/layout/print_header.php';
     ?>
 

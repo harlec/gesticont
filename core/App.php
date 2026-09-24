@@ -45,19 +45,25 @@ class App {
         $router->get('/empresas/{id}/mayor', 'balance/MayorController@index');
         // Motor contable — Balance de Comprobación
         $router->get('/empresas/{id}/balance', 'balance/BalanceController@comprobacion');
+        $router->get('/empresas/{id}/balance/pdf', 'balance/BalanceController@pdf');
         // Motor contable — Estado de Resultados
         $router->get('/empresas/{id}/resultados', 'balance/EstadoResultadosController@index');
+        $router->get('/empresas/{id}/resultados/pdf', 'balance/EstadoResultadosController@pdf');
         // Motor contable — Estado de Cambios en el Patrimonio
         $router->get('/empresas/{id}/cambios-patrimonio', 'balance/CambiosPatrimonioController@index');
+        $router->get('/empresas/{id}/cambios-patrimonio/pdf', 'balance/CambiosPatrimonioController@pdf');
         // Motor contable — Estado de Flujo de Efectivo
         $router->get('/empresas/{id}/flujo-efectivo', 'balance/FlujoEfectivoController@index');
+        $router->get('/empresas/{id}/flujo-efectivo/pdf', 'balance/FlujoEfectivoController@pdf');
         // Motor contable — Cierre de Período
         $router->get('/empresas/{id}/cierre',        'cierre/CierreController@index');
         $router->post('/empresas/{id}/cierre/cerrar','cierre/CierreController@cerrar');
         // Motor contable — Balance General
         $router->get('/empresas/{id}/balance-general', 'balance/BalanceGeneralController@index');
+        $router->get('/empresas/{id}/balance-general/pdf', 'balance/BalanceGeneralController@pdf');
         // Motor contable — Inventario Inicial (Saldos de Apertura)
         $router->get('/empresas/{id}/apertura',          'apertura/AperturaController@index');
+        $router->get('/empresas/{id}/apertura/pdf',      'apertura/AperturaController@pdf');
         $router->post('/empresas/{id}/apertura/guardar', 'apertura/AperturaController@guardar');
         // Motor contable — Planillas
         $router->get('/empresas/{id}/planillas',                 'planillas/PlanillaController@index');

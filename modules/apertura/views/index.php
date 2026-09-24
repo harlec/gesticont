@@ -7,6 +7,7 @@ $anios = range((int)date('Y'), (int)date('Y') - 4);
     <?php
         $tituloReporte = 'Inventario Inicial (Apertura)';
         $subtituloReporte = 'Año ' . $anio;
+        $pdfUrl = '/empresas/' . $empresa['id'] . '/apertura/pdf?anio=' . $anio;
         require ROOT . '/views/layout/print_header.php';
     ?>
 

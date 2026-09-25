@@ -59,14 +59,14 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
     <!-- Barra de selección múltiple -->
     <div id="im-bulkbar" style="display:none;position:sticky;top:0;z-index:10;background:var(--gc-brand);color:var(--gc-on-brand);border-radius:12px;padding:12px 18px;margin-bottom:12px;align-items:center;gap:12px;flex-wrap:wrap;">
         <span id="im-bulk-count" style="font-weight:700;font-size:13px;"></span>
-        <select id="im-bulk-select" style="flex:1;min-width:200px;padding:7px 10px;border-radius:8px;border:none;font-size:13px;">
+        <select id="im-bulk-select" style="flex:1;min-width:200px;padding:7px 10px;border-radius:8px;border:none;font-size:13px;background:#fff;color:var(--gc-ink);">
             <option value="">Seleccionar cuenta para todos…</option>
         </select>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;white-space:nowrap;">
             <input type="checkbox" id="im-bulk-cobrado" style="width:14px;height:14px;">
             <span id="im-bulk-cobrado-label">¿Ya se cobró/pagó?</span>
             <input type="date" id="im-bulk-fecha" disabled value="<?= date('Y-m-d') ?>"
-                   style="padding:3px 6px;border:none;border-radius:6px;font-size:12px;">
+                   style="padding:3px 6px;border:none;border-radius:6px;font-size:12px;background:#fff;color:var(--gc-ink);">
         </label>
         <button id="im-bulk-apply" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
             ✓ Aplicar a seleccionados

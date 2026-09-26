@@ -105,6 +105,14 @@
                 <?php endif; ?>
                 · <?= (int)$conteos[$origen] ?> ya con regla.
             </div>
+            <?php if (!empty($historial['meses_sin_ruc'])): ?>
+            <div style="font-size:12px;color:var(--gc-warn);margin-top:6px;">
+                Meses que aún tienen <?= $esVenta ? 'ventas' : 'compras' ?> sin RUC — vuelve a sincronizarlos en Sincronizar:
+                <?php foreach ($historial['meses_sin_ruc'] as $per => $n): ?>
+                <strong><?= Periodo::etiqueta($per) ?></strong> (<?= (int)$n ?>)<?= $per !== array_key_last($historial['meses_sin_ruc']) ? ',' : '' ?>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
         </div>
         <?php if (empty($candidatas)): ?>
         <div style="padding:30px;text-align:center;color:var(--gc-muted);font-size:13px;">

@@ -128,7 +128,18 @@ class ReglaImputacionService
             FROM {$tabla} WHERE empresa_id = ?
         ");
         $stmt->execute([$empresaId]);
-        return array_map('intval', $stmt->fetch(PDO::FETCH_ASSOC));
+        $res = array_map('intval', $stmt->fetch(PDO::FETCH_ASSOC));
+
+        // Meses que todavía tienen comprobantes sin documento de la contraparte
+        // — son los que hay que volver a sincronizar para completarlos.
+        $stmtMeses = Model::db()->prepare("
+            SELECT periodo, COUNT(*) AS n FROM {$tabla}
+            WHERE empresa_id = ? AND ({$col} IS NULL OR {$col} = '')
+            GROUP BY periodo ORDER BY periodo
+        ");
+        $stmtMeses->execute([$empresaId]);
+        $res['meses_sin_ruc'] = $stmtMeses->fetchAll(PDO::FETCH_KEY_PAIR);
+        return $res;
     }
 
     /**

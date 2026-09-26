@@ -92,7 +92,7 @@ function badgeFuente(?string $fuente): string {
                 <?php elseif ($r['total'] === 0): ?>
                     <span>Sin datos en SIRE</span>
                 <?php else: ?>
-                    <?= $r['total'] ?> encontrados · <strong><?= $r['nuevos'] ?> nuevos</strong> · <?= $r['duplicados'] ?> ya existían
+                    <?= $r['total'] ?> encontrados · <strong><?= $r['nuevos'] ?> nuevos</strong> · <?= $r['duplicados'] ?> ya existían<?php if (!empty($r['rellenados'])): ?> · <strong><?= $r['rellenados'] ?> completados con RUC de proveedor</strong><?php endif; ?>
                     <?= badgeFuente($r['fuente'] ?? null) ?>
                 <?php endif; ?>
             </div>

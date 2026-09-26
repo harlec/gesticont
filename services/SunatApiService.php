@@ -164,8 +164,8 @@ class SunatApiService
             'serie'              => $i['numSerieCDP']              ?? '',
             'correlativo'        => $i['numCDP']                   ?? '',
             'fecha_emision'      => $this->parseDate($i['fecEmision'] ?? ''),
-            'proveedor_tipo_doc' => $i['codTipoDocIdentidad']      ?? '6',
-            'proveedor_ruc'      => $i['numDocIdentidad']          ?? '',
+            'proveedor_tipo_doc' => $i['codTipoDocIdentidadProveedor'] ?? $i['codTipoDocIdentidad'] ?? '6',
+            'proveedor_ruc'      => $this->docProveedor($i),
             'proveedor_nombre'   => $i['nomRazonSocialProveedor']  ?? $i['nomRazonSocial'] ?? '',
             'moneda'             => $i['codMoneda']                ?? 'PEN',
             'tipo_cambio'        => (float)($i['mtoTipoCambio']   ?? 1),
@@ -177,6 +177,28 @@ class SunatApiService
             'estado_sunat'       => $i['codEstadoComprobante']     ?? '1',
             'periodo'            => $i['perPeriodoTributario']     ?? '',
         ];
+    }
+
+    /**
+     * En el RCE de SIRE el documento del proveedor no llega con el mismo
+     * nombre que en el RVIE (ventas: numDocIdentidad) — el nombre lleva el
+     * sufijo "Proveedor", igual que nomRazonSocialProveedor. Se prueban los
+     * nombres conocidos y, como último recurso, cualquier clave que parezca
+     * un documento de identidad y no sea del adquirente (la propia empresa).
+     */
+    private function docProveedor(array $i): string
+    {
+        foreach (['numDocIdentidadProveedor', 'numRucProveedor', 'numDocProveedor', 'numDocIdentidad'] as $k) {
+            if (!empty($i[$k])) return trim((string)$i[$k]);
+        }
+        foreach ($i as $k => $v) {
+            if (is_scalar($v) && preg_match('/(ruc|docidentidad|numdoc)/i', (string)$k)
+                && !preg_match('/(adquirent|adquirient|cliente|contribuyente)/i', (string)$k)
+                && preg_match('/^\d{8,11}$/', trim((string)$v))) {
+                return trim((string)$v);
+            }
+        }
+        return '';
     }
 
     private function parseDate(string $f): string

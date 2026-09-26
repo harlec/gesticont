@@ -134,11 +134,20 @@ class SyncController
                     $res     = $sunat->getAllComprasPeriodo($token, $empresa['ruc'], $p);
                     $compras = $res['registros'];
                     $fuente  = $res['fuente'];
-                    $ins = 0; $dup = 0;
+                    $ins = 0; $dup = 0; $rellenados = 0;
                     foreach ($compras as $c) {
-                        $chk = $pdo->prepare("SELECT id FROM registro_compras WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?");
+                        $chk = $pdo->prepare("SELECT id, proveedor_ruc FROM registro_compras WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?");
                         $chk->execute([$empresaId, $c['tipo_comp'], $c['serie'], $c['correlativo']]);
-                        if ($chk->fetch()) {
+                        $existente = $chk->fetch(PDO::FETCH_ASSOC);
+                        if ($existente) {
+                            // Compras sincronizadas antes de leer bien el documento
+                            // del proveedor quedaron con el RUC vacío — se completa
+                            // aquí, sin tocar nada de lo ya clasificado.
+                            if (($existente['proveedor_ruc'] ?? '') === '' && $c['proveedor_ruc'] !== '') {
+                                $pdo->prepare("UPDATE registro_compras SET proveedor_ruc=?, proveedor_tipo_doc=?, proveedor_nombre=IF(proveedor_nombre IS NULL OR proveedor_nombre='', ?, proveedor_nombre) WHERE id=?")
+                                    ->execute([$c['proveedor_ruc'], $c['proveedor_tipo_doc'], $c['proveedor_nombre'], $existente['id']]);
+                                $rellenados++;
+                            }
                             if ($fuente === 'declarado') {
                                 $pdo->prepare("UPDATE registro_compras SET fuente='declarado', sync_at=NOW() WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?")
                                     ->execute([$empresaId, $c['tipo_comp'], $c['serie'], $c['correlativo']]);
@@ -163,7 +172,7 @@ class SyncController
                         $ins++;
                     }
                     $resultado['compras'][$p] = [
-                        'nuevos' => $ins, 'duplicados' => $dup,
+                        'nuevos' => $ins, 'duplicados' => $dup, 'rellenados' => $rellenados,
                         'total'  => count($compras), 'fuente' => $fuente,
                     ];
                 } catch (Exception $e) {

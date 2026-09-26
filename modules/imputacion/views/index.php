@@ -69,9 +69,9 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
             <option value="">Seleccionar cuenta para todos…</option>
         </select>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;white-space:nowrap;">
-            <input type="checkbox" id="im-bulk-cobrado" style="width:14px;height:14px;">
+            <input type="checkbox" id="im-bulk-cobrado" checked style="width:14px;height:14px;">
             <span id="im-bulk-cobrado-label">¿Ya se cobró/pagó?</span>
-            <input type="date" id="im-bulk-fecha" disabled value="<?= date('Y-m-d') ?>"
+            <input type="date" id="im-bulk-fecha" title="Vacío = la fecha de cada comprobante"
                    style="padding:3px 6px;border:none;border-radius:6px;font-size:12px;background:#fff;color:var(--gc-ink);">
         </label>
         <button id="im-bulk-apply" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
@@ -143,6 +143,10 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
         </button>
     </div>
 
+    <div style="font-size:12px;color:var(--gc-muted);margin-bottom:8px;">
+        Se asume que todo está <strong>cobrado/pagado</strong> en la fecha del comprobante. Si algo fue a crédito o se pagó solo una parte,
+        desmarca la casilla o ajústalo después en <a href="/empresas/<?= $empresa['id'] ?>/cobranzas" style="color:var(--gc-brand);">Cobros y pagos</a>.
+    </div>
     <div id="im-lista" style="display:flex;flex-direction:column;gap:10px;">
         <?php foreach ($pendientes as $doc):
             $esVenta  = $doc['origen'] === 'venta';
@@ -193,9 +197,9 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
                             </button>
                         </div>
                         <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gc-label);cursor:pointer;">
-                            <input type="checkbox" class="im-cobrado" name="cobrado" style="width:14px;height:14px;">
+                            <input type="checkbox" class="im-cobrado" name="cobrado" checked style="width:14px;height:14px;">
                             <?= $esVenta ? '¿Ya se cobró?' : '¿Ya se pagó?' ?>
-                            <input type="date" name="fecha_cobro" class="im-fecha-cobro" value="<?= $doc['fecha_emision'] ?>" disabled
+                            <input type="date" name="fecha_cobro" class="im-fecha-cobro" value="<?= $doc['fecha_emision'] ?>"
                                    style="padding:3px 6px;border:1px solid var(--gc-line);border-radius:6px;font-size:12px;color:var(--gc-label);">
                         </label>
                     </form>
@@ -320,7 +324,7 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
             const p = PROPUESTAS[parseInt(this.dataset.index, 10)];
             if (!p) return;
             this.disabled = true; this.textContent = 'Aplicando…';
-            const items = p.documentos.map(d => ({ origen: d.origen, documento_id: d.documento_id, cuenta_id: p.cuenta_id }));
+            const items = p.documentos.map(d => ({ origen: d.origen, documento_id: d.documento_id, cuenta_id: p.cuenta_id, cobrado: true, fecha: null }));
             try {
                 const data = await clasificarLote(items, { regla_id: p.regla_id });
                 let ok = 0, fail = 0;

@@ -31,6 +31,7 @@ if ($dentroDeEmpresa) {
             [$base . '/compras', 'Compras'],
             [$base . '/sync', 'Sincronizar SIRE'],
             [$base . '/imputacion', 'Clasificar'],
+            [$base . '/cobranzas', 'Cobros y pagos'],
         ]],
         ['label' => 'Apertura', 'href' => $base . '/apertura'],
         ['label' => 'Planillas', 'href' => $base . '/planillas'],

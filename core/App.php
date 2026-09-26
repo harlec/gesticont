@@ -38,6 +38,11 @@ class App {
         $router->get('/empresas/{id}/imputacion',            'imputacion/ImputacionController@index');
         $router->post('/empresas/{id}/imputacion/clasificar','imputacion/ImputacionController@clasificar');
         $router->post('/empresas/{id}/imputacion/clasificar-lote','imputacion/ImputacionController@clasificarLote');
+        // Cobros y pagos por comprobante (parciales, a crédito)
+        $router->get('/empresas/{id}/cobranzas',           'cobranzas/CobranzaController@index');
+        $router->post('/empresas/{id}/cobranzas/registrar','cobranzas/CobranzaController@registrar');
+        $router->post('/empresas/{id}/cobranzas/credito',  'cobranzas/CobranzaController@credito');
+        $router->post('/empresas/{id}/cobranzas/todo',     'cobranzas/CobranzaController@todo');
         // Motor de reglas de clasificación por proveedor/cliente (Fase 2)
         $router->get('/empresas/{id}/imputacion/reglas',                  'imputacion/ReglasImputacionController@index');
         $router->post('/empresas/{id}/imputacion/reglas/crear',           'imputacion/ReglasImputacionController@crear');

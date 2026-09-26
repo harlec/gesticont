@@ -3,6 +3,7 @@ require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
 require_once ROOT . '/core/Periodo.php';
 require_once ROOT . '/services/ReglaImputacionService.php';
+require_once ROOT . '/services/CobroPagoService.php';
 
 class ImputacionController
 {
@@ -268,23 +269,11 @@ class ImputacionController
             // cobrar/pagar (121/421) que la clasificación normal deja abierta,
             // para no tener que repetir el dato a mano en la pantalla de Caja.
             if ($cobrado) {
-                $campoEstado = $origen === 'venta' ? 'cobrado' : 'pagado';
-                $campoFecha  = $origen === 'venta' ? 'fecha_cobro' : 'fecha_pago';
-                $pdo->prepare("UPDATE {$tabla} SET {$campoEstado} = 1, {$campoFecha} = ? WHERE id = ?")
-                    ->execute([$fechaCobro, $documentoId]);
-
-                $cuentaCajaCod = $origen === 'venta' ? '121' : '421';
-                $stmtCC = $pdo->prepare("SELECT id FROM cuentas_contables WHERE codigo = ? AND empresa_id IS NULL LIMIT 1");
-                $stmtCC->execute([$cuentaCajaCod]);
-                $cuentaContrapartida = (int)$stmtCC->fetchColumn();
-
-                $tipoMov = $origen === 'venta' ? 'ingreso' : 'egreso';
-                $descripcion = ($origen === 'venta' ? 'Cobro' : 'Pago') . " {$doc['serie']}-{$doc['correlativo']}";
-
-                $pdo->prepare("
-                    INSERT INTO caja_movimientos (empresa_id, tipo, cuenta_id, {$col}, descripcion, monto, fecha, registrado_por)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ")->execute([$empresaId, $tipoMov, $cuentaContrapartida, $documentoId, $descripcion, (float)$doc['total'], $fechaCobro, Auth::id()]);
+                $r = CobroPagoService::registrar($empresaId, $origen, $documentoId, (float)$doc['total'], $fechaCobro, Auth::id());
+                if (!$r['ok']) {
+                    Model::rollback();
+                    return ['ok' => false, 'error' => $r['error']];
+                }
             }
 
             Model::commit();

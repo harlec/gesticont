@@ -3,7 +3,7 @@
 Documento de traspaso: qué es el sistema, cómo está armado, qué decisiones se tomaron y qué falta.
 Complementa (no reemplaza) `docs/gesticon_doc/spec-motor-contable-gesticont.md` y `plan-completo-motor-contable.md`, que describen la lógica contable en detalle.
 
-Última actualización: 2026-09-26 (regla general, rango "año vigente" y destino de compras incluidos).
+Última actualización: 2026-09-26 (regla general, rango "año vigente", destino de compras y cobros/pagos parciales incluidos).
 
 ---
 
@@ -100,6 +100,8 @@ Rutas: todas en `core/App.php` (`$router->get/post('/empresas/{id}/...', 'modulo
 - **Perfil comercial** (Editar empresa): qué vende/compra (productos/servicios/ambos) y cuenta por defecto para cada uno. Con "ambos" no se sugiere nada (no se puede adivinar).
 - Solo está implementado el criterio `ruc_contraparte`; `palabra_clave`, `tipo_comprobante`, `ruc_y_palabra` existen en el enum pero sin uso.
 
+**Cobros y pagos** (`Comprobantes → Cobros y pagos`, `/empresas/{id}/cobranzas`; `CobroPagoService` + `CobranzaController`): criterio del contador = **se asume todo cobrado/pagado** y se corrige después. En Clasificar la casilla "¿ya se cobró/pagó?" parte marcada (individual, lote y propuestas), con la fecha del comprobante. La pantalla permite, por comprobante clasificado: **cobro/pago parcial** (varios pagos hasta completar), **pasar a crédito** (borra sus movimientos de Caja) y **marcar todo el período** por su saldo. Fuente de verdad = movimientos de Caja ligados al comprobante (`caja_movimientos.registro_venta_id/registro_compra_id`, contra 121/421): pagado = suma, saldo = total − suma; `cobrado/pagado` y `fecha_*` son solo resumen (1 únicamente con saldo 0). Bloquea si el año está cerrado. El Dashboard calcula CxC/CxP por saldo real. Borrar un movimiento desde Caja también recalcula. Tras cambiar cobros hay que **regenerar asientos** del mes para el Diario. Sin migraciones.
+
 **Credenciales SUNAT** (`/empresas/{id}/certificado`): pantalla ancha con instrucciones al costado; indicador "✓ Ingresado" por campo (nunca se muestran los valores, van encriptados); **un campo vacío conserva el valor guardado** (antes se perdían las credenciales de API al guardar). Instrucciones: usar un **usuario SOL secundario** con las carpetas *Comprobantes de pago*, *Sistema Integrado de Registros Electrónicos* y *Credenciales de API SUNAT*; el ID/clave de API se generan con el usuario principal (MIGE RCE y RVIE - SIRE, alcance Desktop).
 
 **Rangos de sincronización SIRE**: un período, **todo el año vigente desde enero** (hasta el mes anterior; en enero incluye el mes actual) o los últimos 12 meses. Con varios meses se amplía el límite de ejecución a 600 s.
@@ -108,7 +110,7 @@ Rutas: todas en `core/App.php` (`$router->get/post('/empresas/{id}/...', 'modulo
 
 ## 8. Decisiones de producto ya tomadas
 
-- Una venta/compra **no se asume cobrada/pagada**: se declara al clasificar (checkbox + fecha), porque SUNAT no lo informa.
+- Cobro/pago: **se asume cobrado/pagado** por defecto (decisión del contador, sept 2026); lo excepcional (parcial, a crédito) se ajusta en Cobros y pagos. Antes se asumía lo contrario.
 - Los pagos, ventas y compras van alimentando el balance; apertura se llena una vez por año y no hay que "actualizarla" después.
 - Filtros de Clasificar por período con pendientes y por tipo (todos/ventas/compras).
 - El motor **propone, no clasifica solo**: siempre hay un clic de confirmación.

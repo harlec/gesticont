@@ -78,11 +78,11 @@ class DashboardEmpresaService
         $pendCompras = (int)$stmtPendC->fetchColumn();
 
         // ── Cuentas por cobrar / pagar abiertas (spec del campo cobrado/pagado) ──
-        $stmtCxC = $pdo->prepare("SELECT COUNT(*) AS cant, COALESCE(SUM(total),0) AS monto FROM registro_ventas WHERE empresa_id = ? AND estado_sunat = '1' AND cobrado = 0");
+        $stmtCxC = $pdo->prepare("SELECT COUNT(*) AS cant, COALESCE(SUM(total - (SELECT COALESCE(SUM(cm.monto),0) FROM caja_movimientos cm WHERE cm.registro_venta_id = registro_ventas.id)),0) AS monto FROM registro_ventas WHERE empresa_id = ? AND estado_sunat = '1' AND cobrado = 0");
         $stmtCxC->execute([$empresaId]);
         $cxc = $stmtCxC->fetch(PDO::FETCH_ASSOC);
 
-        $stmtCxP = $pdo->prepare("SELECT COUNT(*) AS cant, COALESCE(SUM(total),0) AS monto FROM registro_compras WHERE empresa_id = ? AND estado_sunat = '1' AND pagado = 0");
+        $stmtCxP = $pdo->prepare("SELECT COUNT(*) AS cant, COALESCE(SUM(total - (SELECT COALESCE(SUM(cm.monto),0) FROM caja_movimientos cm WHERE cm.registro_compra_id = registro_compras.id)),0) AS monto FROM registro_compras WHERE empresa_id = ? AND estado_sunat = '1' AND pagado = 0");
         $stmtCxP->execute([$empresaId]);
         $cxp = $stmtCxP->fetch(PDO::FETCH_ASSOC);
 

@@ -21,6 +21,7 @@ class ReglasImputacionController
         $reglas     = ReglaImputacionService::listar($empresaId, $origen);
         $candidatas = ReglaImputacionService::escanearContrapartes($empresaId, $origen);
         $conteos    = ReglaImputacionService::contarPorOrigen($empresaId);
+        $historial  = ReglaImputacionService::resumenHistorial($empresaId, $origen);
 
         // Una regla de compra apunta a cuentas de compra/gasto y una de
         // venta a cuentas de ingreso — el selector ofrece solo el catálogo

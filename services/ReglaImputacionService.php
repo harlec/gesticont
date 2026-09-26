@@ -118,6 +118,19 @@ class ReglaImputacionService
         return array_slice(array_values($candidatas), 0, 100);
     }
 
+    /** Cuánto historial hay para el origen — permite a la pantalla explicar por qué una lista sale vacía. */
+    public static function resumenHistorial(int $empresaId, string $origen): array
+    {
+        [$tabla, $col] = $origen === 'venta' ? ['registro_ventas', 'cliente_num_doc'] : ['registro_compras', 'proveedor_ruc'];
+        $stmt = Model::db()->prepare("
+            SELECT COUNT(*) AS comprobantes, COUNT(DISTINCT NULLIF({$col}, '')) AS contrapartes,
+                   SUM({$col} IS NULL OR {$col} = '') AS sin_ruc
+            FROM {$tabla} WHERE empresa_id = ?
+        ");
+        $stmt->execute([$empresaId]);
+        return array_map('intval', $stmt->fetch(PDO::FETCH_ASSOC));
+    }
+
     /**
      * Agrupa los comprobantes pendientes (misma forma que
      * ImputacionController::index() ya arma en $pendientes) por

@@ -97,6 +97,14 @@
         <div style="padding:14px 20px;background:var(--gc-bg);border-bottom:1px solid var(--gc-line);">
             <div style="font-weight:700;font-size:13px;color:var(--gc-ink);">🔍 <?= $esVenta ? 'Clientes' : 'Proveedores' ?> de tu historial sin regla</div>
             <div style="font-size:12px;color:var(--gc-muted);margin-top:2px;">Ordenados por comprobantes pendientes de clasificar; los que se repiten en varios meses son los mejores candidatos.</div>
+            <div style="font-size:12px;color:var(--gc-muted);margin-top:4px;">
+                Revisado en tu historial: <strong><?= $historial['comprobantes'] ?></strong> <?= $esVenta ? 'ventas' : 'compras' ?>
+                de <strong><?= $historial['contrapartes'] ?></strong> <?= $esVenta ? 'clientes' : 'proveedores' ?> distintos
+                <?php if ($historial['sin_ruc'] > 0): ?>
+                · <?= $historial['sin_ruc'] ?> sin RUC/documento (no se pueden agrupar)
+                <?php endif; ?>
+                · <?= (int)$conteos[$origen] ?> ya con regla.
+            </div>
         </div>
         <?php if (empty($candidatas)): ?>
         <div style="padding:30px;text-align:center;color:var(--gc-muted);font-size:13px;">

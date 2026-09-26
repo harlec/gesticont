@@ -17,28 +17,36 @@
  */
 class ReglaImputacionService
 {
-    /** Reglas activas de una empresa, con datos de cuenta para mostrar. */
-    public static function listar(int $empresaId): array
+    /** Reglas de una empresa para un origen ('compra' | 'venta'), con datos de cuenta para mostrar. */
+    public static function listar(int $empresaId, string $origen): array
     {
         $stmt = Model::db()->prepare("
             SELECT r.*, c.codigo AS cuenta_codigo, c.nombre AS cuenta_nombre
             FROM reglas_imputacion r
             JOIN cuentas_contables c ON c.id = r.cuenta_destino_id
-            WHERE r.empresa_id = ?
+            WHERE r.empresa_id = ? AND r.aplica_a = ?
             ORDER BY r.activa DESC, r.veces_aplicada DESC, r.id DESC
         ");
-        $stmt->execute([$empresaId]);
+        $stmt->execute([$empresaId, $origen]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public static function crear(int $empresaId, string $ruc, int $cuentaDestinoId, int $prioridad = 0): int
+    /** Cuántas reglas tiene cada origen — para el contador de las pestañas. */
+    public static function contarPorOrigen(int $empresaId): array
+    {
+        $stmt = Model::db()->prepare("SELECT aplica_a, COUNT(*) FROM reglas_imputacion WHERE empresa_id = ? GROUP BY aplica_a");
+        $stmt->execute([$empresaId]);
+        return ['compra' => 0, 'venta' => 0] + $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    }
+
+    public static function crear(int $empresaId, string $origen, string $ruc, int $cuentaDestinoId, int $prioridad = 0): int
     {
         $pdo = Model::db();
         $stmt = $pdo->prepare("
-            INSERT INTO reglas_imputacion (empresa_id, tipo_criterio, valor_criterio, cuenta_destino_id, prioridad, activa)
-            VALUES (?, 'ruc_contraparte', ?, ?, ?, 1)
+            INSERT INTO reglas_imputacion (empresa_id, aplica_a, tipo_criterio, valor_criterio, cuenta_destino_id, prioridad, activa)
+            VALUES (?, ?, 'ruc_contraparte', ?, ?, ?, 1)
         ");
-        $stmt->execute([$empresaId, trim($ruc), $cuentaDestinoId, $prioridad]);
+        $stmt->execute([$empresaId, $origen, trim($ruc), $cuentaDestinoId, $prioridad]);
         return (int)$pdo->lastInsertId();
     }
 
@@ -69,41 +77,37 @@ class ReglaImputacionService
      * ("todos los meses le compro a Entel") solo se ve mirando el
      * histórico completo.
      */
-    public static function escanearContrapartes(int $empresaId): array
+    public static function escanearContrapartes(int $empresaId, string $origen): array
     {
         $pdo = Model::db();
 
         $stmtRucsConRegla = $pdo->prepare("
             SELECT valor_criterio FROM reglas_imputacion
-            WHERE empresa_id = ? AND tipo_criterio = 'ruc_contraparte' AND activa = 1
+            WHERE empresa_id = ? AND aplica_a = ? AND tipo_criterio = 'ruc_contraparte' AND activa = 1
         ");
-        $stmtRucsConRegla->execute([$empresaId]);
+        $stmtRucsConRegla->execute([$empresaId, $origen]);
         $rucsConRegla = $stmtRucsConRegla->fetchAll(PDO::FETCH_COLUMN);
 
-        $stmtCompras = $pdo->prepare("
-            SELECT proveedor_ruc AS ruc, MAX(proveedor_nombre) AS nombre, COUNT(*) AS apariciones,
-                   SUM(total - igv) AS monto_total, MAX(fecha_emision) AS ultima
-            FROM registro_compras
-            WHERE empresa_id = ? AND proveedor_ruc IS NOT NULL AND proveedor_ruc != ''
-            GROUP BY proveedor_ruc
-            ORDER BY apariciones DESC
-        ");
-        $stmtCompras->execute([$empresaId]);
-        $compras = array_map(fn($r) => $r + ['origen' => 'compra'], $stmtCompras->fetchAll(PDO::FETCH_ASSOC));
-
-        $stmtVentas = $pdo->prepare("
-            SELECT cliente_num_doc AS ruc, MAX(cliente_nombre) AS nombre, COUNT(*) AS apariciones,
-                   SUM(total - igv) AS monto_total, MAX(fecha_emision) AS ultima
-            FROM registro_ventas
-            WHERE empresa_id = ? AND cliente_num_doc IS NOT NULL AND cliente_num_doc != ''
-            GROUP BY cliente_num_doc
-            ORDER BY apariciones DESC
-        ");
-        $stmtVentas->execute([$empresaId]);
-        $ventas = array_map(fn($r) => $r + ['origen' => 'venta'], $stmtVentas->fetchAll(PDO::FETCH_ASSOC));
+        if ($origen === 'venta') {
+            $sql = "
+                SELECT cliente_num_doc AS ruc, MAX(cliente_nombre) AS nombre, COUNT(*) AS apariciones,
+                       SUM(total - igv) AS monto_total, MAX(fecha_emision) AS ultima
+                FROM registro_ventas
+                WHERE empresa_id = ? AND cliente_num_doc IS NOT NULL AND cliente_num_doc != ''
+                GROUP BY cliente_num_doc";
+        } else {
+            $sql = "
+                SELECT proveedor_ruc AS ruc, MAX(proveedor_nombre) AS nombre, COUNT(*) AS apariciones,
+                       SUM(total - igv) AS monto_total, MAX(fecha_emision) AS ultima
+                FROM registro_compras
+                WHERE empresa_id = ? AND proveedor_ruc IS NOT NULL AND proveedor_ruc != ''
+                GROUP BY proveedor_ruc";
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$empresaId]);
 
         $candidatas = array_filter(
-            array_merge($compras, $ventas),
+            $stmt->fetchAll(PDO::FETCH_ASSOC),
             fn($c) => (int)$c['apariciones'] >= 2 && !in_array($c['ruc'], $rucsConRegla, true)
         );
 
@@ -125,7 +129,7 @@ class ReglaImputacionService
         $pdo = Model::db();
 
         $stmtReglas = $pdo->prepare("
-            SELECT r.id, r.valor_criterio AS ruc, r.cuenta_destino_id AS cuenta_id, c.codigo, c.nombre
+            SELECT r.id, r.aplica_a, r.valor_criterio AS ruc, r.cuenta_destino_id AS cuenta_id, c.codigo, c.nombre
             FROM reglas_imputacion r
             JOIN cuentas_contables c ON c.id = r.cuenta_destino_id
             WHERE r.empresa_id = ? AND r.tipo_criterio = 'ruc_contraparte' AND r.activa = 1
@@ -133,7 +137,7 @@ class ReglaImputacionService
         $stmtReglas->execute([$empresaId]);
         $reglasPorRuc = [];
         foreach ($stmtReglas->fetchAll(PDO::FETCH_ASSOC) as $r) {
-            $reglasPorRuc[$r['ruc']] = $r;
+            $reglasPorRuc[$r['aplica_a'] . ':' . $r['ruc']] = $r;
         }
 
         $perfilCuenta = fn(string $origen) => self::_perfilComercialCuenta($pdo, $empresa, $origen);
@@ -145,10 +149,11 @@ class ReglaImputacionService
 
         foreach ($pendientes as $doc) {
             $ruc = $doc['contraparte_doc'] ?? '';
-            if ($ruc !== '' && isset($reglasPorRuc[$ruc])) {
-                $clave = 'regla:' . $reglasPorRuc[$ruc]['id'];
+            $claveRegla = $doc['origen'] . ':' . $ruc;
+            if ($ruc !== '' && isset($reglasPorRuc[$claveRegla])) {
+                $clave = 'regla:' . $reglasPorRuc[$claveRegla]['id'];
                 if (!isset($gruposRegla[$clave])) {
-                    $regla = $reglasPorRuc[$ruc];
+                    $regla = $reglasPorRuc[$claveRegla];
                     $gruposRegla[$clave] = [
                         'fuente' => 'regla', 'regla_id' => (int)$regla['id'],
                         'origen' => $doc['origen'], 'contraparte' => $doc['contraparte_nombre'], 'ruc' => $ruc,

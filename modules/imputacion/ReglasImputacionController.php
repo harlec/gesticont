@@ -17,29 +17,19 @@ class ReglasImputacionController
         $empresa = $this->_getEmpresa($empresaId);
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
-        $reglas     = ReglaImputacionService::listar($empresaId);
-        $candidatas = ReglaImputacionService::escanearContrapartes($empresaId);
+        $origen     = $this->_origen($_GET['origen'] ?? 'compra');
+        $reglas     = ReglaImputacionService::listar($empresaId, $origen);
+        $candidatas = ReglaImputacionService::escanearContrapartes($empresaId, $origen);
+        $conteos    = ReglaImputacionService::contarPorOrigen($empresaId);
 
-        $pdo = Model::db();
-        $tiposCompra = $pdo->query("
+        // Una regla de compra apunta a cuentas de compra/gasto y una de
+        // venta a cuentas de ingreso — el selector ofrece solo el catálogo
+        // del origen activo.
+        $tipos = Model::db()->query("
             SELECT tg.id, CONCAT(c.codigo, ' - ', tg.nombre_visible) AS nombre_visible, c.id AS cuenta_id
             FROM tipos_gasto tg JOIN cuentas_contables c ON c.id = tg.cuenta_id
-            WHERE tg.aplica_a IN ('compra','ambos') AND tg.activo = 1 ORDER BY tg.orden
+            WHERE tg.aplica_a IN ('" . $origen . "','ambos') AND tg.activo = 1 ORDER BY tg.orden
         ")->fetchAll(PDO::FETCH_ASSOC);
-        $tiposVenta = $pdo->query("
-            SELECT tg.id, CONCAT(c.codigo, ' - ', tg.nombre_visible) AS nombre_visible, c.id AS cuenta_id
-            FROM tipos_gasto tg JOIN cuentas_contables c ON c.id = tg.cuenta_id
-            WHERE tg.aplica_a IN ('venta','ambos') AND tg.activo = 1 ORDER BY tg.orden
-        ")->fetchAll(PDO::FETCH_ASSOC);
-
-        // Una regla se dispara por RUC sin importar si ese RUC resulta ser
-        // cliente o proveedor, así que el selector ofrece las cuentas de
-        // ambos catálogos (compra + venta), sin duplicar por cuenta.
-        $tiposTodos = [];
-        foreach (array_merge($tiposCompra, $tiposVenta) as $t) {
-            $tiposTodos[$t['cuenta_id']] = $t;
-        }
-        usort($tiposTodos, fn($a, $b) => strcmp($a['nombre_visible'], $b['nombre_visible']));
 
         $pageTitle = 'Reglas de clasificación — ' . $empresa['razon_social'];
         ob_start();
@@ -56,23 +46,25 @@ class ReglasImputacionController
         $empresa = $this->_getEmpresa($empresaId);
         if (!$empresa) { http_response_code(403); die('Sin acceso'); }
 
+        $origen   = $this->_origen($_POST['origen'] ?? 'compra');
         $ruc      = trim($_POST['ruc'] ?? '');
         $cuentaId = (int)($_POST['cuenta_id'] ?? 0);
+        $volver   = "/empresas/{$empresaId}/imputacion/reglas?origen={$origen}";
 
         if ($ruc === '' || !$cuentaId) {
             $_SESSION['reglas_error'] = 'Falta el RUC o la cuenta destino.';
-            header("Location: /empresas/{$empresaId}/imputacion/reglas"); exit;
+            header("Location: {$volver}"); exit;
         }
 
         $stmtCuenta = Model::db()->prepare("SELECT id FROM cuentas_contables WHERE id = ? AND (empresa_id IS NULL OR empresa_id = ?)");
         $stmtCuenta->execute([$cuentaId, $empresaId]);
         if (!$stmtCuenta->fetch()) {
             $_SESSION['reglas_error'] = 'Cuenta destino inválida.';
-            header("Location: /empresas/{$empresaId}/imputacion/reglas"); exit;
+            header("Location: {$volver}"); exit;
         }
 
-        ReglaImputacionService::crear($empresaId, $ruc, $cuentaId);
-        header("Location: /empresas/{$empresaId}/imputacion/reglas?ok=1"); exit;
+        ReglaImputacionService::crear($empresaId, $origen, $ruc, $cuentaId);
+        header("Location: {$volver}&ok=1"); exit;
     }
 
     public function eliminar(int $empresaId, int $reglaId): void
@@ -82,6 +74,7 @@ class ReglasImputacionController
         $empresa = $this->_getEmpresa($empresaId);
         if (!$empresa) { http_response_code(403); die('Sin acceso'); }
 
+        $volver = "/empresas/{$empresaId}/imputacion/reglas?origen=" . $this->_origen($_POST['origen'] ?? 'compra');
         try {
             ReglaImputacionService::eliminar($empresaId, $reglaId);
         } catch (PDOException $e) {
@@ -90,7 +83,7 @@ class ReglasImputacionController
             // huérfano ese historial; desactivarla sí se puede siempre.
             $_SESSION['reglas_error'] = 'No se puede eliminar: ya se usó para clasificar comprobantes. Puedes desactivarla en su lugar.';
         }
-        header("Location: /empresas/{$empresaId}/imputacion/reglas"); exit;
+        header("Location: {$volver}"); exit;
     }
 
     public function toggle(int $empresaId, int $reglaId): void
@@ -101,7 +94,12 @@ class ReglasImputacionController
         if (!$empresa) { http_response_code(403); die('Sin acceso'); }
 
         ReglaImputacionService::toggle($empresaId, $reglaId);
-        header("Location: /empresas/{$empresaId}/imputacion/reglas"); exit;
+        header("Location: /empresas/{$empresaId}/imputacion/reglas?origen=" . $this->_origen($_POST['origen'] ?? 'compra')); exit;
+    }
+
+    private function _origen(string $v): string
+    {
+        return $v === 'venta' ? 'venta' : 'compra';
     }
 
     private function _getEmpresa(int $id): ?array

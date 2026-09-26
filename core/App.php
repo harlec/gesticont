@@ -41,6 +41,7 @@ class App {
         // Motor de reglas de clasificación por proveedor/cliente (Fase 2)
         $router->get('/empresas/{id}/imputacion/reglas',                  'imputacion/ReglasImputacionController@index');
         $router->post('/empresas/{id}/imputacion/reglas/crear',           'imputacion/ReglasImputacionController@crear');
+        $router->post('/empresas/{id}/imputacion/reglas/general',         'imputacion/ReglasImputacionController@general');
         $router->post('/empresas/{id}/imputacion/reglas/{rid}/eliminar', 'imputacion/ReglasImputacionController@eliminar');
         $router->post('/empresas/{id}/imputacion/reglas/{rid}/toggle',   'imputacion/ReglasImputacionController@toggle');
         // Motor contable — Libro Diario (generación de asientos)

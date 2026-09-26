@@ -69,6 +69,29 @@ class ReglasImputacionController
         header("Location: {$volver}&ok=1"); exit;
     }
 
+    public function general(int $empresaId): void
+    {
+        Auth::require();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header("Location: /empresas/{$empresaId}/imputacion/reglas"); exit; }
+
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) { http_response_code(403); die('Sin acceso'); }
+
+        $origen   = $this->_origen($_POST['origen'] ?? 'compra');
+        $cuentaId = (int)($_POST['cuenta_id'] ?? 0);
+        $volver   = "/empresas/{$empresaId}/imputacion/reglas?origen={$origen}";
+
+        $stmtCuenta = Model::db()->prepare("SELECT id FROM cuentas_contables WHERE id = ? AND (empresa_id IS NULL OR empresa_id = ?)");
+        $stmtCuenta->execute([$cuentaId, $empresaId]);
+        if (!$cuentaId || !$stmtCuenta->fetch()) {
+            $_SESSION['reglas_error'] = 'Elige la cuenta que se aplicará a todos.';
+            header("Location: {$volver}"); exit;
+        }
+
+        ReglaImputacionService::guardarGeneral($empresaId, $origen, $cuentaId);
+        header("Location: {$volver}&ok=general"); exit;
+    }
+
     public function eliminar(int $empresaId, int $reglaId): void
     {
         Auth::require();

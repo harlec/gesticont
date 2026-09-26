@@ -36,9 +36,51 @@
 
     <?php if (isset($_GET['ok'])): ?>
     <div style="background:var(--gc-pos-soft-2);color:var(--gc-pos);border:1px solid var(--gc-pos-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        ✓ Regla creada.
+        ✓ <?= $_GET['ok'] === 'general' ? 'Regla general guardada.' : 'Regla creada.' ?>
     </div>
     <?php endif; ?>
+
+    <?php
+        $general = null;
+        foreach ($reglas as $r) { if ($r['valor_criterio'] === ReglaImputacionService::REGLA_GENERAL) { $general = $r; break; } }
+        $todosLbl = $esVenta ? 'clientes' : 'proveedores';
+    ?>
+    <!-- Regla general: una cuenta para todos -->
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;margin-bottom:20px;">
+        <div style="padding:14px 20px;background:var(--gc-brand-soft);border-bottom:1px solid var(--gc-line);">
+            <div style="font-weight:700;font-size:13px;color:var(--gc-brand);">⚡ Una sola cuenta para todos los <?= $todosLbl ?></div>
+            <div style="font-size:12px;color:var(--gc-label);margin-top:2px;">
+                Para negocios donde casi todo va a la misma cuenta (por ejemplo, una farmacia: todo lo que compra es Mercadería).
+                Vale para cualquier <?= $esVenta ? 'cliente' : 'proveedor' ?> que no tenga una regla propia por RUC, incluidos los que no traen RUC.
+                Las reglas por RUC siempre tienen prioridad.
+            </div>
+        </div>
+        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/imputacion/reglas/general"
+              style="padding:16px 20px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <input type="hidden" name="origen" value="<?= $origen ?>">
+            <div>
+                <label style="display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+                    Cuenta para todos los <?= $todosLbl ?>
+                </label>
+                <select name="cuenta_id" required style="padding:8px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;color:var(--gc-ink);min-width:300px;">
+                    <option value="">Seleccionar…</option>
+                    <?php foreach ($tipos as $t): ?>
+                    <option value="<?= $t['cuenta_id'] ?>" <?= $general && (int)$general['cuenta_destino_id'] === (int)$t['cuenta_id'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($t['nombre_visible']) ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+                <?= $general ? 'Cambiar cuenta' : '✓ Aplicar a todos' ?>
+            </button>
+            <?php if ($general): ?>
+            <span style="font-size:12px;font-weight:600;color:<?= $general['activa'] ? 'var(--gc-pos)' : 'var(--gc-muted)' ?>;padding-bottom:10px;">
+                <?= $general['activa'] ? '● Activa' : '○ Inactiva (actívala en la tabla de abajo)' ?>
+            </span>
+            <?php endif; ?>
+        </form>
+    </div>
 
     <!-- Reglas activas -->
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;margin-bottom:20px;">
@@ -63,7 +105,11 @@
             <tbody>
                 <?php foreach ($reglas as $r): ?>
                 <tr style="border-top:1px solid var(--gc-surface-2);">
-                    <td style="padding:8px 20px;font-family:monospace;"><?= htmlspecialchars($r['valor_criterio']) ?></td>
+                    <td style="padding:8px 20px;font-family:monospace;">
+                        <?php if ($r['valor_criterio'] === ReglaImputacionService::REGLA_GENERAL): ?>
+                        <span style="font-family:inherit;font-weight:700;color:var(--gc-brand);">Todos los <?= $todosLbl ?></span>
+                        <?php else: ?><?= htmlspecialchars($r['valor_criterio']) ?><?php endif; ?>
+                    </td>
                     <td style="padding:8px 20px;">
                         <span style="font-family:monospace;font-weight:700;"><?= htmlspecialchars($r['cuenta_codigo']) ?></span>
                         <?= htmlspecialchars($r['cuenta_nombre']) ?>

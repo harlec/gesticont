@@ -94,7 +94,10 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
             ?>
             <div class="im-propuesta" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--gc-bg);border-radius:8px;padding:10px 14px;">
                 <div style="font-size:13px;color:var(--gc-label);">
-                    <?php if ($p['fuente'] === 'regla'): ?>
+                    <?php if ($p['fuente'] === 'regla' && !empty($p['general'])): ?>
+                        <strong>Todos los <?= $p['origen'] === 'venta' ? 'clientes' : 'proveedores' ?> sin regla propia</strong>
+                        <span style="color:var(--gc-muted);">(regla general)</span>
+                    <?php elseif ($p['fuente'] === 'regla'): ?>
                         <strong><?= htmlspecialchars($p['contraparte']) ?></strong>
                         <span style="color:var(--gc-muted);">(RUC <?= htmlspecialchars($p['ruc']) ?>)</span>
                     <?php else: ?>

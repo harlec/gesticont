@@ -53,9 +53,21 @@ class SyncController
         $rango   = $_POST['rango']   ?? 'periodo';
         $periodo = $_POST['periodo'] ?? date('Ym', strtotime('-1 month'));
 
-        $periodos = $rango === 'todo'
-            ? array_map(fn($i) => date('Ym', strtotime("-{$i} month")), range(1, 12))
-            : [$periodo];
+        if ($rango === 'todo') {
+            $periodos = array_map(fn($i) => date('Ym', strtotime("-{$i} month")), range(1, 12));
+        } elseif ($rango === 'anio') {
+            // Año vigente desde enero hasta el mes anterior (el mes en curso
+            // aún no está cerrado); en enero no hay mes anterior dentro del
+            // año, así que solo entonces se incluye el mes actual.
+            $anio = (int)date('Y');
+            $hasta = max(1, (int)date('n') - 1);
+            $periodos = array_map(fn($m) => sprintf('%04d%02d', $anio, $m), range(1, $hasta));
+        } else {
+            $periodos = [$periodo];
+        }
+        // Varios meses = varias consultas a SUNAT por página; se da más margen
+        // que el límite por defecto para que no se corte a la mitad.
+        if (count($periodos) > 1) set_time_limit(600);
 
         $pdo     = Model::db();
         $stmtCrt = $pdo->prepare("

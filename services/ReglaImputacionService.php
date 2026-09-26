@@ -17,6 +17,9 @@
  */
 class ReglaImputacionService
 {
+    /** valor_criterio de la regla general: aplica a todos los proveedores (o clientes) que no tengan una regla por RUC. */
+    public const REGLA_GENERAL = '*';
+
     /** Reglas de una empresa para un origen ('compra' | 'venta'), con datos de cuenta para mostrar. */
     public static function listar(int $empresaId, string $origen): array
     {
@@ -48,6 +51,29 @@ class ReglaImputacionService
         ");
         $stmt->execute([$empresaId, $origen, trim($ruc), $cuentaDestinoId, $prioridad]);
         return (int)$pdo->lastInsertId();
+    }
+
+    /**
+     * Regla general de un origen ("todas las compras van a Mercaderías"):
+     * una sola por origen, con prioridad por debajo de cualquier regla por
+     * RUC. Si ya existía, solo cambia su cuenta y la reactiva.
+     */
+    public static function guardarGeneral(int $empresaId, string $origen, int $cuentaDestinoId): void
+    {
+        $pdo = Model::db();
+        $stmt = $pdo->prepare("
+            SELECT id FROM reglas_imputacion
+            WHERE empresa_id = ? AND aplica_a = ? AND tipo_criterio = 'ruc_contraparte' AND valor_criterio = ? LIMIT 1
+        ");
+        $stmt->execute([$empresaId, $origen, self::REGLA_GENERAL]);
+        $id = $stmt->fetchColumn();
+
+        if ($id) {
+            $pdo->prepare("UPDATE reglas_imputacion SET cuenta_destino_id = ?, activa = 1 WHERE id = ?")
+                ->execute([$cuentaDestinoId, $id]);
+        } else {
+            self::crear($empresaId, $origen, self::REGLA_GENERAL, $cuentaDestinoId);
+        }
     }
 
     public static function eliminar(int $empresaId, int $reglaId): bool
@@ -87,7 +113,7 @@ class ReglaImputacionService
             WHERE empresa_id = ? AND aplica_a = ? AND tipo_criterio = 'ruc_contraparte' AND activa = 1
         ");
         $stmtRucsConRegla->execute([$empresaId, $origen]);
-        $rucsConRegla = $stmtRucsConRegla->fetchAll(PDO::FETCH_COLUMN);
+        $rucsConRegla = array_diff($stmtRucsConRegla->fetchAll(PDO::FETCH_COLUMN), [self::REGLA_GENERAL]);
 
         if ($origen === 'venta') {
             $sql = "
@@ -176,14 +202,23 @@ class ReglaImputacionService
 
         foreach ($pendientes as $doc) {
             $ruc = $doc['contraparte_doc'] ?? '';
-            $claveRegla = $doc['origen'] . ':' . $ruc;
-            if ($ruc !== '' && isset($reglasPorRuc[$claveRegla])) {
-                $clave = 'regla:' . $reglasPorRuc[$claveRegla]['id'];
+
+            // Prioridad: regla por RUC > regla general del origen > perfil comercial.
+            $regla = null;
+            if ($ruc !== '' && isset($reglasPorRuc[$doc['origen'] . ':' . $ruc])) {
+                $regla = $reglasPorRuc[$doc['origen'] . ':' . $ruc];
+            } elseif (isset($reglasPorRuc[$doc['origen'] . ':' . self::REGLA_GENERAL])) {
+                $regla = $reglasPorRuc[$doc['origen'] . ':' . self::REGLA_GENERAL];
+            }
+
+            if ($regla) {
+                $general = $regla['ruc'] === self::REGLA_GENERAL;
+                $clave = 'regla:' . $regla['id'];
                 if (!isset($gruposRegla[$clave])) {
-                    $regla = $reglasPorRuc[$claveRegla];
                     $gruposRegla[$clave] = [
-                        'fuente' => 'regla', 'regla_id' => (int)$regla['id'],
-                        'origen' => $doc['origen'], 'contraparte' => $doc['contraparte_nombre'], 'ruc' => $ruc,
+                        'fuente' => 'regla', 'regla_id' => (int)$regla['id'], 'general' => $general,
+                        'origen' => $doc['origen'],
+                        'contraparte' => $general ? null : $doc['contraparte_nombre'], 'ruc' => $general ? null : $ruc,
                         'cuenta_id' => (int)$regla['cuenta_id'], 'cuenta_codigo' => $regla['codigo'], 'cuenta_nombre' => $regla['nombre'],
                         'documentos' => [], 'monto_total' => 0.0,
                     ];

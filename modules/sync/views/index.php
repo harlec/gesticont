@@ -46,6 +46,7 @@ function badgeFuente(?string $fuente): string {
                     <select name="rango" id="selRango" onchange="togglePeriodo(this.value)"
                         style="width:100%;padding:10px 14px;border:1.5px solid var(--gc-line);border-radius:8px;font-size:14px;background:var(--gc-surface);font-family:inherit;">
                         <option value="periodo">Un período específico</option>
+                        <option value="anio">Todo el año <?= date('Y') ?> (desde enero)</option>
                         <option value="todo">Últimos 12 meses (solo faltante)</option>
                     </select>
                 </div>
@@ -147,11 +148,14 @@ function badgeFuente(?string $fuente): string {
 </div>
 
 <script>
-function togglePeriodo(val) { document.getElementById('divPeriodo').style.display = val==='todo'?'none':'block'; }
+function togglePeriodo(val) { document.getElementById('divPeriodo').style.display = val==='periodo'?'block':'none'; }
 function confirmarSync(form) {
     const rango = form.rango.value;
     const tipo  = form.tipo.options[form.tipo.selectedIndex].text;
-    if (!confirm(rango==='todo' ? `¿Sincronizar ${tipo} de los últimos 12 meses?` : `¿Sincronizar ${tipo}?`)) return false;
+    const msg = rango==='todo' ? `¿Sincronizar ${tipo} de los últimos 12 meses?`
+        : rango==='anio' ? `¿Sincronizar ${tipo} de todo el año ${new Date().getFullYear()} (desde enero)? Puede tardar unos minutos.`
+        : `¿Sincronizar ${tipo}?`;
+    if (!confirm(msg)) return false;
     document.getElementById('btnIcon').textContent='⏳';
     document.getElementById('btnText').textContent='Sincronizando...';
     document.getElementById('btnSync').disabled=true;

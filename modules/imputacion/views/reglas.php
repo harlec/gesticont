@@ -23,7 +23,7 @@
            style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
                   background:<?= $activo ? 'var(--gc-purple)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
             <span><?= $ico ?></span><?= $lbl ?>
-            <span style="opacity:.75;font-size:11px;">· <?= (int)$conteos[$val] ?></span>
+            <span style="opacity:.75;font-size:11px;">· <?= (int)$conteos[$val] ?> <?= (int)$conteos[$val] === 1 ? 'regla' : 'reglas' ?></span>
         </a>
         <?php endforeach; ?>
     </div>
@@ -95,19 +95,20 @@
     <!-- Detector de proveedores/clientes frecuentes -->
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;margin-bottom:20px;">
         <div style="padding:14px 20px;background:var(--gc-bg);border-bottom:1px solid var(--gc-line);">
-            <div style="font-weight:700;font-size:13px;color:var(--gc-ink);">🔍 Detectados en tu historial, sin regla todavía</div>
-            <div style="font-size:12px;color:var(--gc-muted);margin-top:2px;">RUC que aparecen 2 o más veces en tus <?= $esVenta ? 'ventas' : 'compras' ?>.</div>
+            <div style="font-weight:700;font-size:13px;color:var(--gc-ink);">🔍 <?= $esVenta ? 'Clientes' : 'Proveedores' ?> de tu historial sin regla</div>
+            <div style="font-size:12px;color:var(--gc-muted);margin-top:2px;">Ordenados por comprobantes pendientes de clasificar; los que se repiten en varios meses son los mejores candidatos.</div>
         </div>
         <?php if (empty($candidatas)): ?>
         <div style="padding:30px;text-align:center;color:var(--gc-muted);font-size:13px;">
-            No se detectaron <?= $esVenta ? 'clientes' : 'proveedores' ?> recurrentes sin regla.
+            No hay <?= $esVenta ? 'ventas' : 'compras' ?> sincronizadas de <?= $esVenta ? 'clientes' : 'proveedores' ?> sin regla.
         </div>
         <?php else: ?>
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
                 <tr style="border-bottom:1px solid var(--gc-line);">
                     <th style="padding:8px 20px;text-align:left;color:var(--gc-label-2);font-weight:700;">Contraparte</th>
-                    <th style="padding:8px 20px;text-align:right;color:var(--gc-label-2);font-weight:700;">Comprobantes</th>
+                    <th style="padding:8px 20px;text-align:right;color:var(--gc-label-2);font-weight:700;">Pendientes</th>
+                    <th style="padding:8px 20px;text-align:right;color:var(--gc-label-2);font-weight:700;">Total histórico</th>
                     <th style="padding:8px 20px;text-align:right;color:var(--gc-label-2);font-weight:700;">Monto total</th>
                     <th style="padding:8px 20px;"></th>
                 </tr>
@@ -119,6 +120,7 @@
                         <div><?= htmlspecialchars($c['nombre'] ?: '(sin nombre)') ?></div>
                         <div style="font-family:monospace;font-size:11px;color:var(--gc-muted);"><?= htmlspecialchars($c['ruc']) ?></div>
                     </td>
+                    <td style="padding:8px 20px;text-align:right;font-family:monospace;"><?= (int)$c['pendientes'] ?></td>
                     <td style="padding:8px 20px;text-align:right;font-family:monospace;"><?= (int)$c['apariciones'] ?></td>
                     <td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= number_format((float)$c['monto_total'], 2) ?></td>
                     <td style="padding:8px 20px;">

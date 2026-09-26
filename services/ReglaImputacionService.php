@@ -75,7 +75,8 @@ class ReglaImputacionService
      * y todavía no tienen una regla activa — candidatas a "detectar
      * proveedores frecuentes". No se limita al período activo: el patrón
      * ("todos los meses le compro a Entel") solo se ve mirando el
-     * histórico completo.
+     * histórico completo. Salen primero los que más comprobantes
+     * pendientes tienen; los de 1 solo comprobante también se listan.
      */
     public static function escanearContrapartes(int $empresaId, string $origen): array
     {
@@ -91,14 +92,16 @@ class ReglaImputacionService
         if ($origen === 'venta') {
             $sql = "
                 SELECT cliente_num_doc AS ruc, MAX(cliente_nombre) AS nombre, COUNT(*) AS apariciones,
-                       SUM(total - igv) AS monto_total, MAX(fecha_emision) AS ultima
+                       SUM(total - igv) AS monto_total, MAX(fecha_emision) AS ultima,
+                       SUM(estado_imputacion = 'pendiente') AS pendientes
                 FROM registro_ventas
                 WHERE empresa_id = ? AND cliente_num_doc IS NOT NULL AND cliente_num_doc != ''
                 GROUP BY cliente_num_doc";
         } else {
             $sql = "
                 SELECT proveedor_ruc AS ruc, MAX(proveedor_nombre) AS nombre, COUNT(*) AS apariciones,
-                       SUM(total - igv) AS monto_total, MAX(fecha_emision) AS ultima
+                       SUM(total - igv) AS monto_total, MAX(fecha_emision) AS ultima,
+                       SUM(estado_imputacion = 'pendiente') AS pendientes
                 FROM registro_compras
                 WHERE empresa_id = ? AND proveedor_ruc IS NOT NULL AND proveedor_ruc != ''
                 GROUP BY proveedor_ruc";
@@ -108,11 +111,11 @@ class ReglaImputacionService
 
         $candidatas = array_filter(
             $stmt->fetchAll(PDO::FETCH_ASSOC),
-            fn($c) => (int)$c['apariciones'] >= 2 && !in_array($c['ruc'], $rucsConRegla, true)
+            fn($c) => !in_array($c['ruc'], $rucsConRegla, true)
         );
 
-        usort($candidatas, fn($a, $b) => $b['apariciones'] <=> $a['apariciones']);
-        return array_values($candidatas);
+        usort($candidatas, fn($a, $b) => [$b['pendientes'], $b['apariciones']] <=> [$a['pendientes'], $a['apariciones']]);
+        return array_slice(array_values($candidatas), 0, 100);
     }
 
     /**

@@ -41,8 +41,8 @@ class DiarioController
         // puede quedar incompleto si aún hay documentos sin clasificar.
         $stmtPend = $pdo->prepare("
             SELECT
-                (SELECT COUNT(*) FROM registro_ventas  WHERE empresa_id=? AND periodo=? AND estado_imputacion='pendiente') AS ventas,
-                (SELECT COUNT(*) FROM registro_compras WHERE empresa_id=? AND periodo=? AND estado_imputacion='pendiente') AS compras
+                (SELECT COUNT(*) FROM registro_ventas  WHERE empresa_id=? AND periodo=? AND estado_imputacion='pendiente' AND estado_sunat='1') AS ventas,
+                (SELECT COUNT(*) FROM registro_compras WHERE empresa_id=? AND periodo=? AND estado_imputacion='pendiente' AND estado_sunat='1') AS compras
         ");
         $stmtPend->execute([$empresaId, $periodo, $empresaId, $periodo]);
         $pendientes = $stmtPend->fetch(PDO::FETCH_ASSOC);

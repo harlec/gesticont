@@ -28,8 +28,8 @@ class CierreController
             $likeAnio = $anio . '%';
             $stmtPend = $pdo->prepare("
                 SELECT
-                    (SELECT COUNT(*) FROM registro_ventas  WHERE empresa_id=? AND periodo LIKE ? AND estado_imputacion='pendiente') AS ventas,
-                    (SELECT COUNT(*) FROM registro_compras WHERE empresa_id=? AND periodo LIKE ? AND estado_imputacion='pendiente') AS compras
+                    (SELECT COUNT(*) FROM registro_ventas  WHERE empresa_id=? AND periodo LIKE ? AND estado_imputacion='pendiente' AND estado_sunat='1') AS ventas,
+                    (SELECT COUNT(*) FROM registro_compras WHERE empresa_id=? AND periodo LIKE ? AND estado_imputacion='pendiente' AND estado_sunat='1') AS compras
             ");
             $stmtPend->execute([$empresaId, $likeAnio, $empresaId, $likeAnio]);
             $pendientes = $stmtPend->fetch(PDO::FETCH_ASSOC);

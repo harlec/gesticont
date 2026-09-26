@@ -34,8 +34,8 @@ class CierreService
         // Guard 1: no debe haber compras/ventas del año sin clasificar.
         $stmtPend = $pdo->prepare("
             SELECT
-                (SELECT COUNT(*) FROM registro_ventas  WHERE empresa_id=? AND periodo LIKE ? AND estado_imputacion='pendiente') AS ventas,
-                (SELECT COUNT(*) FROM registro_compras WHERE empresa_id=? AND periodo LIKE ? AND estado_imputacion='pendiente') AS compras
+                (SELECT COUNT(*) FROM registro_ventas  WHERE empresa_id=? AND periodo LIKE ? AND estado_imputacion='pendiente' AND estado_sunat='1') AS ventas,
+                (SELECT COUNT(*) FROM registro_compras WHERE empresa_id=? AND periodo LIKE ? AND estado_imputacion='pendiente' AND estado_sunat='1') AS compras
         ");
         $likeAnio = $anio . '%';
         $stmtPend->execute([$empresaId, $likeAnio, $empresaId, $likeAnio]);

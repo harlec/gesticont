@@ -35,10 +35,7 @@ class CierreController
             $pendientes = $stmtPend->fetch(PDO::FETCH_ASSOC);
 
             $balance = BalanceService::comprobacion($empresaId, (int)$periodoContable['id'], "{$anio}-12-31");
-            foreach ($balance['filas'] as $f) {
-                if ($f['es_inventariable']) $pendienteInventariable += ($f['deudor'] - $f['acreedor']);
-            }
-            $pendienteInventariable = round($pendienteInventariable, 2);
+            $pendienteInventariable = BalanceService::pendienteExistencias($balance['filas']);
 
             $stmtCierre = $pdo->prepare("SELECT * FROM cierres_periodo WHERE empresa_id = ? AND periodo_id = ?");
             $stmtCierre->execute([$empresaId, (int)$periodoContable['id']]);

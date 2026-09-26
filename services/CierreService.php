@@ -50,11 +50,7 @@ class CierreService
         // Guard 2: no debe haber compras inventariables pendientes de
         // reclasificar (601-604) — cerrar con esto pendiente asumiría
         // silenciosamente "todo se vendió", lo cual puede ser falso.
-        $pendienteInventariable = 0.0;
-        foreach ($balance['filas'] as $f) {
-            if ($f['es_inventariable']) $pendienteInventariable += ($f['deudor'] - $f['acreedor']);
-        }
-        $pendienteInventariable = round($pendienteInventariable, 2);
+        $pendienteInventariable = BalanceService::pendienteExistencias($balance['filas']);
         if (abs($pendienteInventariable) > 0.01) {
             return ['error' => sprintf(
                 'No se puede cerrar: hay S/ %s en compras de mercadería/materia prima/suministros sin reclasificar a existencias o costo de venta (falta el módulo de Kardex/Inventario Final). Resolver eso primero.',

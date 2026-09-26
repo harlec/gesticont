@@ -80,11 +80,7 @@ class BalanceGeneralService
         // o a costo de venta (691). Mientras tanto ese monto no aparece ni como
         // Activo ni dentro del Estado de Resultados — es la otra causa esperada
         // de descuadre, normalmente más grande que el IR sin provisionar.
-        $pendienteInventariable = 0.0;
-        foreach ($balance['filas'] as $f) {
-            if ($f['es_inventariable']) $pendienteInventariable += ($f['deudor'] - $f['acreedor']);
-        }
-        $pendienteInventariable = round($pendienteInventariable, 2);
+        $pendienteInventariable = BalanceService::pendienteExistencias($balance['filas']);
 
         return [
             'activo_corriente' => $activoCorriente, 'activo_no_corriente' => $activoNoCorriente, 'total_activo' => $totalActivo,

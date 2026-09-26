@@ -8,7 +8,7 @@ class AsientoService
 {
     /**
      * Genera (o regenera, si el período sigue abierto) los asientos de
-     * Compras, Ventas y Reclasificación por Destino de un período YYYYMM.
+     * Compras, Destino de compras (existencias), Ventas, Planillas, Caja y Reclasificación por Destino de un período YYYYMM.
      * No genera el asiento de Costo de Venta (spec 2.6): requiere
      * Inventario Final, que hoy es captura manual y todavía no existe
      * como pantalla — se deja pendiente a propósito, documentado abajo.
@@ -47,6 +47,9 @@ class AsientoService
 
             $asientoCajaEgresos = self::generarAsientoCaja($pdo, $empresaId, $periodoContableId, $periodo, 'egreso');
             if ($asientoCajaEgresos) $resultado['asientos']['caja_egresos'] = $asientoCajaEgresos;
+
+            $asientoDestinoCompras = self::generarAsientoDestinoCompras($pdo, $empresaId, $periodoContableId, $periodo);
+            if ($asientoDestinoCompras) $resultado['asientos']['destino_compras'] = $asientoDestinoCompras;
 
             $asientoDestino = self::generarAsientoReclasificacion($pdo, $empresaId, $periodoContableId, $periodo, $usuarioId, $parametros);
             if ($asientoDestino) $resultado['asientos']['reclasificacion'] = $asientoDestino;
@@ -301,6 +304,73 @@ class AsientoService
 
         $fecha = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
         return self::insertarAsiento($pdo, $empresaId, $periodoContableId, $fecha, $glosa, 'caja', $lineas);
+    }
+
+    /**
+     * Destino de compras (existencias): lo que se compró en 601-604 pasa a la
+     * cuenta de existencias que le corresponde, con contrapartida en 61
+     * (Variación de Inventarios) — el asiento "por el destino de las
+     * compras" que un contador registra en su Diario (p. ej. Debe 26 /
+     * Haber 61 en el Diario de AVIMAS). Sin él, la mercadería comprada
+     * queda solo como gasto en 60 y nunca aparece como stock (20/24/25/26)
+     * ni en el Diario ni en el Mayor de esas cuentas.
+     *
+     * Ojo: mueve el stock al Activo, pero NO reconoce consumo/Costo de
+     * Ventas — eso requiere el inventario final (Kardex, spec 2.6).
+     */
+    private const DESTINO_COMPRAS = [
+        // compra => [existencias (Debe), variación de inventarios (Haber)]
+        '601' => ['201', '611'], // Mercaderías
+        '602' => ['241', '612'], // Materias primas
+        '603' => ['251', '613'], // Materiales auxiliares, suministros y repuestos
+        '604' => ['261', '614'], // Envases y embalajes
+    ];
+
+    private static function generarAsientoDestinoCompras(PDO $pdo, int $empresaId, int $periodoContableId, string $periodo): ?array
+    {
+        $codigos = array_keys(self::DESTINO_COMPRAS);
+        $in = implode(',', array_fill(0, count($codigos), '?'));
+
+        // Compras SIRE ya clasificadas...
+        $stmt = $pdo->prepare("
+            SELECT c.codigo, COALESCE(SUM(i.monto),0) AS monto
+            FROM imputaciones i
+            JOIN registro_compras rc ON rc.id = i.registro_compra_id
+            JOIN cuentas_contables c  ON c.id = i.cuenta_id
+            WHERE rc.empresa_id = ? AND rc.periodo = ? AND rc.estado_imputacion = 'imputado' AND rc.estado_sunat = '1'
+              AND c.codigo IN ({$in})
+            GROUP BY c.codigo
+        ");
+        $stmt->execute(array_merge([$empresaId, $periodo], $codigos));
+        $montos = array_fill_keys($codigos, 0.0);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) $montos[$r['codigo']] += (float)$r['monto'];
+
+        // ...más lo pagado directo por Caja contra esas mismas cuentas.
+        $stmtCaja = $pdo->prepare("
+            SELECT c.codigo, COALESCE(SUM(cm.monto),0) AS monto
+            FROM caja_movimientos cm
+            JOIN cuentas_contables c ON c.id = cm.cuenta_id
+            WHERE cm.empresa_id = ? AND cm.tipo = 'egreso' AND DATE_FORMAT(cm.fecha, '%Y%m') = ?
+              AND c.codigo IN ({$in})
+            GROUP BY c.codigo
+        ");
+        $stmtCaja->execute(array_merge([$empresaId, $periodo], $codigos));
+        foreach ($stmtCaja->fetchAll(PDO::FETCH_ASSOC) as $r) $montos[$r['codigo']] += (float)$r['monto'];
+
+        $glosa = "Destino de compras {$periodo}";
+        self::borrarAsientoPrevio($pdo, $empresaId, $glosa);
+
+        $lineas = [];
+        foreach (self::DESTINO_COMPRAS as $compra => [$existencias, $variacion]) {
+            $monto = round($montos[$compra], 2);
+            if ($monto <= 0) continue;
+            $lineas[] = ['cuenta_id' => self::cuentaId($pdo, $existencias), 'debe' => $monto, 'haber' => 0];
+            $lineas[] = ['cuenta_id' => self::cuentaId($pdo, $variacion),   'debe' => 0, 'haber' => $monto];
+        }
+        if (empty($lineas)) return null;
+
+        $fecha = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
+        return self::insertarAsiento($pdo, $empresaId, $periodoContableId, $fecha, $glosa, 'compra', $lineas);
     }
 
     /**

@@ -3,7 +3,7 @@
 Documento de traspaso: qué es el sistema, cómo está armado, qué decisiones se tomaron y qué falta.
 Complementa (no reemplaza) `docs/gesticon_doc/spec-motor-contable-gesticont.md` y `plan-completo-motor-contable.md`, que describen la lógica contable en detalle.
 
-Última actualización: 2026-09-26 (regla general y rango "año vigente" incluidos).
+Última actualización: 2026-09-26 (regla general, rango "año vigente" y destino de compras incluidos).
 
 ---
 
@@ -60,6 +60,7 @@ Rutas: todas en `core/App.php` (`$router->get/post('/empresas/{id}/...', 'modulo
 - **Imputación**: cada comprobante SIRE queda `pendiente` hasta clasificarse; clasificar inserta en `imputaciones` (cuenta, monto neto = total − IGV, `regla_id` si vino de una regla) y marca `imputado`. Cobro/pago se declara al clasificar (SUNAT no lo informa) y genera movimiento de Caja contra 121/421.
 - **`tipos_gasto`** es un catálogo **global** (no por empresa) con nombre amigable → cuenta, `aplica_a` compra/venta/ambos.
 - **Apertura (Inventario Inicial)**: el monto se escribe positivo (se usa `abs`); el lado lo decide la naturaleza; debe cuadrar Activo = Pasivo + Patrimonio para guardar. El cuadre no depende de ganancia/pérdida.
+- **Destino de compras (existencias)**: al generar asientos de un mes se crea también "Destino de compras AAAAMM": Debe existencias / Haber 61 por lo comprado en 601-604 (601→201/611, 602→241/612, 603→251/613, 604→261/614), incluyendo pagos directos por Caja contra esas cuentas. Es el asiento "por el destino de las compras" del Diario real de AVIMAS (Debe 26 / Haber 61). Así el stock aparece en Diario, Mayor y Balance General, y el descuadre por "compras sin Kardex" desaparece. `BalanceService::pendienteExistencias()` netea 601-604 contra 611-614 y lo usan Balance General, Cierre y CierreController. **No reconoce consumo**: sin inventario final el Costo de Ventas sigue en 0. Verificado contra los dos Excel de referencia: en `BALANCE VALENCIA-2025` la hoja ASIENTOS trae "Asientos por destino cta 60" = Debe 201 / Haber 611 por el total de compras 601 (48,384), idéntico a este asiento; su hoja COSTO DE VENTAS calcula inventario inicial 34,300 + compras 48,384 − inventario final 67,300 (digitado a mano) = 15,384, y el asiento 691/201 de costo queda en 0 en ese libro. Los Excel de referencia están protegidos con clave (pedirla al dueño del proyecto); Valencia se desencripta con `msoffcrypto` pero `openpyxl` no logra abrirlo, hay que leer el XML de las hojas directamente.
 - Costo de Ventas aparece en 0: **no existe módulo de Inventario Final/Kardex** todavía.
 
 ## 6. Migraciones (orden) — `docs/gesticon_doc/`
@@ -119,7 +120,7 @@ Rutas: todas en `core/App.php` (`$router->get/post('/empresas/{id}/...', 'modulo
 2. **Re-sincronizar Compras de todos los meses** para completar el RUC de proveedor (la pantalla de reglas lista los meses que faltan). Si sigue en "0 proveedores" tras re-sincronizar, el nombre del campo de SIRE no es el supuesto: pedir una fila cruda del JSON de compras y ajustar `docProveedor`.
 3. **Cuentas PCGE faltantes** detectadas al comparar con el Formulario 710 de SUNAT (empresa ACSA): 13, 16, 17, 18, 22, 30/31, 34, 35, 36. Se preguntó dos veces si agregarlas; **sin confirmar**. (Ojo: las "casillas" del 710 no son códigos PCGE.)
 4. Código muerto del "Imprimir" del navegador: clases `.no-print`/`.print-only` en vistas y bloque `@media print` en `nav.css`. Inofensivo; decidir si limpiar.
-5. Módulo de Inventario Final/Kardex (Costo de Ventas ≠ 0), aportes/retiros de capital (Cambios en el Patrimonio), y las Fases 3–5 del plan (exportación SUNAT, multiempresa avanzado, analítica).
+5. Módulo de Inventario Final/Kardex (Costo de Ventas ≠ 0; con el destino de compras el stock ya se ve, falta el asiento de consumo), aportes/retiros de capital (Cambios en el Patrimonio), y las Fases 3–5 del plan (exportación SUNAT, multiempresa avanzado, analítica).
 6. Cosmético: en Cambios en el Patrimonio sale `-0.00` cuando la reserva legal es 0.
 7. Regenerar `gesticont_db_sync.sql` para que refleje el esquema real de producción.
 8. El manual de uso (Artifact/PDF) no incluye reglas de clasificación, perfil comercial ni PDFs; actualizarlo si se va a compartir.

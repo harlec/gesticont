@@ -7,6 +7,26 @@
 class BalanceService
 {
     /**
+     * Compras de mercadería/materia prima/suministros/envases (601-604) que
+     * siguen en el gasto sin haber pasado a existencias. Se compensa con su
+     * contrapartida en 61 (611-614, saldo acreedor tras el asiento de
+     * "Destino de compras"): una vez pasadas a stock el neto es 0 y ya no
+     * cuenta como pendiente de reclasificar.
+     *
+     * @param array $filas filas de comprobacion()['filas']
+     */
+    public static function pendienteExistencias(array $filas): float
+    {
+        $pendiente = 0.0;
+        foreach ($filas as $f) {
+            if ($f['es_inventariable'] || preg_match('/^61[1-4]$/', $f['codigo'])) {
+                $pendiente += ($f['deudor'] - $f['acreedor']);
+            }
+        }
+        return round($pendiente, 2);
+    }
+
+    /**
      * @param string $fechaCorte 'YYYY-MM-DD' — acumula desde el saldo de
      *   apertura del año hasta esta fecha inclusive (no solo el mes).
      */

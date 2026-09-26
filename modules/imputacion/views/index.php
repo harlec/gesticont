@@ -6,6 +6,12 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
 <div class="gc-content gc-w-content">
     <?php $subtabActiva = 'imputacion'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
 
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <a href="/empresas/<?= $empresa['id'] ?>/imputacion/reglas" style="font-size:13px;font-weight:600;color:var(--gc-brand);text-decoration:none;">
+            ⚙️ Reglas de clasificación
+        </a>
+    </div>
+
     <?php if (!empty($_SESSION['imputacion_error'])): ?>
     <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
         ⚠ <?= htmlspecialchars($_SESSION['imputacion_error']) ?>
@@ -76,6 +82,39 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
         </button>
         <span id="im-bulk-warning" style="color:#fca5a5;font-size:12px;font-weight:600;"></span>
     </div>
+
+    <?php if (!empty($propuestas)): ?>
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:14px 18px;margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
+            💡 Propuestas de clasificación
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            <?php foreach ($propuestas as $i => $p):
+                $cant = count($p['documentos']);
+            ?>
+            <div class="im-propuesta" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--gc-bg);border-radius:8px;padding:10px 14px;">
+                <div style="font-size:13px;color:var(--gc-label);">
+                    <?php if ($p['fuente'] === 'regla'): ?>
+                        <strong><?= htmlspecialchars($p['contraparte']) ?></strong>
+                        <span style="color:var(--gc-muted);">(RUC <?= htmlspecialchars($p['ruc']) ?>)</span>
+                    <?php else: ?>
+                        Resto de <?= $p['origen'] === 'venta' ? 'ventas' : 'compras' ?> sin regla propia
+                        <span style="color:var(--gc-muted);">(perfil comercial)</span>
+                    <?php endif; ?>
+                    — <?= $cant ?> comprobante<?= $cant === 1 ? '' : 's' ?>
+                    → <span style="font-family:monospace;font-weight:700;color:var(--gc-ink);"><?= htmlspecialchars($p['cuenta_codigo']) ?></span>
+                    <?= htmlspecialchars($p['cuenta_nombre']) ?>
+                    <span style="color:var(--gc-muted);">· S/ <?= number_format($p['monto_total'], 2) ?></span>
+                </div>
+                <button type="button" class="im-propuesta-apply" data-index="<?= $i ?>"
+                        style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">
+                    ✓ Aplicar
+                </button>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <?php
         $cantVentas  = count(array_filter($pendientes, fn($d) => $d['origen'] === 'venta'));
@@ -188,6 +227,7 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
         venta: <?= json_encode($tiposVenta ?? [], JSON_UNESCAPED_UNICODE) ?>,
         compra: <?= json_encode($tiposCompra ?? [], JSON_UNESCAPED_UNICODE) ?>
     };
+    const PROPUESTAS = <?= json_encode($propuestas ?? [], JSON_UNESCAPED_UNICODE) ?>;
 
     const lista   = document.getElementById('im-lista');
     const vacio   = document.getElementById('im-vacio');
@@ -225,11 +265,11 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
         }, 200);
     }
 
-    async function clasificarLote(items) {
+    async function clasificarLote(items, extra) {
         const resp = await fetch(URL_LOTE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items })
+            body: JSON.stringify(Object.assign({ items }, extra || {}))
         });
         return resp.json();
     }
@@ -269,6 +309,30 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
             feedback('Error de conexión al guardar.', false);
             btn.disabled = false; btn.textContent = '✓ Confirmar';
         }
+    });
+
+    // --- Propuestas del motor de reglas ---
+    document.querySelectorAll('.im-propuesta-apply').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const p = PROPUESTAS[parseInt(this.dataset.index, 10)];
+            if (!p) return;
+            this.disabled = true; this.textContent = 'Aplicando…';
+            const items = p.documentos.map(d => ({ origen: d.origen, documento_id: d.documento_id, cuenta_id: p.cuenta_id }));
+            try {
+                const data = await clasificarLote(items, { regla_id: p.regla_id });
+                let ok = 0, fail = 0;
+                (data.resultados || []).forEach(r => {
+                    const card = lista.querySelector('.im-card[data-origen="' + r.origen + '"][data-id="' + r.documento_id + '"]');
+                    if (r.ok) { ok++; if (card) quitarTarjeta(card); }
+                    else fail++;
+                });
+                feedback(ok + ' clasificado(s) por propuesta' + (fail ? ', ' + fail + ' con error' : '') + '.', fail === 0);
+                this.closest('.im-propuesta').remove();
+            } catch (err) {
+                feedback('Error de conexión al aplicar la propuesta.', false);
+                this.disabled = false; this.textContent = '✓ Aplicar';
+            }
+        });
     });
 
     // --- Selección múltiple ---

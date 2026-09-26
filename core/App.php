@@ -38,6 +38,11 @@ class App {
         $router->get('/empresas/{id}/imputacion',            'imputacion/ImputacionController@index');
         $router->post('/empresas/{id}/imputacion/clasificar','imputacion/ImputacionController@clasificar');
         $router->post('/empresas/{id}/imputacion/clasificar-lote','imputacion/ImputacionController@clasificarLote');
+        // Motor de reglas de clasificación por proveedor/cliente (Fase 2)
+        $router->get('/empresas/{id}/imputacion/reglas',                  'imputacion/ReglasImputacionController@index');
+        $router->post('/empresas/{id}/imputacion/reglas/crear',           'imputacion/ReglasImputacionController@crear');
+        $router->post('/empresas/{id}/imputacion/reglas/{rid}/eliminar', 'imputacion/ReglasImputacionController@eliminar');
+        $router->post('/empresas/{id}/imputacion/reglas/{rid}/toggle',   'imputacion/ReglasImputacionController@toggle');
         // Motor contable — Libro Diario (generación de asientos)
         $router->get('/empresas/{id}/diario',          'diario/DiarioController@index');
         $router->post('/empresas/{id}/diario/generar', 'diario/DiarioController@generar');

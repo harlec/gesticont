@@ -120,6 +120,19 @@ class EmpresaController {
         Auth::require();
         $empresa = $this->_getEmpresa($id);
         if (!$empresa) { http_response_code(404); die('Empresa no encontrada o sin acceso'); }
+
+        $db = Model::db();
+        $tiposVenta = $db->query("
+            SELECT tg.id, CONCAT(c.codigo, ' - ', tg.nombre_visible) AS nombre_visible
+            FROM tipos_gasto tg JOIN cuentas_contables c ON c.id = tg.cuenta_id
+            WHERE tg.aplica_a IN ('venta','ambos') AND tg.activo = 1 ORDER BY tg.orden
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        $tiposCompra = $db->query("
+            SELECT tg.id, CONCAT(c.codigo, ' - ', tg.nombre_visible) AS nombre_visible
+            FROM tipos_gasto tg JOIN cuentas_contables c ON c.id = tg.cuenta_id
+            WHERE tg.aplica_a IN ('compra','ambos') AND tg.activo = 1 ORDER BY tg.orden
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
         $pageTitle = 'Editar — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/empresas/views/editar.php';
@@ -133,12 +146,24 @@ class EmpresaController {
         $empresa = $this->_getEmpresa($id);
         if (!$empresa) { http_response_code(403); die('Sin acceso'); }
 
+        // Selects vacíos ("") se guardan como NULL, no como 0 — un
+        // tipo_gasto_id 0 rompería el JOIN de ReglaImputacionService al
+        // resolver el perfil comercial.
+        $intOrNull = fn($v) => $v !== '' && $v !== null ? (int)$v : null;
+        $enumOrNull = fn($v) => in_array($v, ['productos', 'servicios', 'ambos'], true) ? $v : null;
+
         $model = new class extends Model { protected string $table = 'empresas'; };
         $model->update($id, [
             'razon_social' => trim($_POST['razon_social'] ?? ''),
             'regimen'      => $_POST['regimen'] ?? 'mype',
             'email'        => trim($_POST['email'] ?? ''),
             'telefono'     => trim($_POST['telefono'] ?? ''),
+            'vende_tipo'                   => $enumOrNull($_POST['vende_tipo'] ?? null),
+            'venta_tipo_gasto_producto_id' => $intOrNull($_POST['venta_tipo_gasto_producto_id'] ?? null),
+            'venta_tipo_gasto_servicio_id' => $intOrNull($_POST['venta_tipo_gasto_servicio_id'] ?? null),
+            'compra_tipo'                   => $enumOrNull($_POST['compra_tipo'] ?? null),
+            'compra_tipo_gasto_producto_id' => $intOrNull($_POST['compra_tipo_gasto_producto_id'] ?? null),
+            'compra_tipo_gasto_servicio_id' => $intOrNull($_POST['compra_tipo_gasto_servicio_id'] ?? null),
         ]);
         header("Location: /empresas/{$id}");
         exit;

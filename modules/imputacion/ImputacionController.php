@@ -2,6 +2,7 @@
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
 require_once ROOT . '/core/Periodo.php';
+require_once ROOT . '/services/ReglaImputacionService.php';
 
 class ImputacionController
 {
@@ -96,6 +97,11 @@ class ImputacionController
             if ($sug) $sugerencias[$doc['origen'] . ':' . $docNum] = (int)$sug['tipo_gasto_id'];
         }
 
+        // Motor de reglas (Fase 2): propuestas agrupadas por contraparte,
+        // listas para aplicar en un clic — más específico que la
+        // sugerencia individual de arriba, que solo mira el último uso.
+        $propuestas = ReglaImputacionService::construirPropuestas($empresaId, $empresa, $pendientes);
+
         $pageTitle = 'Clasificación de comprobantes — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/imputacion/views/index.php';
@@ -119,6 +125,8 @@ class ImputacionController
             $_POST['origen'] ?? '',
             (int)($_POST['documento_id'] ?? 0),
             (int)($_POST['tipo_gasto_id'] ?? 0),
+            !empty($_POST['cuenta_id']) ? (int)$_POST['cuenta_id'] : null,
+            null,
             !empty($_POST['cobrado']),
             $_POST['fecha_cobro'] ?? null
         );
@@ -160,6 +168,8 @@ class ImputacionController
         $items = is_array($body['items'] ?? null) ? $body['items'] : [];
         if (empty($items)) { $salida(['error' => 'Nada que clasificar'], 400); return; }
 
+        $reglaId = !empty($body['regla_id']) ? (int)$body['regla_id'] : null;
+
         $resultados = [];
         foreach ($items as $item) {
             $r = $this->_clasificarUno(
@@ -167,6 +177,8 @@ class ImputacionController
                 $item['origen'] ?? '',
                 (int)($item['documento_id'] ?? 0),
                 (int)($item['tipo_gasto_id'] ?? 0),
+                !empty($item['cuenta_id']) ? (int)$item['cuenta_id'] : null,
+                $reglaId,
                 !empty($item['cobrado']),
                 $item['fecha'] ?? null
             );
@@ -175,12 +187,20 @@ class ImputacionController
             $resultados[] = $r;
         }
 
+        // Propuesta aplicada desde una regla propia (no desde el perfil
+        // comercial, que no tiene fila que actualizar): cuenta el uso para
+        // que la pantalla de reglas muestre qué tanto se está usando cada una.
+        if ($reglaId) {
+            $exitosos = count(array_filter($resultados, fn($r) => $r['ok']));
+            ReglaImputacionService::registrarUso($empresaId, $reglaId, $exitosos);
+        }
+
         $salida(['resultados' => $resultados]);
     }
 
-    private function _clasificarUno(int $empresaId, string $origen, int $documentoId, int $tipoGastoId, bool $cobrado = false, ?string $fecha = null): array
+    private function _clasificarUno(int $empresaId, string $origen, int $documentoId, int $tipoGastoId, ?int $cuentaId = null, ?int $reglaId = null, bool $cobrado = false, ?string $fecha = null): array
     {
-        if (!in_array($origen, ['venta', 'compra'], true) || !$documentoId || !$tipoGastoId) {
+        if (!in_array($origen, ['venta', 'compra'], true) || !$documentoId || (!$tipoGastoId && !$cuentaId)) {
             return ['ok' => false, 'error' => 'Datos incompletos.'];
         }
 
@@ -199,13 +219,26 @@ class ImputacionController
             return ['ok' => false, 'error' => 'El comprobante ya no está pendiente o no existe.'];
         }
 
-        $stmtTipo = $pdo->prepare("
-            SELECT tg.cuenta_id, c.codigo, c.nombre
-            FROM tipos_gasto tg JOIN cuentas_contables c ON c.id = tg.cuenta_id
-            WHERE tg.id = ? AND tg.activo = 1 LIMIT 1
-        ");
-        $stmtTipo->execute([$tipoGastoId]);
-        $tipo = $stmtTipo->fetch(PDO::FETCH_ASSOC);
+        // Una propuesta del motor de reglas apunta a una cuenta real
+        // directamente (reglas_imputacion.cuenta_destino_id no pasa por el
+        // catálogo curado de tipos_gasto) — el flujo manual de siempre
+        // sigue yendo por tipo_gasto_id.
+        if ($tipoGastoId) {
+            $stmtTipo = $pdo->prepare("
+                SELECT tg.cuenta_id, c.codigo, c.nombre
+                FROM tipos_gasto tg JOIN cuentas_contables c ON c.id = tg.cuenta_id
+                WHERE tg.id = ? AND tg.activo = 1 LIMIT 1
+            ");
+            $stmtTipo->execute([$tipoGastoId]);
+            $tipo = $stmtTipo->fetch(PDO::FETCH_ASSOC);
+        } else {
+            $stmtCuenta = $pdo->prepare("
+                SELECT id AS cuenta_id, codigo, nombre FROM cuentas_contables
+                WHERE id = ? AND (empresa_id IS NULL OR empresa_id = ?) LIMIT 1
+            ");
+            $stmtCuenta->execute([$cuentaId, $empresaId]);
+            $tipo = $stmtCuenta->fetch(PDO::FETCH_ASSOC);
+        }
         if (!$tipo) {
             return ['ok' => false, 'error' => 'Tipo de clasificación inválido.'];
         }
@@ -222,9 +255,9 @@ class ImputacionController
         Model::beginTransaction();
         try {
             $pdo->prepare("
-                INSERT INTO imputaciones ({$col}, cuenta_id, monto, usuario_id)
-                VALUES (?, ?, ?, ?)
-            ")->execute([$documentoId, $tipo['cuenta_id'], $montoNeto, Auth::id()]);
+                INSERT INTO imputaciones ({$col}, cuenta_id, monto, regla_id, usuario_id)
+                VALUES (?, ?, ?, ?, ?)
+            ")->execute([$documentoId, $tipo['cuenta_id'], $montoNeto, $reglaId, Auth::id()]);
 
             $pdo->prepare("UPDATE {$tabla} SET estado_imputacion = 'imputado' WHERE id = ?")
                 ->execute([$documentoId]);

@@ -35,6 +35,7 @@ if ($dentroDeEmpresa) {
         ]],
         ['label' => 'Apertura', 'href' => $base . '/apertura'],
         ['label' => 'Planillas', 'href' => $base . '/planillas'],
+        ['label' => 'Honorarios', 'href' => $base . '/honorarios'],
         ['label' => 'Caja', 'href' => $base . '/caja'],
         ['label' => 'Contabilidad', 'hijos' => [
             [$base . '/diario', 'Libro Diario'],

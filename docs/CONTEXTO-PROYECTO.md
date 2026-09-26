@@ -3,7 +3,7 @@
 Documento de traspaso: qué es el sistema, cómo está armado, qué decisiones se tomaron y qué falta.
 Complementa (no reemplaza) `docs/gesticon_doc/spec-motor-contable-gesticont.md` y `plan-completo-motor-contable.md`, que describen la lógica contable en detalle.
 
-Última actualización: 2026-09-26 (regla general, rango "año vigente", destino de compras y cobros/pagos parciales incluidos).
+Última actualización: 2026-09-26 (regla general, rango "año vigente", destino de compras, cobros/pagos parciales, honorarios y préstamos incluidos).
 
 ---
 
@@ -74,8 +74,9 @@ Rutas: todas en `core/App.php` (`$router->get/post('/empresas/{id}/...', 'modulo
 | `fase1b` … `fase1f` | generación de asientos, reserva legal, planillas, caja, cobro/pago |
 | **`fase1g_perfil_comercial.sql`** | columnas `vende_tipo`, `compra_tipo` y cuentas por defecto en `empresas` |
 | **`fase1h_reglas_origen.sql`** | `reglas_imputacion.aplica_a` ('compra'/'venta') + reparte reglas existentes |
+| **`fase1i_honorarios_prestamos.sql`** | tablas `honorarios` y `prestamos` + `caja_movimientos.honorario_id/prestamo_id` |
 
-**Confirmar que `fase1g` y `fase1h` están aplicadas en producción** (fase1g faltaba y provocó el error `Unknown column 'vende_tipo'`).
+**Confirmar que `fase1g`, `fase1h` y `fase1i` están aplicadas en producción, ANTES de subir el código** (el Diario y Caja consultan las tablas/columnas nuevas y fallan si faltan) (fase1g faltaba y provocó el error `Unknown column 'vende_tipo'`).
 
 ## 7. Funcionalidades construidas (estado)
 
@@ -103,6 +104,13 @@ Rutas: todas en `core/App.php` (`$router->get/post('/empresas/{id}/...', 'modulo
 **Cobros y pagos** (`Comprobantes → Cobros y pagos`, `/empresas/{id}/cobranzas`; `CobroPagoService` + `CobranzaController`): criterio del contador = **se asume todo cobrado/pagado** y se corrige después. En Clasificar la casilla "¿ya se cobró/pagó?" parte marcada (individual, lote y propuestas), con la fecha del comprobante. La pantalla permite, por comprobante clasificado: **cobro/pago parcial** (varios pagos hasta completar), **pasar a crédito** (borra sus movimientos de Caja) y **marcar todo el período** por su saldo. Fuente de verdad = movimientos de Caja ligados al comprobante (`caja_movimientos.registro_venta_id/registro_compra_id`, contra 121/421): pagado = suma, saldo = total − suma; `cobrado/pagado` y `fecha_*` son solo resumen (1 únicamente con saldo 0). Bloquea si el año está cerrado. El Dashboard calcula CxC/CxP por saldo real. Borrar un movimiento desde Caja también recalcula. Tras cambiar cobros hay que **regenerar asientos** del mes para el Diario. Sin migraciones.
 
 **Importación de planilla desde PLAME** (`Planillas → Importar desde PLAME`, `PlameR01Parser` + `PlanillaController::importarPlame`): lee el reporte **R01** (XML SpreadsheetML de SUNAT, `RUC_AAAAMM_r01.xml`), varios meses a la vez. Período y RUC salen del archivo; se rechaza si el RUC no es el de la empresa. Volver a importar un mes reemplaza solo lo importado antes de PLAME (`origen='import_plame'`); lo manual no se toca. Mapeo: devengado → `sueldo` (el R01 no separa gratificación ni asignación familiar), tributos del trabajador → `retencion_pension`, aportes del empleador → `essalud`. Los "descuentos" (adelantos) **no se registran**. El R01 no indica ONP/AFP: se **estima** (retención ÷ 13 % da base redonda ⇒ ONP, si no AFP) y se corrige con el selector de cada fila (`planillas/{pid}/regimen`). Verificado con réplicas de los archivos ACSA S.R.L. ene/feb 2026 (el original quedó fuera del repo); acepta UTF-8 y Windows-1252.
+
+**Honorarios, Caja/Libro Caja y Préstamos** (inspirado en las hojas HONORARIO, BANCO y CAJA del Excel Valencia):
+- *Honorarios* (`/empresas/{id}/honorarios`, `HonorarioService`): por **recibo** (prestador, RUC/DNI, recibo, monto, retención). Retención automática 8 % si el recibo supera S/ 1,500 (editable; 0 si hay suspensión). Asiento "Provisión de honorarios AAAAMM": Debe 632 bruto / Haber 424 neto + Haber 4017 retención. Se asume pagado: movimiento de Caja Debe 424 / Haber 101 por el neto (se puede pasar a pendiente; borrar el pago desde Caja lo deja pendiente). La retención se entrega a SUNAT como egreso de Caja contra 4017 (manual). Incluye el resumen anual mes/monto/retención/total. Los honorarios se reparten a 94/95 en el destino.
+- *Libro Caja y Bancos* (`/empresas/{id}/caja/libro`): matriz anual como la hoja "Libro Caja": saldo inicial (cuentas 10x de la apertura), ingresos y egresos por cuenta, totales y saldo final arrastrado. Solo cuentan movimientos con cuenta contable (los mismos que generan el asiento).
+- *Préstamos* (`/empresas/{id}/prestamos`, `PrestamoService`): desembolso = ingreso de Caja contra 451; pago de capital = egreso contra 451; interés = egreso contra 673. Recibido/pagado/saldo se calculan de esos movimientos (`caja_movimientos.prestamo_id`). Rechaza capital mayor al saldo.
+- Caja pasó a tener subpestañas (Movimientos · Libro Caja y Bancos · Préstamos). Caja y Bancos siguen siendo una sola bolsa (cuenta 101); no hay cuentas bancarias separadas (104) — posible mejora.
+- **Corrección del destino**: los gastos financieros (cuentas 67x, p. ej. intereses) ahora van a la **96** en la reclasificación por destino en vez de repartirse entre 94/95; la 96 es la que lee el Estado de Resultados (antes nunca se alimentaba). Regenerar los asientos de los meses ya generados para que apliquen.
 
 **Credenciales SUNAT** (`/empresas/{id}/certificado`): pantalla ancha con instrucciones al costado; indicador "✓ Ingresado" por campo (nunca se muestran los valores, van encriptados); **un campo vacío conserva el valor guardado** (antes se perdían las credenciales de API al guardar). Instrucciones: usar un **usuario SOL secundario** con las carpetas *Comprobantes de pago*, *Sistema Integrado de Registros Electrónicos* y *Credenciales de API SUNAT*; el ID/clave de API se generan con el usuario principal (MIGE RCE y RVIE - SIRE, alcance Desktop).
 

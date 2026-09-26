@@ -48,6 +48,53 @@ class CajaMovimientoController
         require_once ROOT . '/views/layout/base.php';
     }
 
+    /**
+     * Libro Caja y Bancos: matriz mensual como la hoja "Libro Caja" del Excel
+     * de referencia — saldo inicial (apertura, cuentas 10x), ingresos y egresos
+     * por cuenta contable, total de cada lado y saldo final arrastrado mes a mes.
+     */
+    public function libro(int $empresaId): void
+    {
+        Auth::require();
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) { http_response_code(404); die('No encontrado'); }
+
+        $pdo  = Model::db();
+        $anio = (int)($_GET['anio'] ?? substr(Periodo::resolver($empresaId), 0, 4));
+
+        $stmt = $pdo->prepare("
+            SELECT MONTH(cm.fecha) AS mes, cm.tipo, c.codigo, c.nombre, SUM(cm.monto) AS monto
+            FROM caja_movimientos cm JOIN cuentas_contables c ON c.id = cm.cuenta_id
+            WHERE cm.empresa_id = ? AND YEAR(cm.fecha) = ?
+            GROUP BY mes, cm.tipo, c.codigo, c.nombre
+        ");
+        $stmt->execute([$empresaId, $anio]);
+
+        $columnas = ['ingreso' => [], 'egreso' => []];
+        $mat = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $columnas[$r['tipo']][$r['codigo']] = $r['nombre'];
+            $mat[(int)$r['mes']][$r['tipo']][$r['codigo']] = (float)$r['monto'];
+        }
+        ksort($columnas['ingreso']); ksort($columnas['egreso']);
+
+        $stmtIni = $pdo->prepare("
+            SELECT COALESCE(SUM(sa.debe - sa.haber), 0)
+            FROM saldos_apertura sa
+            JOIN periodos_contables pc ON pc.id = sa.periodo_id
+            JOIN cuentas_contables c   ON c.id = sa.cuenta_id
+            WHERE sa.empresa_id = ? AND pc.anio = ? AND c.codigo LIKE '10%'
+        ");
+        $stmtIni->execute([$empresaId, $anio]);
+        $saldoInicial = round((float)$stmtIni->fetchColumn(), 2);
+
+        $pageTitle = 'Libro Caja y Bancos — ' . $empresa['razon_social'];
+        ob_start();
+        require_once ROOT . '/modules/caja/views/libro.php';
+        $content = ob_get_clean();
+        require_once ROOT . '/views/layout/base.php';
+    }
+
     public function store(int $empresaId): void
     {
         Auth::require();
@@ -95,7 +142,7 @@ class CajaMovimientoController
         // sin ningún respaldo en Caja — inconsistencia silenciosa que nadie
         // notaría hasta que algo no cuadre. Se revierte el flag junto con el
         // movimiento, siempre en la misma transacción.
-        $stmtMov = $pdo->prepare("SELECT registro_venta_id, registro_compra_id FROM caja_movimientos WHERE id = ? AND empresa_id = ?");
+        $stmtMov = $pdo->prepare("SELECT registro_venta_id, registro_compra_id, honorario_id FROM caja_movimientos WHERE id = ? AND empresa_id = ?");
         $stmtMov->execute([$id, $empresaId]);
         $mov = $stmtMov->fetch(PDO::FETCH_ASSOC);
 
@@ -107,6 +154,9 @@ class CajaMovimientoController
             if ($mov && $mov['registro_venta_id']) {
                 $pdo->prepare("UPDATE registro_ventas SET cobrado = 0, fecha_cobro = NULL WHERE id = ?")
                     ->execute([$mov['registro_venta_id']]);
+            } elseif ($mov && $mov['honorario_id']) {
+                $pdo->prepare("UPDATE honorarios SET pagado = 0, fecha_pago = NULL WHERE id = ?")
+                    ->execute([$mov['honorario_id']]);
             } elseif ($mov && $mov['registro_compra_id']) {
                 $pdo->prepare("UPDATE registro_compras SET pagado = 0, fecha_pago = NULL WHERE id = ?")
                     ->execute([$mov['registro_compra_id']]);

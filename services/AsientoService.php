@@ -42,6 +42,9 @@ class AsientoService
             $asientoPlanillas = self::generarAsientoPlanillas($pdo, $empresaId, $periodoContableId, $periodo, $usuarioId);
             if ($asientoPlanillas) $resultado['asientos']['planillas'] = $asientoPlanillas;
 
+            $asientoHonorarios = self::generarAsientoHonorarios($pdo, $empresaId, $periodoContableId, $periodo);
+            if ($asientoHonorarios) $resultado['asientos']['honorarios'] = $asientoHonorarios;
+
             $asientoCajaIngresos = self::generarAsientoCaja($pdo, $empresaId, $periodoContableId, $periodo, 'ingreso');
             if ($asientoCajaIngresos) $resultado['asientos']['caja_ingresos'] = $asientoCajaIngresos;
 
@@ -383,8 +386,13 @@ class AsientoService
      */
     private static function generarAsientoReclasificacion(PDO $pdo, int $empresaId, int $periodoContableId, string $periodo, int $usuarioId, array $parametros): ?array
     {
+        // Los gastos financieros (67x: intereses, comisiones) no se reparten
+        // entre administración y ventas: van a su propio destino, la 96 —
+        // que es la que lee el Estado de Resultados. Todo lo demás se reparte
+        // por los % de parámetros.
         $stmt = $pdo->prepare("
-            SELECT COALESCE(SUM(i.monto),0) AS total
+            SELECT COALESCE(SUM(CASE WHEN c.codigo NOT LIKE '67%' THEN i.monto END),0) AS operativo,
+                   COALESCE(SUM(CASE WHEN c.codigo LIKE '67%'     THEN i.monto END),0) AS financiero
             FROM imputaciones i
             JOIN registro_compras rc ON rc.id = i.registro_compra_id
             JOIN cuentas_contables c  ON c.id = i.cuenta_id
@@ -392,7 +400,7 @@ class AsientoService
               AND c.tipo = 'gasto' AND c.es_inventariable = 0
         ");
         $stmt->execute([$empresaId, $periodo]);
-        $totalCompras = (float)$stmt->fetchColumn();
+        $compras = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $stmtPlanilla = $pdo->prepare("
             SELECT COALESCE(SUM(sueldo + gratificacion + asignacion_familiar + essalud), 0)
@@ -401,38 +409,78 @@ class AsientoService
         $stmtPlanilla->execute([$empresaId, $periodo]);
         $totalPlanilla = (float)$stmtPlanilla->fetchColumn();
 
-        // Gastos pagados DIRECTO por Caja (alquiler, servicios, honorarios,
+        // Honorarios provisionados (632) — gasto operativo, se reparte igual.
+        $stmtHon = $pdo->prepare("SELECT COALESCE(SUM(monto), 0) FROM honorarios WHERE empresa_id = ? AND periodo = ?");
+        $stmtHon->execute([$empresaId, $periodo]);
+        $totalHonorarios = (float)$stmtHon->fetchColumn();
+
+        // Gastos pagados DIRECTO por Caja (alquiler, servicios, intereses,
         // etc. sin pasar por una compra clasificada) — sin esto se quedaban
         // atascados en el elemento 6 y nunca llegaban al Balance General,
         // descuadrándolo en silencio (detectado al simular un egreso de
         // Caja contra una cuenta de gasto).
         $stmtCaja = $pdo->prepare("
-            SELECT COALESCE(SUM(cm.monto), 0)
+            SELECT COALESCE(SUM(CASE WHEN c.codigo NOT LIKE '67%' THEN cm.monto END), 0) AS operativo,
+                   COALESCE(SUM(CASE WHEN c.codigo LIKE '67%'     THEN cm.monto END), 0) AS financiero
             FROM caja_movimientos cm
             JOIN cuentas_contables c ON c.id = cm.cuenta_id
             WHERE cm.empresa_id = ? AND cm.tipo = 'egreso' AND DATE_FORMAT(cm.fecha, '%Y%m') = ?
               AND c.tipo = 'gasto' AND c.es_inventariable = 0
         ");
         $stmtCaja->execute([$empresaId, $periodo]);
-        $totalCaja = (float)$stmtCaja->fetchColumn();
+        $caja = $stmtCaja->fetch(PDO::FETCH_ASSOC);
 
-        $total = round($totalCompras + $totalPlanilla + $totalCaja, 2);
-        if ($total <= 0) return null;
+        $operativo  = round((float)$compras['operativo'] + $totalPlanilla + $totalHonorarios + (float)$caja['operativo'], 2);
+        $financiero = round((float)$compras['financiero'] + (float)$caja['financiero'], 2);
+        if ($operativo <= 0 && $financiero <= 0) return null;
 
-        $pctAdmin  = (float)$parametros['pct_gastos_admin'];
-        $pctVentas = (float)$parametros['pct_gastos_ventas'];
-
-        $montoAdmin  = round($total * $pctAdmin / 100, 2);
-        $montoVentas = round($total - $montoAdmin, 2); // evita descuadre por redondeo
+        $pctAdmin    = (float)$parametros['pct_gastos_admin'];
+        $montoAdmin  = round($operativo * $pctAdmin / 100, 2);
+        $montoVentas = round($operativo - $montoAdmin, 2); // evita descuadre por redondeo
 
         $glosa = "Reclasificación de gastos por destino {$periodo}";
         self::borrarAsientoPrevio($pdo, $empresaId, $glosa);
 
+        $lineas = [];
+        if ($operativo > 0) {
+            $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '94'), 'debe' => $montoAdmin,  'haber' => 0];
+            $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '95'), 'debe' => $montoVentas, 'haber' => 0];
+        }
+        if ($financiero > 0) {
+            $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '96'), 'debe' => $financiero, 'haber' => 0];
+        }
+        $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '791'), 'debe' => 0, 'haber' => round($montoAdmin + $montoVentas + $financiero, 2)];
+
+        $fecha = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
+        return self::insertarAsiento($pdo, $empresaId, $periodoContableId, $fecha, $glosa, 'compra', $lineas);
+    }
+
+    /**
+     * Provisión de honorarios (4ta categoría): Debe 632 por el bruto;
+     * Haber 424 por el neto por pagar y Haber 4017 por la retención de renta.
+     * El pago del neto y la entrega de la retención a SUNAT entran por Caja.
+     */
+    private static function generarAsientoHonorarios(PDO $pdo, int $empresaId, int $periodoContableId, string $periodo): ?array
+    {
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(SUM(monto),0) AS bruto, COALESCE(SUM(retencion),0) AS retencion, COUNT(*) AS cant
+            FROM honorarios WHERE empresa_id = ? AND periodo = ?
+        ");
+        $stmt->execute([$empresaId, $periodo]);
+        $t = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ((int)$t['cant'] === 0) return null;
+
+        $bruto = round((float)$t['bruto'], 2);
+        $ret   = round((float)$t['retencion'], 2);
+
+        $glosa = "Provisión de honorarios {$periodo}";
+        self::borrarAsientoPrevio($pdo, $empresaId, $glosa);
+
         $lineas = [
-            ['cuenta_id' => self::cuentaId($pdo, '94'),  'debe' => $montoAdmin,  'haber' => 0],
-            ['cuenta_id' => self::cuentaId($pdo, '95'),  'debe' => $montoVentas, 'haber' => 0],
-            ['cuenta_id' => self::cuentaId($pdo, '791'), 'debe' => 0, 'haber' => round($montoAdmin + $montoVentas, 2)],
+            ['cuenta_id' => self::cuentaId($pdo, '632'), 'debe' => $bruto, 'haber' => 0],
+            ['cuenta_id' => self::cuentaId($pdo, '424'), 'debe' => 0, 'haber' => round($bruto - $ret, 2)],
         ];
+        if ($ret > 0) $lineas[] = ['cuenta_id' => self::cuentaId($pdo, '4017'), 'debe' => 0, 'haber' => $ret];
 
         $fecha = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
         return self::insertarAsiento($pdo, $empresaId, $periodoContableId, $fecha, $glosa, 'compra', $lineas);

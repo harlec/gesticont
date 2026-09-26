@@ -87,6 +87,18 @@ class App {
         // Motor contable — Caja y Bancos
         $router->get('/empresas/{id}/caja',              'caja/CajaMovimientoController@index');
         $router->post('/empresas/{id}/caja',             'caja/CajaMovimientoController@store');
+        $router->get('/empresas/{id}/caja/libro',        'caja/CajaMovimientoController@libro');
+        // Honorarios por recibo (4ta categoría)
+        $router->get('/empresas/{id}/honorarios',                'honorarios/HonorarioController@index');
+        $router->post('/empresas/{id}/honorarios/crear',         'honorarios/HonorarioController@crear');
+        $router->post('/empresas/{id}/honorarios/{hid}/pagar',   'honorarios/HonorarioController@pagar');
+        $router->post('/empresas/{id}/honorarios/{hid}/pendiente','honorarios/HonorarioController@pendiente');
+        $router->post('/empresas/{id}/honorarios/{hid}/eliminar','honorarios/HonorarioController@eliminar');
+        // Préstamos bancarios
+        $router->get('/empresas/{id}/prestamos',                 'prestamos/PrestamoController@index');
+        $router->post('/empresas/{id}/prestamos/crear',          'prestamos/PrestamoController@crear');
+        $router->post('/empresas/{id}/prestamos/{pid}/pagar',    'prestamos/PrestamoController@pagar');
+        $router->post('/empresas/{id}/prestamos/{pid}/eliminar', 'prestamos/PrestamoController@eliminar');
         $router->post('/empresas/{id}/caja/{cid}/eliminar', 'caja/CajaMovimientoController@eliminar');
         $router->get('/comprobantes',               'comprobantes/ComprobanteController@index');
         $router->get('/guias',                      'guias/GuiaController@index');

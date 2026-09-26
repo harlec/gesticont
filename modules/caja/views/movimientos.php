@@ -7,6 +7,8 @@ $labelTipo = ['activo' => 'Cuentas de Ingreso/Cobro', 'pasivo' => 'Cuentas por P
 
 <div class="gc-content gc-w-content">
 
+    <?php $cajaTab = 'movimientos'; require ROOT . '/views/layout/caja_subtabs.php'; ?>
+
     <?php if (!empty($_SESSION['caja_error'])): ?>
     <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">⚠ <?= htmlspecialchars($_SESSION['caja_error']) ?></div>
     <?php unset($_SESSION['caja_error']); endif; ?>

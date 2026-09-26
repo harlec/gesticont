@@ -108,27 +108,6 @@ $fmt = fn($v) => number_format((float)$v, 2);
         </form>
     </div>
 
-    <!-- Importación masiva por CSV -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:18px 20px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--gc-label);margin-bottom:4px;">📥 Importar varios trabajadores a la vez (CSV)</div>
-        <div style="font-size:12px;color:var(--gc-muted);margin-bottom:12px;">
-            No es un lector del archivo oficial de PLAME/T-Registro (ese formato no se pudo verificar con confianza) —
-            es una plantilla propia: descárgala, llénala con los datos que ya tengas calculados en tu planillero, y súbela aquí.
-        </div>
-        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/planillas/importar" enctype="multipart/form-data" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <input type="hidden" name="periodo" value="<?= $periodo ?>">
-            <a href="/empresas/<?= $empresa['id'] ?>/planillas/plantilla"
-               style="background:var(--gc-surface-2);color:var(--gc-label);padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-                ⬇ Descargar plantilla CSV
-            </a>
-            <input type="file" name="archivo" accept=".csv" required
-                   style="font-size:13px;">
-            <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
-                📥 Importar a <?= Periodo::etiqueta($periodo) ?>
-            </button>
-        </form>
-    </div>
-
     <?php if (!empty($registros)): ?>
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;">
         <div style="overflow-x:auto;">

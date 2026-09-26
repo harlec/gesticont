@@ -80,8 +80,6 @@ class App {
         $router->get('/empresas/{id}/planillas',                 'planillas/PlanillaController@index');
         $router->post('/empresas/{id}/planillas',                'planillas/PlanillaController@store');
         $router->post('/empresas/{id}/planillas/{pid}/eliminar', 'planillas/PlanillaController@eliminar');
-        $router->get('/empresas/{id}/planillas/plantilla',  'planillas/PlanillaController@plantillaCsv');
-        $router->post('/empresas/{id}/planillas/importar',  'planillas/PlanillaController@importarCsv');
         $router->post('/empresas/{id}/planillas/importar-plame', 'planillas/PlanillaController@importarPlame');
         $router->post('/empresas/{id}/planillas/{pid}/regimen',  'planillas/PlanillaController@cambiarRegimen');
         // Motor contable — Caja y Bancos

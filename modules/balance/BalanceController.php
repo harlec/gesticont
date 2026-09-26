@@ -55,11 +55,25 @@ class BalanceController
             ];
         }
         $pdf->tabla($cols, $anchos, $filas, $align);
-        $pdf->espacio(2);
-        $t = $balance['totales'];
-        $pdf->fila('TOTALES  -  Debe: S/ ' . number_format($t['debe'], 2) . '   Haber: S/ ' . number_format($t['haber'], 2), '', true, true);
-        $pdf->fila('Activo: S/ ' . number_format($t['activo'], 2) . '   Pasivo: S/ ' . number_format($t['pasivo'], 2)
-            . '   Perdidas: S/ ' . number_format($t['perdidas'], 2) . '   Ganancias: S/ ' . number_format($t['ganancias'], 2), '');
+
+        $t  = $balance['totales'];
+        $cr = BalanceService::cierreResultado($t);
+        $vacio = ['', '', '', ''];
+        $pdf->filaTabla(array_merge(['TOTALES'], array_map($fmt, [$t['debe'], $t['haber'], $t['deudor'], $t['acreedor'], $t['activo'], $t['pasivo'], $t['perdidas'], $t['ganancias']])), $anchos, $align, true, true);
+        $pdf->filaTabla(array_merge([$cr['tipo'] === 'perdida' ? 'Perdida del ejercicio' : 'Utilidad del ejercicio'], $vacio,
+            array_map($fmt, [$cr['ajuste']['activo'], $cr['ajuste']['pasivo'], $cr['ajuste']['perdidas'], $cr['ajuste']['ganancias']])), $anchos, $align, true);
+        $pdf->filaTabla(array_merge(['SUMAS IGUALES'], $vacio,
+            array_map($fmt, [$cr['iguales']['activo'], $cr['iguales']['pasivo'], $cr['iguales']['perdidas'], $cr['iguales']['ganancias']])), $anchos, $align, true, true);
+
+        $pdf->espacio(3);
+        $pdf->alerta(
+            $cr['tipo'] === 'nulo'
+                ? 'Resultado del periodo: cero (Ganancias = Perdidas).'
+                : 'Resultado del ejercicio: ' . ($cr['tipo'] === 'utilidad' ? 'UTILIDAD' : 'PERDIDA') . ' de S/ ' . number_format($cr['monto'], 2)
+                    . ' = Ganancias S/ ' . number_format($t['ganancias'], 2) . ' - Perdidas S/ ' . number_format($t['perdidas'], 2)
+                    . '. Antes de Impuesto a la Renta y Reserva Legal.',
+            $cr['coincide'] ? ($cr['tipo'] === 'perdida' ? 'neg' : 'pos') : 'neg'
+        );
 
         $pdf->salir('balance-comprobacion');
     }

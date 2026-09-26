@@ -7,6 +7,48 @@
 class BalanceService
 {
     /**
+     * Cierre de la hoja de trabajo al pie del Balance de Comprobación: una
+     * sola resta da la utilidad o pérdida del ejercicio, y esa cifra se suma
+     * a la columna que quedó corta de cada par para que ambas igualen.
+     *
+     *   Resultados: Ganancias - Pérdidas. Si sobran ganancias es UTILIDAD y
+     *   se suma a Pérdidas; si sobran pérdidas es PÉRDIDA y se suma a Ganancias.
+     *   Inventario: Activo - Pasivo. Con utilidad el Pasivo queda corto (esa
+     *   utilidad es patrimonio que aún no está en el pasivo) y se le suma;
+     *   con pérdida es el Activo el que queda corto.
+     *
+     * Es el resultado antes de Impuesto a la Renta y de Reserva Legal.
+     * `coincide` es false solo si ambas restas difieren, lo que indicaría
+     * que el Debe y el Haber no cuadran.
+     *
+     * @param array $t $balance['totales']
+     */
+    public static function cierreResultado(array $t): array
+    {
+        $resultado = round($t['ganancias'] - $t['perdidas'], 2);
+        $difInv    = round($t['activo'] - $t['pasivo'], 2);
+
+        $aj = ['activo' => 0.0, 'pasivo' => 0.0, 'perdidas' => 0.0, 'ganancias' => 0.0];
+        if ($resultado > 0)      $aj['perdidas']  = $resultado;
+        elseif ($resultado < 0)  $aj['ganancias'] = -$resultado;
+        if ($difInv > 0)         $aj['pasivo']    = $difInv;
+        elseif ($difInv < 0)     $aj['activo']    = -$difInv;
+
+        return [
+            'tipo'       => $resultado > 0 ? 'utilidad' : ($resultado < 0 ? 'perdida' : 'nulo'),
+            'monto'      => abs($resultado),
+            'ajuste'     => $aj,
+            'iguales'    => [
+                'activo'    => round($t['activo']    + $aj['activo'], 2),
+                'pasivo'    => round($t['pasivo']    + $aj['pasivo'], 2),
+                'perdidas'  => round($t['perdidas']  + $aj['perdidas'], 2),
+                'ganancias' => round($t['ganancias'] + $aj['ganancias'], 2),
+            ],
+            'coincide'   => abs($resultado - $difInv) < 0.02,
+        ];
+    }
+
+    /**
      * Compras de mercadería/materia prima/suministros/envases (601-604) que
      * siguen en el gasto sin haber pasado a existencias. Se compensa con su
      * contrapartida en 61 (611-614, saldo acreedor tras el asiento de

@@ -152,6 +152,22 @@ class PdfReport extends FPDF
         }
     }
 
+    /** Una fila suelta con las mismas columnas de tabla() — para totales y cierres (negrita, línea arriba). */
+    public function filaTabla(array $celdas, array $anchos, array $alineacion = [], bool $bold = false, bool $raya = false): void
+    {
+        $w = $this->anchoUtil();
+        if ($raya) {
+            $this->SetDrawColor(...self::LINE);
+            $this->Line($this->GetX(), $this->GetY(), $this->GetX() + $w, $this->GetY());
+        }
+        $this->SetTextColor(...self::INK);
+        $this->SetFont('Helvetica', $bold ? 'B' : '', 8.5);
+        foreach ($celdas as $i => $val) {
+            $this->Cell($w * $anchos[$i], 6.5, $this->t((string)$val), 0, 0, $alineacion[$i] ?? 'L');
+        }
+        $this->Ln();
+    }
+
     public function espacio(float $h = 4): void { $this->Ln($h); }
 
     public function salir(string $nombreArchivo): void

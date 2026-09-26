@@ -95,9 +95,46 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
                     <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-neg);"><?= $fmt($balance['totales']['perdidas']) ?></td>
                     <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-brand);"><?= $fmt($balance['totales']['ganancias']) ?></td>
                 </tr>
+                <?php
+                    $cr = BalanceService::cierreResultado($balance['totales']);
+                    $etq = $cr['tipo'] === 'perdida' ? 'Pérdida del ejercicio' : 'Utilidad del ejercicio';
+                    $celda = fn($v, $col, $borde = false) => '<td style="padding:8px 12px;text-align:right;font-family:monospace;color:' . $col . ';' . ($borde ? 'border-right:1px solid var(--gc-line);' : '') . '">' . $fmt($v) . '</td>';
+                ?>
+                <tr style="border-top:1px solid var(--gc-line);font-weight:700;">
+                    <td style="padding:8px 12px;color:var(--gc-label);border-right:1px solid var(--gc-line);">
+                        <?= $etq ?>
+                        <span style="font-weight:500;color:var(--gc-muted);font-size:11px;">(Ganancias − Pérdidas)</span>
+                    </td>
+                    <td colspan="4" style="border-right:1px solid var(--gc-line);"></td>
+                    <?= $celda($cr['ajuste']['activo'], 'var(--gc-pos)') ?>
+                    <?= $celda($cr['ajuste']['pasivo'], 'var(--gc-warn)', true) ?>
+                    <?= $celda($cr['ajuste']['perdidas'], 'var(--gc-neg)') ?>
+                    <?= $celda($cr['ajuste']['ganancias'], 'var(--gc-brand)') ?>
+                </tr>
+                <tr style="border-top:2px solid var(--gc-line);font-weight:700;background:var(--gc-bg);">
+                    <td style="padding:8px 12px;color:var(--gc-label);border-right:1px solid var(--gc-line);">Sumas iguales</td>
+                    <td colspan="4" style="border-right:1px solid var(--gc-line);"></td>
+                    <?= $celda($cr['iguales']['activo'], 'var(--gc-pos)') ?>
+                    <?= $celda($cr['iguales']['pasivo'], 'var(--gc-warn)', true) ?>
+                    <?= $celda($cr['iguales']['perdidas'], 'var(--gc-neg)') ?>
+                    <?= $celda($cr['iguales']['ganancias'], 'var(--gc-brand)') ?>
+                </tr>
             </tfoot>
         </table>
         </div>
+    </div>
+
+    <div style="margin-top:12px;font-size:13px;color:var(--gc-label);">
+        <?php if ($cr['tipo'] === 'nulo'): ?>
+            El resultado del período es <strong>cero</strong>: Ganancias = Pérdidas.
+        <?php else: ?>
+            Resultado del ejercicio: <strong style="color:<?= $cr['tipo'] === 'utilidad' ? 'var(--gc-pos)' : 'var(--gc-neg)' ?>;"><?= $cr['tipo'] === 'utilidad' ? 'UTILIDAD' : 'PÉRDIDA' ?> de S/ <?= number_format($cr['monto'], 2) ?></strong>
+            = Ganancias (S/ <?= number_format($balance['totales']['ganancias'], 2) ?>) − Pérdidas (S/ <?= number_format($balance['totales']['perdidas'], 2) ?>).
+        <?php endif; ?>
+        <span style="color:var(--gc-muted);">Es el resultado antes de Impuesto a la Renta y Reserva Legal.</span>
+        <?php if (!$cr['coincide']): ?>
+        <div style="margin-top:6px;color:var(--gc-neg);font-weight:600;">⚠ Activo − Pasivo no coincide con Ganancias − Pérdidas: el Debe y el Haber no están cuadrando.</div>
+        <?php endif; ?>
     </div>
 
     <?php else: ?>

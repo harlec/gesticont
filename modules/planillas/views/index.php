@@ -88,6 +88,26 @@ $fmt = fn($v) => number_format((float)$v, 2);
         </div>
     </div>
 
+    <!-- Importación desde PLAME (R01) -->
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-pos-border);padding:18px 20px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--gc-pos);margin-bottom:4px;">📥 Importar desde PLAME (reporte R01)</div>
+        <div style="font-size:12px;color:var(--gc-label);margin-bottom:12px;line-height:1.6;">
+            En el PDT Planilla Electrónica exporta el reporte <strong>R01: Trabajadores - Datos de Ingresos, Tributos y Aportes</strong>
+            (archivo <code>RUC_AAAAMM_r01.xml</code>). Puedes subir <strong>varios meses a la vez</strong>: el mes y el RUC se leen del propio archivo,
+            y volver a importar un mes reemplaza lo que ya se había importado de PLAME para ese mes.
+            <br><span style="color:var(--gc-muted);">
+            El R01 trae el ingreso devengado total (se carga como sueldo, sin separar gratificación ni asignación familiar), la retención del trabajador y el aporte
+            del empleador (EsSalud). Los descuentos (adelantos, etc.) no se registran. El régimen ONP/AFP no viene en el archivo: se estima por el monto y lo puedes corregir en la tabla.</span>
+        </div>
+        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/planillas/importar-plame" enctype="multipart/form-data" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <input type="hidden" name="periodo" value="<?= $periodo ?>">
+            <input type="file" name="archivos[]" accept=".xml" multiple required style="font-size:13px;">
+            <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+                📥 Importar archivos PLAME
+            </button>
+        </form>
+    </div>
+
     <!-- Importación masiva por CSV -->
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:18px 20px;margin-bottom:16px;">
         <div style="font-size:13px;font-weight:700;color:var(--gc-label);margin-bottom:4px;">📥 Importar varios trabajadores a la vez (CSV)</div>
@@ -137,7 +157,17 @@ $fmt = fn($v) => number_format((float)$v, 2);
                     <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($r['gratificacion']) ?></td>
                     <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($r['asignacion_familiar']) ?></td>
                     <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($r['essalud']) ?></td>
-                    <td style="padding:8px 16px;text-align:center;text-transform:uppercase;font-size:11px;font-weight:700;color:var(--gc-label);"><?= $r['regimen_pension'] ?></td>
+                    <td style="padding:8px 16px;text-align:center;">
+                        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/planillas/<?= $r['id'] ?>/regimen" style="margin:0;">
+                            <input type="hidden" name="periodo" value="<?= $periodo ?>">
+                            <select name="regimen_pension" onchange="this.form.submit()" title="Corregir régimen de pensión"
+                                    style="padding:3px 4px;border:1px solid var(--gc-line);border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gc-label);background:var(--gc-surface);">
+                                <?php foreach (['onp' => 'ONP', 'afp' => 'AFP', 'ninguno' => 'Ninguno'] as $v => $l): ?>
+                                <option value="<?= $v ?>" <?= $r['regimen_pension'] === $v ? 'selected' : '' ?>><?= $l ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </form>
+                    </td>
                     <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($r['retencion_pension']) ?></td>
                     <td style="padding:8px 16px;text-align:right;font-family:monospace;font-weight:700;"><?= $fmt($neto) ?></td>
                     <td style="padding:8px 16px;text-align:center;">

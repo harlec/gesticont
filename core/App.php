@@ -52,6 +52,10 @@ class App {
         // Motor contable — Libro Diario (generación de asientos)
         $router->get('/empresas/{id}/diario',          'diario/DiarioController@index');
         $router->post('/empresas/{id}/diario/generar', 'diario/DiarioController@generar');
+        // Motor contable — Asientos manuales (ajustes, provisiones)
+        $router->get('/empresas/{id}/asientos',                 'asientos/AsientoManualController@index');
+        $router->post('/empresas/{id}/asientos/guardar',        'asientos/AsientoManualController@guardar');
+        $router->post('/empresas/{id}/asientos/{aid}/eliminar', 'asientos/AsientoManualController@eliminar');
         // Motor contable — Libro Mayor
         $router->get('/empresas/{id}/mayor', 'balance/MayorController@index');
         // Motor contable — Balance de Comprobación

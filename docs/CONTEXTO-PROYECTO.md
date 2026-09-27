@@ -3,7 +3,7 @@
 Documento de traspaso: qué es el sistema, cómo está armado, qué decisiones se tomaron y qué falta.
 Complementa (no reemplaza) `docs/gesticon_doc/spec-motor-contable-gesticont.md` y `plan-completo-motor-contable.md`, que describen la lógica contable en detalle.
 
-Última actualización: 2026-09-26 (regla general, rango "año vigente", destino de compras, cobros/pagos parciales, honorarios y préstamos incluidos).
+Última actualización: 2026-09-26 (regla general, rango "año vigente", destino de compras, cobros/pagos parciales, honorarios, préstamos y asientos manuales incluidos).
 
 ---
 
@@ -111,6 +111,8 @@ Rutas: todas en `core/App.php` (`$router->get/post('/empresas/{id}/...', 'modulo
 - *Préstamos* (`/empresas/{id}/prestamos`, `PrestamoService`): desembolso = ingreso de Caja contra 451; pago de capital = egreso contra 451; interés = egreso contra 673. Recibido/pagado/saldo se calculan de esos movimientos (`caja_movimientos.prestamo_id`). Rechaza capital mayor al saldo.
 - Caja pasó a tener subpestañas (Movimientos · Libro Caja y Bancos · Préstamos). Caja y Bancos siguen siendo una sola bolsa (cuenta 101); no hay cuentas bancarias separadas (104) — posible mejora.
 - **Corrección del destino**: los gastos financieros (cuentas 67x, p. ej. intereses) ahora van a la **96** en la reclasificación por destino en vez de repartirse entre 94/95; la 96 es la que lee el Estado de Resultados (antes nunca se alimentaba). Regenerar los asientos de los meses ya generados para que apliquen.
+
+**Asientos manuales** (`Contabilidad → Asientos manuales`, `/empresas/{id}/asientos`; `AsientoService::crearManual/actualizarManual/eliminarManual`, `AsientoManualController`): para ajustes, provisiones (CTS, gratificaciones, vacaciones), depreciación y correcciones. Origen `manual` (ya existía en el enum). Líneas dinámicas con cuadre en vivo (no deja guardar si Debe ≠ Haber; una línea es de un solo lado); plantillas rápidas (CTS 629/415, depreciación 6841/395, adelanto 141/101). Editar conserva el correlativo; eliminar y editar solo aplican a manuales y se bloquean con el año cerrado. **La regeneración de asientos nunca borra un manual** (`borrarAsientoPrevio` excluye `origen='manual'`). El gasto (6x) de asientos manuales entra a la reclasificación por destino del mes (excluye 61 y 69; 67x va a la 96), así que hay que **regenerar el mes** tras registrar un manual con cuentas de gasto. Sin migraciones.
 
 **Credenciales SUNAT** (`/empresas/{id}/certificado`): pantalla ancha con instrucciones al costado; indicador "✓ Ingresado" por campo (nunca se muestran los valores, van encriptados); **un campo vacío conserva el valor guardado** (antes se perdían las credenciales de API al guardar). Instrucciones: usar un **usuario SOL secundario** con las carpetas *Comprobantes de pago*, *Sistema Integrado de Registros Electrónicos* y *Credenciales de API SUNAT*; el ID/clave de API se generan con el usuario principal (MIGE RCE y RVIE - SIRE, alcance Desktop).
 

@@ -113,7 +113,7 @@ class AsientoService
     /** Borra un asiento previo del mismo período+origen+glosa, si existe (permite regenerar mientras el período esté abierto). */
     private static function borrarAsientoPrevio(PDO $pdo, int $empresaId, string $glosa): void
     {
-        $stmt = $pdo->prepare("DELETE FROM asientos WHERE empresa_id = ? AND glosa = ?");
+        $stmt = $pdo->prepare("DELETE FROM asientos WHERE empresa_id = ? AND glosa = ? AND origen <> 'manual'");
         $stmt->execute([$empresaId, $glosa]);
     }
 
@@ -430,8 +430,26 @@ class AsientoService
         $stmtCaja->execute([$empresaId, $periodo]);
         $caja = $stmtCaja->fetch(PDO::FETCH_ASSOC);
 
-        $operativo  = round((float)$compras['operativo'] + $totalPlanilla + $totalHonorarios + (float)$caja['operativo'], 2);
-        $financiero = round((float)$compras['financiero'] + (float)$caja['financiero'], 2);
+        // Gasto cargado a mano (asientos manuales: CTS, depreciación, ajustes).
+        // Sin esto quedaría en el elemento 6 y no llegaría al Estado de
+        // Resultados. Se excluyen 61 (variación de inventarios) y 69 (costo de
+        // ventas), que ya son de destino/inventario; se toma el neto del mes
+        // y solo si es positivo (un ajuste que reduce el gasto no se reparte).
+        $stmtMan = $pdo->prepare("
+            SELECT COALESCE(SUM(CASE WHEN c.codigo NOT LIKE '67%' THEN d.debe - d.haber END), 0) AS operativo,
+                   COALESCE(SUM(CASE WHEN c.codigo LIKE '67%'     THEN d.debe - d.haber END), 0) AS financiero
+            FROM asientos a
+            JOIN asientos_detalle d  ON d.asiento_id = a.id
+            JOIN cuentas_contables c ON c.id = d.cuenta_id
+            WHERE a.empresa_id = ? AND a.origen = 'manual' AND DATE_FORMAT(a.fecha, '%Y%m') = ?
+              AND c.tipo = 'gasto' AND c.es_inventariable = 0
+              AND c.codigo NOT LIKE '61%' AND c.codigo NOT LIKE '69%'
+        ");
+        $stmtMan->execute([$empresaId, $periodo]);
+        $manual = $stmtMan->fetch(PDO::FETCH_ASSOC);
+
+        $operativo  = round((float)$compras['operativo'] + $totalPlanilla + $totalHonorarios + (float)$caja['operativo'] + max(0.0, (float)$manual['operativo']), 2);
+        $financiero = round((float)$compras['financiero'] + (float)$caja['financiero'] + max(0.0, (float)$manual['financiero']), 2);
         if ($operativo <= 0 && $financiero <= 0) return null;
 
         $pctAdmin    = (float)$parametros['pct_gastos_admin'];
@@ -484,5 +502,149 @@ class AsientoService
 
         $fecha = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
         return self::insertarAsiento($pdo, $empresaId, $periodoContableId, $fecha, $glosa, 'compra', $lineas);
+    }
+
+    /* ===================================================================
+     * Asientos manuales (ajustes, provisiones, correcciones)
+     * =================================================================== */
+
+    /**
+     * Valida y normaliza las líneas de un asiento manual.
+     * @param array $lineas [['cuenta_id'=>, 'debe'=>, 'haber'=>], ...]
+     * @return array{ok:bool,error?:string,lineas?:array}
+     */
+    public static function validarLineasManual(PDO $pdo, int $empresaId, array $lineas): array
+    {
+        $out = [];
+        foreach ($lineas as $l) {
+            $cuenta = (int)($l['cuenta_id'] ?? 0);
+            $debe   = round((float)str_replace(',', '', (string)($l['debe'] ?? 0)), 2);
+            $haber  = round((float)str_replace(',', '', (string)($l['haber'] ?? 0)), 2);
+            if (!$cuenta && $debe == 0 && $haber == 0) continue; // fila vacía
+            if (!$cuenta) return ['ok' => false, 'error' => 'Hay una línea con monto pero sin cuenta.'];
+            if ($debe < 0 || $haber < 0) return ['ok' => false, 'error' => 'Los montos no pueden ser negativos.'];
+            if ($debe > 0 && $haber > 0) return ['ok' => false, 'error' => 'Una línea no puede tener Debe y Haber a la vez.'];
+            if ($debe == 0 && $haber == 0) continue;
+            $out[] = ['cuenta_id' => $cuenta, 'debe' => $debe, 'haber' => $haber];
+        }
+        if (count($out) < 2) return ['ok' => false, 'error' => 'Un asiento necesita al menos dos líneas con monto.'];
+
+        $sumaDebe = round(array_sum(array_column($out, 'debe')), 2);
+        $sumaHaber = round(array_sum(array_column($out, 'haber')), 2);
+        if ($sumaDebe != $sumaHaber) {
+            return ['ok' => false, 'error' => sprintf('El asiento no cuadra: Debe S/ %s, Haber S/ %s (diferencia S/ %s).',
+                number_format($sumaDebe, 2), number_format($sumaHaber, 2), number_format(abs($sumaDebe - $sumaHaber), 2))];
+        }
+
+        $ids = array_values(array_unique(array_column($out, 'cuenta_id')));
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $pdo->prepare("SELECT id FROM cuentas_contables WHERE id IN ({$in}) AND (empresa_id IS NULL OR empresa_id = ?)");
+        $stmt->execute(array_merge($ids, [$empresaId]));
+        if (count($stmt->fetchAll(PDO::FETCH_COLUMN)) !== count($ids)) {
+            return ['ok' => false, 'error' => 'Alguna cuenta no existe en el catálogo.'];
+        }
+        return ['ok' => true, 'lineas' => $out];
+    }
+
+    private static function anioCerrado(PDO $pdo, int $empresaId, int $anio): bool
+    {
+        $stmt = $pdo->prepare("SELECT estado FROM periodos_contables WHERE empresa_id = ? AND anio = ?");
+        $stmt->execute([$empresaId, $anio]);
+        return $stmt->fetchColumn() === 'cerrado';
+    }
+
+    /** @return array{ok:bool,error?:string,id?:int,correlativo?:int} */
+    public static function crearManual(int $empresaId, string $fecha, string $glosa, array $lineas): array
+    {
+        $glosa = trim($glosa);
+        if ($glosa === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+            return ['ok' => false, 'error' => 'Falta la fecha o la glosa (descripción) del asiento.'];
+        }
+        $pdo = Model::db();
+        $v = self::validarLineasManual($pdo, $empresaId, $lineas);
+        if (!$v['ok']) return $v;
+
+        $anio = (int)substr($fecha, 0, 4);
+        if (self::anioCerrado($pdo, $empresaId, $anio)) return ['ok' => false, 'error' => "El año {$anio} está cerrado: no se pueden agregar asientos."];
+
+        Model::beginTransaction();
+        try {
+            $periodoId = self::obtenerOCrearPeriodoContable($pdo, $empresaId, $anio);
+            $a = self::insertarAsiento($pdo, $empresaId, $periodoId, $fecha, $glosa, 'manual', $v['lineas']);
+            Model::commit();
+        } catch (Exception $e) {
+            Model::rollback();
+            return ['ok' => false, 'error' => 'No se pudo guardar: ' . $e->getMessage()];
+        }
+        return ['ok' => true, 'id' => $a['id'], 'correlativo' => $a['correlativo']];
+    }
+
+    /** Reemplaza fecha, glosa y líneas de un asiento manual (conserva su correlativo). */
+    public static function actualizarManual(int $empresaId, int $asientoId, string $fecha, string $glosa, array $lineas): array
+    {
+        $glosa = trim($glosa);
+        if ($glosa === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+            return ['ok' => false, 'error' => 'Falta la fecha o la glosa (descripción) del asiento.'];
+        }
+        $pdo = Model::db();
+        $stmt = $pdo->prepare("SELECT id, fecha FROM asientos WHERE id = ? AND empresa_id = ? AND origen = 'manual'");
+        $stmt->execute([$asientoId, $empresaId]);
+        $actual = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$actual) return ['ok' => false, 'error' => 'El asiento no existe o no es manual (los generados no se editan).'];
+
+        $v = self::validarLineasManual($pdo, $empresaId, $lineas);
+        if (!$v['ok']) return $v;
+
+        foreach ([(int)substr($actual['fecha'], 0, 4), (int)substr($fecha, 0, 4)] as $anio) {
+            if (self::anioCerrado($pdo, $empresaId, $anio)) return ['ok' => false, 'error' => "El año {$anio} está cerrado."];
+        }
+
+        Model::beginTransaction();
+        try {
+            $periodoId = self::obtenerOCrearPeriodoContable($pdo, $empresaId, (int)substr($fecha, 0, 4));
+            $pdo->prepare("UPDATE asientos SET fecha = ?, glosa = ?, periodo_id = ? WHERE id = ?")->execute([$fecha, $glosa, $periodoId, $asientoId]);
+            $pdo->prepare("DELETE FROM asientos_detalle WHERE asiento_id = ?")->execute([$asientoId]);
+            $ins = $pdo->prepare("INSERT INTO asientos_detalle (asiento_id, cuenta_id, debe, haber) VALUES (?, ?, ?, ?)");
+            foreach ($v['lineas'] as $l) $ins->execute([$asientoId, $l['cuenta_id'], $l['debe'], $l['haber']]);
+            Model::commit();
+        } catch (Exception $e) {
+            Model::rollback();
+            return ['ok' => false, 'error' => 'No se pudo guardar: ' . $e->getMessage()];
+        }
+        return ['ok' => true, 'id' => $asientoId];
+    }
+
+    public static function eliminarManual(int $empresaId, int $asientoId): array
+    {
+        $pdo = Model::db();
+        $stmt = $pdo->prepare("SELECT fecha FROM asientos WHERE id = ? AND empresa_id = ? AND origen = 'manual'");
+        $stmt->execute([$asientoId, $empresaId]);
+        $fecha = $stmt->fetchColumn();
+        if ($fecha === false) return ['ok' => false, 'error' => 'El asiento no existe o no es manual.'];
+        if (self::anioCerrado($pdo, $empresaId, (int)substr($fecha, 0, 4))) return ['ok' => false, 'error' => 'El año está cerrado.'];
+        $pdo->prepare("DELETE FROM asientos WHERE id = ?")->execute([$asientoId]);
+        return ['ok' => true];
+    }
+
+    /** Asientos manuales de un año con sus líneas, del más reciente al más antiguo. */
+    public static function listarManuales(int $empresaId, int $anio): array
+    {
+        $pdo = Model::db();
+        $stmt = $pdo->prepare("
+            SELECT a.id, a.correlativo, a.fecha, a.glosa, d.cuenta_id, d.debe, d.haber, c.codigo, c.nombre
+            FROM asientos a
+            JOIN asientos_detalle d  ON d.asiento_id = a.id
+            JOIN cuentas_contables c ON c.id = d.cuenta_id
+            WHERE a.empresa_id = ? AND a.origen = 'manual' AND YEAR(a.fecha) = ?
+            ORDER BY a.fecha DESC, a.id DESC, d.id
+        ");
+        $stmt->execute([$empresaId, $anio]);
+        $res = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $res[$r['id']] ??= ['id' => (int)$r['id'], 'correlativo' => (int)$r['correlativo'], 'fecha' => $r['fecha'], 'glosa' => $r['glosa'], 'lineas' => [], 'total' => 0.0];
+            $res[$r['id']]['lineas'][] = $r;
+            $res[$r['id']]['total'] += (float)$r['debe'];
+        }
+        return array_values($res);
     }
 }

@@ -257,14 +257,17 @@ class SyncController
                 $grupo[$clave] ??= ['n' => 0, 'base' => 0.0, 'igv' => 0.0, 'total' => 0.0];
                 $grupo[$clave]['n']++; $grupo[$clave]['base'] += $b; $grupo[$clave]['igv'] += $i; $grupo[$clave]['total'] += $t;
             };
-            $porTipo = []; $porEstado = []; $porDia = []; $porPer = []; $series = []; $claves = []; $filas = 0; $sumB = $sumI = $sumT = 0.0; $rangos = 0;
+            $porTipo = []; $porEstado = []; $vistos = []; $porDia = []; $porPer = []; $series = []; $claves = []; $filas = 0; $sumB = $sumI = $sumT = 0.0; $rangos = 0;
             for ($pg = 1; $pg <= 200; $pg++) {
                 try { $resp = $pg === 1 ? $r : $sunat->paginaCruda($token, $tipo, $empresa['ruc'], $periodo, $fuente, $pg); }
                 catch (Throwable $e) { echo "  Página {$pg}: ERROR ", $e->getMessage(), "\n"; break; }
                 $regs = $resp['registros'] ?? [];
-                echo "  Página {$pg}: ", count($regs), " registros\n";
-                if (!$regs) break;
+                $antes = $filas;
+                if (!$regs) { echo "  Página {$pg}: 0 registros\n"; break; }
                 foreach ($regs as $x) {
+                    $idu = (string)($x['codCar'] ?? $x['id'] ?? '');
+                    if ($idu !== '' && isset($vistos[$idu])) continue;   // las páginas de SIRE se solapan
+                    $vistos[$idu] = true;
                     $filas++;
                     $tp = (string)($x['codTipoCDP'] ?? $x['codTipoComprobante'] ?? '?');
                     $es = (string)($x['codEstadoComprobante'] ?? '?');
@@ -286,9 +289,10 @@ class SyncController
                     foreach (array_keys($x) as $kk) $claves[$kk] = true;
                     foreach ($x as $kk => $vv) if (preg_match('/final|rango|hasta/i', (string)$kk) && $vv !== '' && $vv !== null) { $rangos++; break; }
                 }
-                if ($filas >= $totalSunat) break;
+                echo "  Página {$pg}: ", count($regs), " filas recibidas, ", $filas - $antes, " nuevas (únicas acumuladas: {$filas})\n";
+                if ($filas >= $totalSunat || $filas === $antes) break;
             }
-            echo "\n  Filas leídas: {$filas} de {$totalSunat} que informa SUNAT\n";
+            echo "\n  Comprobantes ÚNICOS leídos: {$filas} de {$totalSunat} que informa SUNAT\n";
             echo "  Filas con campo de rango/final (boletas agrupadas): {$rangos}\n";
             echo sprintf("  SUMA  base=%.2f  igv=%.2f  total=%.2f\n", $sumB, $sumI, $sumT);
             echo "  Por tipo de comprobante:\n";

@@ -91,36 +91,51 @@ class SunatApiService
     // ── VENTAS todas las páginas ─────────────────────────────────────────────
     public function getAllVentasPeriodo(string $token, string $periodo): array
     {
-        return $this->paginar(fn(int $page, ?string $f) => $this->getVentasPeriodo($token, $periodo, $page, 100, $f), "ventas {$periodo}");
+        return $this->paginar(fn(int $page, ?string $f, int $pp) => $this->getVentasPeriodo($token, $periodo, $page, $pp, $f), "ventas {$periodo}");
     }
 
     /**
      * Recorre todas las páginas y devuelve además lo necesario para detectar
      * un corte: 'total_sunat' (lo que SUNAT dice que hay), 'paginas', y
-     * 'error' si quedó incompleto (fallo a mitad o menos registros de los
-     * informados). Antes esos casos terminaban en silencio con lo que hubiera
-     * alcanzado a bajar, y la pantalla lo mostraba como si fuera el total.
+     * 'error' si quedó incompleto.
+     *
+     * OJO — la API de SIRE no respeta perPage: la página N devuelve N×perPage
+     * filas (100, 200, 300…), empezando donde terminó la anterior, así que las
+     * páginas se SOLAPAN. Por eso se cuentan comprobantes ÚNICOS (no filas
+     * recibidas): antes se sumaban las repetidas, el ciclo creía haber llegado
+     * al total en la página 9 y dejaba el mes cortado a la mitad (1,700 de
+     * 3,738). Se sigue pidiendo páginas hasta reunir el total informado o hasta
+     * que una página ya no aporte nada nuevo.
      */
     private function paginar(callable $pedirPagina, string $etiqueta): array
     {
-        $page = 1; $todos = []; $fuente = null; $totalSunat = 0; $error = null; $paginas = 0;
-        do {
-            $r = $pedirPagina($page, $fuente);
+        $perPage = 500; // grande para necesitar pocas páginas; se baja a 100 si SUNAT lo rechaza
+        $page = 1; $unicos = []; $fuente = null; $totalSunat = 0; $error = null; $paginas = 0;
+        while (true) {
+            $r = $pedirPagina($page, $fuente, $perPage);
+            if ($page === 1 && !empty($r['error']) && $perPage > 100) { $perPage = 100; continue; }
             if ($page === 1) { $fuente = $r['fuente']; $totalSunat = $r['total']; }
             if (!empty($r['error'])) { $error = "Página {$page}: " . $r['error']; break; }
-            $todos = array_merge($todos, $r['registros']);
-            $paginas++; $page++;
-        } while (count($todos) < $totalSunat && count($r['registros']) > 0 && $page <= self::MAX_PAGINAS);
+            $paginas++;
 
-        if (!$error && count($todos) < $totalSunat) {
-            $error = "SUNAT informa {$totalSunat} comprobantes pero solo se recibieron " . count($todos) . " (páginas leídas: {$paginas}).";
+            $nuevos = 0;
+            foreach ($r['registros'] as $reg) {
+                $k = $reg['cod_car'] ?: ($reg['id_sire'] ?: implode('|', [$reg['tipo_comp'], $reg['serie'], $reg['correlativo'], $reg['proveedor_ruc'] ?? '']));
+                if (!isset($unicos[$k])) { $unicos[$k] = $reg; $nuevos++; }
+            }
+            if (count($unicos) >= $totalSunat || $nuevos === 0 || $page >= self::MAX_PAGINAS) break;
+            $page++;
+        }
+
+        if (!$error && count($unicos) < $totalSunat) {
+            $error = "SUNAT informa {$totalSunat} comprobantes pero solo se recibieron " . count($unicos) . " distintos (páginas leídas: {$paginas}).";
         }
         if ($error) error_log("[SIRE {$etiqueta}] INCOMPLETO — {$error}");
 
         return [
-            'registros'   => $todos,
+            'registros'   => array_values($unicos),
             'fuente'      => $fuente ?? 'sin_datos',
-            'total'       => count($todos),
+            'total'       => count($unicos),
             'total_sunat' => $totalSunat,
             'paginas'     => $paginas,
             'error'       => $error,
@@ -170,7 +185,7 @@ class SunatApiService
     // ── COMPRAS todas las páginas ────────────────────────────────────────────
     public function getAllComprasPeriodo(string $token, string $ruc, string $periodo): array
     {
-        return $this->paginar(fn(int $page, ?string $f) => $this->getComprasPeriodo($token, $ruc, $periodo, $page, 100, $f), "compras {$periodo}");
+        return $this->paginar(fn(int $page, ?string $f, int $pp) => $this->getComprasPeriodo($token, $ruc, $periodo, $page, $pp, $f), "compras {$periodo}");
     }
 
     /** Una página SIN normalizar — solo para diagnóstico (ver qué devuelve SUNAT realmente). */

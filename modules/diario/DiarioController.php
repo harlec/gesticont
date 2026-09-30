@@ -64,7 +64,7 @@ class DiarioController
         $empresa = $this->_getEmpresa($empresaId);
         if (!$empresa) { http_response_code(403); die('Sin acceso'); }
 
-        $periodo = $_POST['periodo'] ?? date('Ym', strtotime('-1 month'));
+        $periodo = $_POST['periodo'] ?? date('Ym', strtotime('first day of -1 month'));
 
         $resultado = AsientoService::generarPeriodo($empresaId, $periodo, Auth::id());
 

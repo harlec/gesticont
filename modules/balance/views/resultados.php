@@ -1,6 +1,6 @@
 <?php
 $periodos = [];
-for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
+for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("first day of -{$i} month"));
 $fmt = fn($v) => number_format((float)$v, 2);
 $fila = function (string $label, float $val, bool $bold = false, bool $resta = false, ?string $sub = null) use ($fmt) {
     $signo = $resta ? '(−) ' : '';

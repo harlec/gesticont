@@ -16,7 +16,7 @@ class SyncController
         $pdo = Model::db();
 
         $periodos = [];
-        for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
+        for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("first day of -{$i} month"));
 
         $stmtV = $pdo->prepare("
             SELECT periodo, COUNT(*) as cant, SUM(total) as total, MAX(fuente) as fuente
@@ -51,10 +51,10 @@ class SyncController
 
         $tipo    = $_POST['tipo']    ?? 'ambos';
         $rango   = $_POST['rango']   ?? 'periodo';
-        $periodo = $_POST['periodo'] ?? date('Ym', strtotime('-1 month'));
+        $periodo = $_POST['periodo'] ?? date('Ym', strtotime('first day of -1 month'));
 
         if ($rango === 'todo') {
-            $periodos = array_map(fn($i) => date('Ym', strtotime("-{$i} month")), range(1, 12));
+            $periodos = array_map(fn($i) => date('Ym', strtotime("first day of -{$i} month")), range(1, 12));
         } elseif ($rango === 'anio') {
             // Año vigente desde enero hasta el mes anterior (el mes en curso
             // aún no está cerrado); en enero no hay mes anterior dentro del

@@ -1,6 +1,6 @@
 <?php
 $periodos = [];
-for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
+for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("first day of -{$i} month"));
 $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
 $fmtFecha = fn($f) => date('d/m/Y', strtotime($f));
 $origenLabel = ['compra' => 'Compra', 'venta' => 'Venta', 'planilla' => 'Planilla', 'caja' => 'Caja', 'manual' => 'Manual', 'cierre' => 'Cierre'];

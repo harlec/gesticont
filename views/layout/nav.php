@@ -123,7 +123,7 @@ $periodoActivoNav = $dentroDeEmpresa ? Periodo::resolver($empresa['id']) : null;
 // en su propio selector local — si difirieran, un período elegido acá
 // podría no aparecer marcado en el selector de la pantalla misma.
 $opcionesPeriodo = [];
-for ($i = 1; $i <= 12; $i++) $opcionesPeriodo[] = date('Ym', strtotime("-{$i} month"));
+for ($i = 1; $i <= 12; $i++) $opcionesPeriodo[] = date('Ym', strtotime("first day of -{$i} month"));
 // Sin duplicar por si el período activo (elegido antes) ya no cae en ese
 // rango — se agrega igual para que el desplegable siempre pueda mostrarlo
 // marcado en vez de dejarlo "huérfano".

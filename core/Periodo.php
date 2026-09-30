@@ -16,7 +16,7 @@ class Periodo
         if (!empty($_GET['periodo']) && preg_match('/^\d{6}$/', $_GET['periodo'])) {
             $_SESSION['periodo_activo'][$empresaId] = $_GET['periodo'];
         }
-        return $_SESSION['periodo_activo'][$empresaId] ?? date('Ym', strtotime('-1 month'));
+        return $_SESSION['periodo_activo'][$empresaId] ?? date('Ym', strtotime('first day of -1 month'));
     }
 
     /** Para pantallas a nivel de año (Apertura, Cierre) — respeta un

@@ -1,6 +1,6 @@
 <?php
 $periodos = [];
-for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
+for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("first day of -{$i} month"));
 ?>
 
 <div class="gc-content gc-w-content">

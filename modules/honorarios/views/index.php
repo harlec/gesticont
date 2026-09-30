@@ -2,7 +2,7 @@
 $fmt = fn($v) => number_format((float)$v, 2);
 $base = "/empresas/{$empresa['id']}/honorarios";
 $periodos = [];
-for ($i = 0; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("-{$i} month"));
+for ($i = 0; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("first day of -{$i} month"));
 if (!in_array($periodo, $periodos, true)) array_unshift($periodos, $periodo);
 $inp = 'padding:8px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;color:var(--gc-ink);background:var(--gc-surface);width:100%;';
 $lbl = 'display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;';

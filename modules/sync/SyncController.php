@@ -134,6 +134,7 @@ class SyncController
                     $resultado['ventas'][$p] = [
                         'nuevos' => $ins, 'duplicados' => $dup,
                         'total'  => count($ventas), 'fuente' => $fuente,
+                        'total_sunat' => $res['total_sunat'], 'paginas' => $res['paginas'], 'aviso' => $res['error'],
                     ];
                 } catch (Exception $e) {
                     $resultado['ventas'][$p] = ['error' => $e->getMessage()];
@@ -148,8 +149,17 @@ class SyncController
                     $fuente  = $res['fuente'];
                     $ins = 0; $dup = 0; $rellenados = 0;
                     foreach ($compras as $c) {
-                        $chk = $pdo->prepare("SELECT id, proveedor_ruc FROM registro_compras WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?");
-                        $chk->execute([$empresaId, $c['tipo_comp'], $c['serie'], $c['correlativo']]);
+                        // La clave única de la tabla incluye al proveedor: dos proveedores
+                        // distintos pueden emitir el mismo F001-123. Sin el RUC en la búsqueda
+                        // el segundo se descartaba como "ya existía" y la compra se perdía.
+                        // Un registro viejo con RUC vacío también cuenta (se rellena abajo).
+                        $chk = $pdo->prepare("
+                            SELECT id, proveedor_ruc FROM registro_compras
+                            WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?
+                              AND (proveedor_ruc = ? OR proveedor_ruc = '' OR proveedor_ruc IS NULL)
+                            ORDER BY (proveedor_ruc = ?) DESC LIMIT 1
+                        ");
+                        $chk->execute([$empresaId, $c['tipo_comp'], $c['serie'], $c['correlativo'], $c['proveedor_ruc'], $c['proveedor_ruc']]);
                         $existente = $chk->fetch(PDO::FETCH_ASSOC);
                         if ($existente) {
                             // Compras sincronizadas antes de leer bien el documento
@@ -161,8 +171,8 @@ class SyncController
                                 $rellenados++;
                             }
                             if ($fuente === 'declarado') {
-                                $pdo->prepare("UPDATE registro_compras SET fuente='declarado', sync_at=NOW() WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?")
-                                    ->execute([$empresaId, $c['tipo_comp'], $c['serie'], $c['correlativo']]);
+                                $pdo->prepare("UPDATE registro_compras SET fuente='declarado', sync_at=NOW() WHERE id=?")
+                                    ->execute([$existente['id']]);
                             }
                             $dup++; continue;
                         }
@@ -186,6 +196,7 @@ class SyncController
                     $resultado['compras'][$p] = [
                         'nuevos' => $ins, 'duplicados' => $dup, 'rellenados' => $rellenados,
                         'total'  => count($compras), 'fuente' => $fuente,
+                        'total_sunat' => $res['total_sunat'], 'paginas' => $res['paginas'], 'aviso' => $res['error'],
                     ];
                 } catch (Exception $e) {
                     $resultado['compras'][$p] = ['error' => $e->getMessage()];

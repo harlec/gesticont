@@ -78,9 +78,16 @@ function badgeFuente(?string $fuente): string {
         </form>
     </div>
 
-    <?php if ($resultado): ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-pos-border);overflow:hidden;margin-bottom:20px;">
+    <?php if ($resultado):
+        $hayProblemas = false;
+        foreach (['ventas','compras'] as $t) foreach ($resultado[$t] ?? [] as $r) if (isset($r['error']) || !empty($r['aviso'])) $hayProblemas = true;
+    ?>
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid <?= $hayProblemas ? 'var(--gc-warn)' : 'var(--gc-pos-border)' ?>;overflow:hidden;margin-bottom:20px;">
+        <?php if ($hayProblemas): ?>
+        <div style="padding:14px 24px;border-bottom:1px solid var(--gc-line);background:var(--gc-warn-soft);font-weight:700;color:var(--gc-warn);">⚠ Sincronización con problemas — hay períodos incompletos, no los declares hasta resolverlos</div>
+        <?php else: ?>
         <div style="padding:14px 24px;border-bottom:1px solid var(--gc-line);background:var(--gc-pos-soft-2);font-weight:700;color:var(--gc-pos);">✅ Sincronización completada</div>
+        <?php endif; ?>
         <div style="padding:16px 24px;">
             <?php foreach (['ventas','compras'] as $tipo): ?>
             <?php if (!empty($resultado[$tipo])): ?>
@@ -90,11 +97,14 @@ function badgeFuente(?string $fuente): string {
                 <strong><?= substr($p,0,4).'-'.substr($p,4,2) ?>:</strong>
                 <?php if (isset($r['error'])): ?>
                     <span style="color:var(--gc-neg-strong);">⚠ <?= htmlspecialchars($r['error']) ?></span>
-                <?php elseif ($r['total'] === 0): ?>
+                <?php elseif ($r['total'] === 0 && empty($r['aviso'])): ?>
                     <span>Sin datos en SIRE</span>
                 <?php else: ?>
                     <?= $r['total'] ?> encontrados · <strong><?= $r['nuevos'] ?> nuevos</strong> · <?= $r['duplicados'] ?> ya existían<?php if (!empty($r['rellenados'])): ?> · <strong><?= $r['rellenados'] ?> completados con RUC de proveedor</strong><?php endif; ?>
                     <?= badgeFuente($r['fuente'] ?? null) ?>
+                <?php endif; ?>
+                <?php if (!empty($r['aviso'])): ?>
+                    <span style="color:var(--gc-neg-strong);font-weight:600;">⚠ INCOMPLETO<?= !empty($r['total_sunat']) ? ' — SUNAT informa ' . (int)$r['total_sunat'] . ', se guardaron ' . (int)$r['total'] : '' ?>. <?= htmlspecialchars($r['aviso']) ?></span>
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>

@@ -36,98 +36,141 @@ class SunatApiService
         return $resp['access_token'];
     }
 
-    // ── VENTAS una página — intenta declarado, cae en propuesta ─────────────
+    // Tope de seguridad contra un ciclo infinito si SUNAT devolviera siempre lo mismo.
+    private const MAX_PAGINAS = 2000;
+
+    private function esSinDatos(RuntimeException $e): bool
+    {
+        return (bool)preg_match('/HTTP (404|422)\b/', $e->getMessage());
+    }
+
+    // ── VENTAS una página ────────────────────────────────────────────────────
+    // $fuente null = intenta declarado y cae en propuesta (solo en la página 1).
+    // Con $fuente fijo (páginas 2+) usa siempre la misma, para no mezclar
+    // declarado con propuesta a mitad del período, y un fallo NO se oculta:
+    // vuelve en 'error' para que quien pagina sepa que quedó incompleto.
     public function getVentasPeriodo(string $token, string $periodo,
-                                     int $page = 1, int $perPage = 100): array
+                                     int $page = 1, int $perPage = 100, ?string $fuente = null): array
     {
         $base = self::SIRE_BASE . "/libros/rvie/propuesta/web/propuesta/{$periodo}/comprobantes";
+        $urlDeclarado = "{$base}?page={$page}&perPage={$perPage}&codTipoResumen=5";
+        $urlPropuesta = "{$base}?page={$page}&perPage={$perPage}";
+        $vacio = fn(string $f, ?string $err = null) => ['total'=>0,'page'=>$page,'fuente'=>$f,'registros'=>[],'error'=>$err];
+        $primeraVez = $fuente === null;
 
-        // 1. Intentar declarado
         try {
-            $resp   = $this->get("{$base}?page={$page}&perPage={$perPage}&codTipoResumen=5", $token);
-            $total  = $resp['paginacion']['totalRegistros'] ?? 0;
-            $fuente = 'declarado';
-            if ($total === 0 && $page === 1) throw new RuntimeException('sin datos declarados');
-        } catch (RuntimeException $e) {
-            // 2. Caer en propuesta
-            try {
-                $resp   = $this->get("{$base}?page={$page}&perPage={$perPage}", $token);
-                $total  = $resp['paginacion']['totalRegistros'] ?? 0;
-                $fuente = 'propuesta';
-            } catch (RuntimeException $e2) {
-                return ['total'=>0,'page'=>$page,'fuente'=>'sin_datos','registros'=>[]];
+            if ($fuente === 'propuesta') {
+                $resp = $this->get($urlPropuesta, $token);
+            } elseif ($fuente === 'declarado') {
+                $resp = $this->get($urlDeclarado, $token);
+            } else {
+                try {
+                    $resp   = $this->get($urlDeclarado, $token);
+                    $fuente = 'declarado';
+                    if (($resp['paginacion']['totalRegistros'] ?? 0) === 0 && $page === 1) throw new RuntimeException('sin datos declarados');
+                } catch (RuntimeException $e) {
+                    $resp   = $this->get($urlPropuesta, $token);
+                    $fuente = 'propuesta';
+                }
             }
+        } catch (RuntimeException $e) {
+            // 404/422 = SUNAT no tiene datos para el período (no es un fallo).
+            if ($this->esSinDatos($e)) return $vacio('sin_datos');
+            return $vacio($primeraVez ? 'error' : $fuente, $e->getMessage());
         }
 
         return [
-            'total'     => $total,
+            'total'     => (int)($resp['paginacion']['totalRegistros'] ?? 0),
             'page'      => $page,
             'fuente'    => $fuente,
             'registros' => array_map([$this,'normalizarVenta'], $resp['registros'] ?? []),
+            'error'     => null,
         ];
     }
 
     // ── VENTAS todas las páginas ─────────────────────────────────────────────
     public function getAllVentasPeriodo(string $token, string $periodo): array
     {
-        $page = 1; $todos = []; $fuente = 'declarado';
-        do {
-            $r      = $this->getVentasPeriodo($token, $periodo, $page);
-            $todos  = array_merge($todos, $r['registros']);
-            $fuente = $r['fuente'];
-            $page++;
-        } while (count($todos) < $r['total'] && count($r['registros']) > 0);
-        return ['registros' => $todos, 'fuente' => $fuente, 'total' => count($todos)];
+        return $this->paginar(fn(int $page, ?string $f) => $this->getVentasPeriodo($token, $periodo, $page, 100, $f), "ventas {$periodo}");
     }
 
-    // ── COMPRAS una página — intenta declarado, cae en propuesta ────────────
+    /**
+     * Recorre todas las páginas y devuelve además lo necesario para detectar
+     * un corte: 'total_sunat' (lo que SUNAT dice que hay), 'paginas', y
+     * 'error' si quedó incompleto (fallo a mitad o menos registros de los
+     * informados). Antes esos casos terminaban en silencio con lo que hubiera
+     * alcanzado a bajar, y la pantalla lo mostraba como si fuera el total.
+     */
+    private function paginar(callable $pedirPagina, string $etiqueta): array
+    {
+        $page = 1; $todos = []; $fuente = null; $totalSunat = 0; $error = null; $paginas = 0;
+        do {
+            $r = $pedirPagina($page, $fuente);
+            if ($page === 1) { $fuente = $r['fuente']; $totalSunat = $r['total']; }
+            if (!empty($r['error'])) { $error = "Página {$page}: " . $r['error']; break; }
+            $todos = array_merge($todos, $r['registros']);
+            $paginas++; $page++;
+        } while (count($todos) < $totalSunat && count($r['registros']) > 0 && $page <= self::MAX_PAGINAS);
+
+        if (!$error && count($todos) < $totalSunat) {
+            $error = "SUNAT informa {$totalSunat} comprobantes pero solo se recibieron " . count($todos) . " (páginas leídas: {$paginas}).";
+        }
+        if ($error) error_log("[SIRE {$etiqueta}] INCOMPLETO — {$error}");
+
+        return [
+            'registros'   => $todos,
+            'fuente'      => $fuente ?? 'sin_datos',
+            'total'       => count($todos),
+            'total_sunat' => $totalSunat,
+            'paginas'     => $paginas,
+            'error'       => $error,
+        ];
+    }
+
+    // ── COMPRAS una página (misma lógica que ventas) ─────────────────────────
     public function getComprasPeriodo(string $token, string $ruc, string $periodo,
-                                      int $page = 1, int $perPage = 100): array
+                                      int $page = 1, int $perPage = 100, ?string $fuente = null): array
     {
         $base = self::SIRE_BASE . "/libros/rce/propuesta/web/propuesta/{$periodo}/busqueda";
+        $urlDeclarado = "{$base}?codTipoOpe=3&page={$page}&perPage={$perPage}&codTipoResumen=5";
+        $urlPropuesta = "{$base}?codTipoOpe=3&page={$page}&perPage={$perPage}";
+        $vacio = fn(string $f, ?string $err = null) => ['total'=>0,'page'=>$page,'fuente'=>$f,'registros'=>[],'error'=>$err];
+        $primeraVez = $fuente === null;
 
-        // 1. Intentar declarado
         try {
-            $resp   = $this->get("{$base}?codTipoOpe=3&page={$page}&perPage={$perPage}&codTipoResumen=5", $token, $ruc);
-            $total  = $resp['paginacion']['totalRegistros'] ?? 0;
-            $fuente = 'declarado';
-            if ($total === 0 && $page === 1) throw new RuntimeException('sin datos declarados');
-        } catch (RuntimeException $e) {
-            if (str_contains($e->getMessage(), 'HTTP 422')) {
-                return ['total'=>0,'page'=>$page,'fuente'=>'sin_datos','registros'=>[]];
-            }
-            // 2. Caer en propuesta
-            try {
-                $resp   = $this->get("{$base}?codTipoOpe=3&page={$page}&perPage={$perPage}", $token, $ruc);
-                $total  = $resp['paginacion']['totalRegistros'] ?? 0;
-                $fuente = 'propuesta';
-            } catch (RuntimeException $e2) {
-                if (str_contains($e2->getMessage(), 'HTTP 422')) {
-                    return ['total'=>0,'page'=>$page,'fuente'=>'sin_datos','registros'=>[]];
+            if ($fuente === 'propuesta') {
+                $resp = $this->get($urlPropuesta, $token, $ruc);
+            } elseif ($fuente === 'declarado') {
+                $resp = $this->get($urlDeclarado, $token, $ruc);
+            } else {
+                try {
+                    $resp   = $this->get($urlDeclarado, $token, $ruc);
+                    $fuente = 'declarado';
+                    if (($resp['paginacion']['totalRegistros'] ?? 0) === 0 && $page === 1) throw new RuntimeException('sin datos declarados');
+                } catch (RuntimeException $e) {
+                    if ($this->esSinDatos($e)) return $vacio('sin_datos');
+                    $resp   = $this->get($urlPropuesta, $token, $ruc);
+                    $fuente = 'propuesta';
                 }
-                return ['total'=>0,'page'=>$page,'fuente'=>'error','registros'=>[]];
             }
+        } catch (RuntimeException $e) {
+            if ($this->esSinDatos($e)) return $vacio('sin_datos');
+            return $vacio($primeraVez ? 'error' : $fuente, $e->getMessage());
         }
 
         return [
-            'total'     => $total,
+            'total'     => (int)($resp['paginacion']['totalRegistros'] ?? 0),
             'page'      => $page,
             'fuente'    => $fuente,
             'registros' => array_map([$this,'normalizarCompra'], $resp['registros'] ?? []),
+            'error'     => null,
         ];
     }
 
     // ── COMPRAS todas las páginas ────────────────────────────────────────────
     public function getAllComprasPeriodo(string $token, string $ruc, string $periodo): array
     {
-        $page = 1; $todos = []; $fuente = 'declarado';
-        do {
-            $r      = $this->getComprasPeriodo($token, $ruc, $periodo, $page);
-            $todos  = array_merge($todos, $r['registros']);
-            $fuente = $r['fuente'];
-            $page++;
-        } while (count($todos) < $r['total'] && count($r['registros']) > 0);
-        return ['registros' => $todos, 'fuente' => $fuente, 'total' => count($todos)];
+        return $this->paginar(fn(int $page, ?string $f) => $this->getComprasPeriodo($token, $ruc, $periodo, $page, 100, $f), "compras {$periodo}");
     }
 
     private function normalizarVenta(array $i): array
@@ -221,9 +264,15 @@ class SunatApiService
         ]);
         $body = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err  = curl_error($ch);
         curl_close($ch);
+        // Sin respuesta (timeout, corte de red) NO es "sin datos": antes volvía [] y
+        // el ciclo de páginas terminaba en silencio con el período cortado.
+        if ($body === false) throw new RuntimeException("SIRE sin respuesta: {$err}");
         if ($code >= 400) throw new RuntimeException("SIRE HTTP {$code}: " . substr($body, 0, 300));
-        return json_decode($body, true) ?? [];
+        $json = json_decode($body, true);
+        if (!is_array($json)) throw new RuntimeException('SIRE respuesta no válida: ' . substr($body, 0, 200));
+        return $json;
     }
 
     private function post(string $url, array $data, string $type = 'json'): array

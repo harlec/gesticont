@@ -3,6 +3,7 @@ require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
 require_once ROOT . '/core/Periodo.php';
 require_once ROOT . '/services/AsientoService.php';
+require_once ROOT . '/services/PdfReport.php';
 
 class DiarioController
 {
@@ -15,27 +16,7 @@ class DiarioController
         $pdo     = Model::db();
         $periodo = Periodo::resolver($empresaId);
 
-        $stmt = $pdo->prepare("
-            SELECT a.id, a.correlativo, a.fecha, a.glosa, a.origen,
-                   d.cuenta_id, c.codigo, c.nombre, d.debe, d.haber
-            FROM asientos a
-            JOIN asientos_detalle d ON d.asiento_id = a.id
-            JOIN cuentas_contables c ON c.id = d.cuenta_id
-            WHERE a.empresa_id = ?
-              AND DATE_FORMAT(a.fecha, '%Y%m') = ?
-            ORDER BY a.correlativo ASC, d.id ASC
-        ");
-        $stmt->execute([$empresaId, $periodo]);
-        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $asientos = [];
-        foreach ($filas as $f) {
-            $asientos[$f['id']]['correlativo'] ??= $f['correlativo'];
-            $asientos[$f['id']]['fecha']       ??= $f['fecha'];
-            $asientos[$f['id']]['glosa']       ??= $f['glosa'];
-            $asientos[$f['id']]['origen']      ??= $f['origen'];
-            $asientos[$f['id']]['lineas'][] = $f;
-        }
+        $asientos = $this->_asientos($empresaId, $periodo);
 
         // Pendientes de imputar en el período — para avisar que el asiento
         // puede quedar incompleto si aún hay documentos sin clasificar.
@@ -77,6 +58,72 @@ class DiarioController
         }
 
         header("Location: /empresas/{$empresaId}/diario?periodo={$periodo}"); exit;
+    }
+
+    /** Asientos del período con sus líneas, en orden de correlativo. */
+    private function _asientos(int $empresaId, string $periodo): array
+    {
+        $stmt = Model::db()->prepare("
+            SELECT a.id, a.correlativo, a.fecha, a.glosa, a.origen,
+                   d.cuenta_id, c.codigo, c.nombre, d.debe, d.haber
+            FROM asientos a
+            JOIN asientos_detalle d ON d.asiento_id = a.id
+            JOIN cuentas_contables c ON c.id = d.cuenta_id
+            WHERE a.empresa_id = ?
+              AND DATE_FORMAT(a.fecha, '%Y%m') = ?
+            ORDER BY a.correlativo ASC, d.id ASC
+        ");
+        $stmt->execute([$empresaId, $periodo]);
+
+        $asientos = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $f) {
+            $asientos[$f['id']]['correlativo'] ??= $f['correlativo'];
+            $asientos[$f['id']]['fecha']       ??= $f['fecha'];
+            $asientos[$f['id']]['glosa']       ??= $f['glosa'];
+            $asientos[$f['id']]['origen']      ??= $f['origen'];
+            $asientos[$f['id']]['lineas'][] = $f;
+        }
+        return $asientos;
+    }
+
+    /** Libro Diario en PDF — una sola tabla continua (formato del Libro Diario 5.1 de SUNAT). */
+    public function pdf(int $empresaId): void
+    {
+        Auth::require();
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) { http_response_code(404); die('No encontrado'); }
+
+        $periodo  = Periodo::resolver($empresaId);
+        $asientos = $this->_asientos($empresaId, $periodo);
+        $pdf = new PdfReport($empresa, 'Libro Diario', 'Período ' . Periodo::etiqueta($periodo, true) . ' · Expresado en soles', 'L');
+
+        if (empty($asientos)) {
+            $pdf->alerta('Sin asientos generados para este período.', 'warn');
+            $pdf->salir('libro-diario-' . $periodo);
+        }
+
+        $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '';
+        $pdf->libroCabecera(
+            ['N°', 'Fecha', 'Glosa', 'Código', 'Denominación', 'Debe', 'Haber'],
+            [0.05, 0.08, 0.27, 0.07, 0.29, 0.12, 0.12],
+            ['L', 'L', 'L', 'L', 'L', 'R', 'R']
+        );
+        $totD = $totH = 0.0;
+        foreach ($asientos as $a) {
+            $sd = $sh = 0.0;
+            foreach ($a['lineas'] as $i => $l) {
+                $pdf->libroFila([
+                    $i === 0 ? $a['correlativo'] : '',
+                    $i === 0 ? date('d/m/Y', strtotime($a['fecha'])) : '',
+                    $i === 0 ? $a['glosa'] : '',
+                    $l['codigo'], $l['nombre'], $fmt($l['debe']), $fmt($l['haber']),
+                ], $i === 0 ? 'titulo' : 'normal');
+                $sd += (float)$l['debe']; $sh += (float)$l['haber'];
+            }
+            $totD += $sd; $totH += $sh;
+        }
+        $pdf->libroFila(['', '', '', '', 'TOTAL DEL PERÍODO', number_format($totD, 2), number_format($totH, 2)], 'total');
+        $pdf->salir('libro-diario-' . $periodo);
     }
 
     private function _getEmpresa(int $id): ?array

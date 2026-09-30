@@ -1,6 +1,5 @@
 <?php
-$periodos = [];
-for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("first day of -{$i} month"));
+$fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '';
 ?>
 
 <div class="gc-content gc-w-content">
@@ -12,83 +11,57 @@ for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("first day of -{
     </div>
     <?php unset($_SESSION[$key]); endforeach; ?>
 
-    <!-- Selector de período + generar -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <!-- Barra de acciones: el período se cambia desde la barra superior -->
+    <div class="no-print" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <div>
+            <div style="font-size:16px;font-weight:700;color:var(--gc-ink);">Libro Diario</div>
+            <div style="font-size:12px;color:var(--gc-muted);"><?= Periodo::etiqueta($periodo, true) ?> · <?= count($asientos) ?> asiento(s)</div>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <?php foreach ($periodos as $p):
-                $activo = $p === $periodo;
-                $label  = Periodo::etiqueta($p);
+            <?php if (!empty($asientos)): $totD = $totH = 0.0; ?>
+    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+                <tr style="background:var(--gc-bg);border-bottom:1px solid var(--gc-line);color:var(--gc-muted);">
+                    <th style="padding:7px 12px;text-align:left;width:52px;">N°</th>
+                    <th style="padding:7px 12px;text-align:left;width:88px;">Fecha</th>
+                    <th style="padding:7px 12px;text-align:left;">Cuenta</th>
+                    <th style="padding:7px 12px;text-align:right;width:110px;">Debe</th>
+                    <th style="padding:7px 12px;text-align:right;width:110px;">Haber</th>
+                </tr>
+            </thead>
+            <?php foreach ($asientos as $a):
+                $sd = array_sum(array_column($a['lineas'], 'debe')); $sh = array_sum(array_column($a['lineas'], 'haber'));
+                $totD += $sd; $totH += $sh;
             ?>
-            <a href="/empresas/<?= $empresa['id'] ?>/diario?periodo=<?= $p ?>"
-               style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                      background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
-                <?= $label ?>
-            </a>
-            <?php endforeach; ?>
-        </div>
-        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/diario/generar">
-            <input type="hidden" name="periodo" value="<?= $periodo ?>">
-            <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
-                ⚙️ Generar / Regenerar asientos de <?= Periodo::etiqueta($periodo) ?>
-            </button>
-        </form>
-    </div>
-
-    <?php if ((int)$pendientes['ventas'] > 0 || (int)$pendientes['compras'] > 0): ?>
-    <div style="background:var(--gc-warn-soft);color:var(--gc-warn);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        ⚠ Quedan <?= $pendientes['ventas'] ?> venta(s) y <?= $pendientes['compras'] ?> compra(s) sin clasificar en este período —
-        el asiento generado no las incluirá hasta que se
-        <a href="/empresas/<?= $empresa['id'] ?>/imputacion" style="color:var(--gc-warn);text-decoration:underline;">clasifiquen aquí</a>.
-    </div>
-    <?php endif; ?>
-
-    <?php if (!empty($asientos)): ?>
-        <?php foreach ($asientos as $asiento):
-            $sumaDebe  = array_sum(array_column($asiento['lineas'], 'debe'));
-            $sumaHaber = array_sum(array_column($asiento['lineas'], 'haber'));
-        ?>
-        <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);margin-bottom:16px;overflow:hidden;">
-            <div style="padding:12px 20px;background:var(--gc-bg);border-bottom:1px solid var(--gc-line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                <div>
-                    <span style="font-family:monospace;font-weight:700;color:var(--gc-brand);">Asiento #<?= $asiento['correlativo'] ?></span>
-                    <span style="color:var(--gc-label);margin-left:10px;"><?= htmlspecialchars($asiento['glosa']) ?></span>
-                </div>
-                <span style="font-size:12px;color:var(--gc-muted);"><?= $asiento['fecha'] ?></span>
-            </div>
-            <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                <thead>
-                    <tr style="border-bottom:1px solid var(--gc-surface-2);">
-                        <th style="padding:8px 20px;text-align:left;color:var(--gc-label-2);font-weight:700;">Cuenta</th>
-                        <th style="padding:8px 20px;text-align:right;color:var(--gc-label-2);font-weight:700;">Debe</th>
-                        <th style="padding:8px 20px;text-align:right;color:var(--gc-label-2);font-weight:700;">Haber</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($asiento['lineas'] as $l): ?>
-                    <tr style="border-top:1px solid var(--gc-bg);">
-                        <td style="padding:7px 20px;">
-                            <span style="font-family:monospace;font-weight:700;color:var(--gc-label);"><?= $l['codigo'] ?></span>
-                            <?= htmlspecialchars($l['nombre']) ?>
-                        </td>
-                        <td style="padding:7px 20px;text-align:right;font-family:monospace;">
-                            <?= $l['debe'] != 0 ? number_format((float)$l['debe'], 2) : '—' ?>
-                        </td>
-                        <td style="padding:7px 20px;text-align:right;font-family:monospace;">
-                            <?= $l['haber'] != 0 ? number_format((float)$l['haber'], 2) : '—' ?>
-                        </td>
-                    </tr>
+            <tbody style="border-top:1px solid var(--gc-line);">
+                <tr style="background:var(--gc-brand-soft);">
+                    <td style="padding:5px 12px;font-family:monospace;font-weight:700;color:var(--gc-brand);"><?= $a['correlativo'] ?></td>
+                    <td style="padding:5px 12px;font-family:monospace;color:var(--gc-label);white-space:nowrap;"><?= date('d/m/Y', strtotime($a['fecha'])) ?></td>
+                    <td colspan="3" style="padding:5px 12px;font-weight:600;color:var(--gc-ink);"><?= htmlspecialchars($a['glosa']) ?></td>
+                </tr>
+                <?php foreach ($a['lineas'] as $l): ?>
+                <tr>
+                    <td></td><td></td>
+                    <td style="padding:3px 12px;">
+                        <span style="font-family:monospace;font-weight:700;color:var(--gc-label);"><?= $l['codigo'] ?></span>
+                        <?= htmlspecialchars($l['nombre']) ?>
+                    </td>
+                    <td style="padding:3px 12px;text-align:right;font-family:monospace;"><?= $fmt($l['debe']) ?></td>
+                    <td style="padding:3px 12px;text-align:right;font-family:monospace;"><?= $fmt($l['haber']) ?></td>
+                </tr>
                 <?php endforeach; ?>
-                </tbody>
-                <tfoot>
-                    <tr style="border-top:2px solid var(--gc-line);font-weight:700;">
-                        <td style="padding:8px 20px;color:var(--gc-label);">Totales</td>
-                        <td style="padding:8px 20px;text-align:right;font-family:monospace;"><?= number_format($sumaDebe, 2) ?></td>
-                        <td style="padding:8px 20px;text-align:right;font-family:monospace;"><?= number_format($sumaHaber, 2) ?></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-        <?php endforeach; ?>
+            </tbody>
+            <?php endforeach; ?>
+            <tfoot>
+                <tr style="border-top:2px solid var(--gc-line);background:var(--gc-bg);font-weight:700;">
+                    <td colspan="3" style="padding:8px 12px;">Total del período</td>
+                    <td style="padding:8px 12px;text-align:right;font-family:monospace;"><?= number_format($totD, 2) ?></td>
+                    <td style="padding:8px 12px;text-align:right;font-family:monospace;"><?= number_format($totH, 2) ?></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
     <?php else: ?>
     <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
         <div style="font-size:40px;margin-bottom:16px;">📖</div>

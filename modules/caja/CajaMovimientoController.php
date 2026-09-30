@@ -2,6 +2,7 @@
 require_once ROOT . '/core/Auth.php';
 require_once ROOT . '/core/Model.php';
 require_once ROOT . '/core/Periodo.php';
+require_once ROOT . '/services/PdfReport.php';
 
 /**
  * Caja y Bancos por empresa (spec 2.5) — distinto del CajaController
@@ -59,34 +60,7 @@ class CajaMovimientoController
         $empresa = $this->_getEmpresa($empresaId);
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
-        $pdo  = Model::db();
-        $anio = (int)($_GET['anio'] ?? substr(Periodo::resolver($empresaId), 0, 4));
-
-        $stmt = $pdo->prepare("
-            SELECT MONTH(cm.fecha) AS mes, cm.tipo, c.codigo, c.nombre, SUM(cm.monto) AS monto
-            FROM caja_movimientos cm JOIN cuentas_contables c ON c.id = cm.cuenta_id
-            WHERE cm.empresa_id = ? AND YEAR(cm.fecha) = ?
-            GROUP BY mes, cm.tipo, c.codigo, c.nombre
-        ");
-        $stmt->execute([$empresaId, $anio]);
-
-        $columnas = ['ingreso' => [], 'egreso' => []];
-        $mat = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
-            $columnas[$r['tipo']][$r['codigo']] = $r['nombre'];
-            $mat[(int)$r['mes']][$r['tipo']][$r['codigo']] = (float)$r['monto'];
-        }
-        ksort($columnas['ingreso']); ksort($columnas['egreso']);
-
-        $stmtIni = $pdo->prepare("
-            SELECT COALESCE(SUM(sa.debe - sa.haber), 0)
-            FROM saldos_apertura sa
-            JOIN periodos_contables pc ON pc.id = sa.periodo_id
-            JOIN cuentas_contables c   ON c.id = sa.cuenta_id
-            WHERE sa.empresa_id = ? AND pc.anio = ? AND c.codigo LIKE '10%'
-        ");
-        $stmtIni->execute([$empresaId, $anio]);
-        $saldoInicial = round((float)$stmtIni->fetchColumn(), 2);
+        [$anio, $columnas, $mat, $saldoInicial] = $this->_datosLibro($empresaId);
 
         $pageTitle = 'Libro Caja y Bancos — ' . $empresa['razon_social'];
         ob_start();
@@ -170,6 +144,98 @@ class CajaMovimientoController
         }
 
         header("Location: /empresas/{$empresaId}/caja?periodo={$periodo}"); exit;
+    }
+
+    /** [año, columnas por tipo, matriz mes×cuenta, saldo inicial de Caja y Bancos] del Libro Caja. */
+    private function _datosLibro(int $empresaId): array
+    {
+        $pdo  = Model::db();
+        $anio = (int)($_GET['anio'] ?? substr(Periodo::resolver($empresaId), 0, 4));
+
+        $stmt = $pdo->prepare("
+            SELECT MONTH(cm.fecha) AS mes, cm.tipo, c.codigo, c.nombre, SUM(cm.monto) AS monto
+            FROM caja_movimientos cm JOIN cuentas_contables c ON c.id = cm.cuenta_id
+            WHERE cm.empresa_id = ? AND YEAR(cm.fecha) = ?
+            GROUP BY mes, cm.tipo, c.codigo, c.nombre
+        ");
+        $stmt->execute([$empresaId, $anio]);
+
+        $columnas = ['ingreso' => [], 'egreso' => []];
+        $mat = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $columnas[$r['tipo']][$r['codigo']] = $r['nombre'];
+            $mat[(int)$r['mes']][$r['tipo']][$r['codigo']] = (float)$r['monto'];
+        }
+        ksort($columnas['ingreso']); ksort($columnas['egreso']);
+
+        $stmtIni = $pdo->prepare("
+            SELECT COALESCE(SUM(sa.debe - sa.haber), 0)
+            FROM saldos_apertura sa
+            JOIN periodos_contables pc ON pc.id = sa.periodo_id
+            JOIN cuentas_contables c   ON c.id = sa.cuenta_id
+            WHERE sa.empresa_id = ? AND pc.anio = ? AND c.codigo LIKE '10%'
+        ");
+        $stmtIni->execute([$empresaId, $anio]);
+        $saldoInicial = round((float)$stmtIni->fetchColumn(), 2);
+
+        return [$anio, $columnas, $mat, $saldoInicial];
+    }
+
+    /** Libro Caja y Bancos en PDF — horizontal, una columna por cuenta usada. */
+    public function libroPdf(int $empresaId): void
+    {
+        Auth::require();
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) { http_response_code(404); die('No encontrado'); }
+
+        [$anio, $columnas, $mat, $saldoInicial] = $this->_datosLibro($empresaId);
+        $ci = $columnas['ingreso']; $ce = $columnas['egreso'];
+        $pdf = new PdfReport($empresa, 'Libro Caja y Bancos', "Año {$anio} · Expresado en soles", 'L');
+
+        if (empty($ci) && empty($ce)) {
+            $pdf->alerta("No hay movimientos de Caja en {$anio}.", 'warn');
+            $pdf->salir("libro-caja-{$anio}");
+        }
+
+        $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '';
+        $n = count($ci) + count($ce) + 4;            // + mes, 2 totales, saldo
+        $wMes = 0.09; $w = (1 - $wMes) / ($n - 1);
+        $cols = ['Mes']; $anchos = [$wMes]; $align = ['L'];
+        foreach ($ci as $cod => $_) { $cols[] = "I $cod"; $anchos[] = $w; $align[] = 'R'; }
+        $cols[] = 'TOT. ING.'; $anchos[] = $w; $align[] = 'R';
+        foreach ($ce as $cod => $_) { $cols[] = "E $cod"; $anchos[] = $w; $align[] = 'R'; }
+        $cols[] = 'TOT. EGR.'; $anchos[] = $w; $align[] = 'R';
+        $cols[] = 'SALDO'; $anchos[] = $w; $align[] = 'R';
+        $pdf->libroCabecera($cols, $anchos, $align);
+
+        $vacias = array_fill(0, count($cols) - 2, '');
+        $pdf->libroFila(array_merge(['Saldo inicial'], $vacias, [number_format($saldoInicial, 2)]), 'nota');
+
+        $saldo = $saldoInicial; $sumI = $sumE = 0.0;
+        $totI = array_fill_keys(array_keys($ci), 0.0); $totE = array_fill_keys(array_keys($ce), 0.0);
+        for ($m = 1; $m <= 12; $m++) {
+            $fila = [Periodo::etiqueta(sprintf('%04d%02d', $anio, $m), true)];
+            foreach ($ci as $cod => $_) { $v = $mat[$m]['ingreso'][$cod] ?? 0; $totI[$cod] += $v; $fila[] = $fmt($v); }
+            $ti = array_sum($mat[$m]['ingreso'] ?? []); $fila[] = $fmt($ti);
+            foreach ($ce as $cod => $_) { $v = $mat[$m]['egreso'][$cod] ?? 0; $totE[$cod] += $v; $fila[] = $fmt($v); }
+            $te = array_sum($mat[$m]['egreso'] ?? []); $fila[] = $fmt($te);
+            $saldo = round($saldo + $ti - $te, 2); $sumI += $ti; $sumE += $te;
+            $fila[] = number_format($saldo, 2);
+            $pdf->libroFila($fila);
+        }
+        $tot = ['TOTAL AÑO'];
+        foreach ($totI as $v) $tot[] = $fmt($v);
+        $tot[] = $fmt($sumI);
+        foreach ($totE as $v) $tot[] = $fmt($v);
+        $tot[] = $fmt($sumE); $tot[] = number_format($saldo, 2);
+        $pdf->libroFila($tot, 'total');
+
+        $pdf->espacio(3);
+        $leyenda = [];
+        foreach ($ci as $cod => $nom) $leyenda[] = "I $cod = $nom";
+        foreach ($ce as $cod => $nom) $leyenda[] = "E $cod = $nom";
+        $pdf->alerta('Columnas: ' . implode(' · ', $leyenda), 'pos');
+        $pdf->salir("libro-caja-{$anio}");
     }
 
     private function _getEmpresa(int $id): ?array

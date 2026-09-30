@@ -1,6 +1,4 @@
 <?php
-$periodos = [];
-for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("first day of -{$i} month"));
 $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
 $fmtFecha = fn($f) => date('d/m/Y', strtotime($f));
 $origenLabel = ['compra' => 'Compra', 'venta' => 'Venta', 'planilla' => 'Planilla', 'caja' => 'Caja', 'manual' => 'Manual', 'cierre' => 'Cierre'];
@@ -8,21 +6,15 @@ $origenLabel = ['compra' => 'Compra', 'venta' => 'Venta', 'planilla' => 'Planill
 
 <div class="gc-content gc-w-content">
 
-    <!-- Selector de período -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Acumulado hasta:</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <?php foreach ($periodos as $p):
-                $activo = $p === $periodo;
-                $label  = Periodo::etiqueta($p);
-            ?>
-            <a href="/empresas/<?= $empresa['id'] ?>/mayor?periodo=<?= $p ?>"
-               style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                      background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
-                <?= $label ?>
-            </a>
-            <?php endforeach; ?>
+    <div class="no-print" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <div>
+            <div style="font-size:16px;font-weight:700;color:var(--gc-ink);">Libro Mayor</div>
+            <div style="font-size:12px;color:var(--gc-muted);">Acumulado hasta <?= Periodo::etiqueta($periodo, true) ?></div>
         </div>
+        <?php if (!empty($cuentas)): ?>
+        <a href="/empresas/<?= $empresa['id'] ?>/mayor/pdf?periodo=<?= $periodo ?>" target="_blank" rel="noopener"
+           style="background:var(--gc-surface-2);color:var(--gc-label);padding:5px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">📄 Descargar PDF</a>
+        <?php endif; ?>
     </div>
 
     <?php if (!empty($cuentas)): ?>
@@ -42,10 +34,10 @@ $origenLabel = ['compra' => 'Compra', 'venta' => 'Venta', 'planilla' => 'Planill
         </div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
         <?php foreach ($cuentas as $c): ?>
         <div id="cta-<?= $c['codigo'] ?>" style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;scroll-margin-top:16px;">
-            <div style="padding:12px 20px;background:var(--gc-brand-soft);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div style="padding:7px 14px;background:var(--gc-brand-soft);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
                 <div>
                     <span style="font-family:monospace;font-weight:700;color:var(--gc-brand);"><?= $c['codigo'] ?></span>
                     <span style="font-weight:700;color:var(--gc-brand);margin-left:6px;"><?= htmlspecialchars($c['nombre']) ?></span>
@@ -58,38 +50,38 @@ $origenLabel = ['compra' => 'Compra', 'venta' => 'Venta', 'planilla' => 'Planill
             <table style="width:100%;border-collapse:collapse;font-size:12px;">
                 <thead>
                     <tr style="background:var(--gc-bg);border-bottom:1px solid var(--gc-line);">
-                        <th style="padding:6px 16px;text-align:left;color:var(--gc-muted);font-weight:700;white-space:nowrap;">Fecha</th>
-                        <th style="padding:6px 16px;text-align:left;color:var(--gc-muted);font-weight:700;">Glosa</th>
-                        <th style="padding:6px 16px;text-align:left;color:var(--gc-muted);font-weight:700;white-space:nowrap;">Origen</th>
-                        <th style="padding:6px 16px;text-align:right;color:var(--gc-muted);font-weight:700;">Debe</th>
-                        <th style="padding:6px 16px;text-align:right;color:var(--gc-muted);font-weight:700;">Haber</th>
+                        <th style="padding:3px 12px;text-align:left;color:var(--gc-muted);font-weight:700;white-space:nowrap;">Fecha</th>
+                        <th style="padding:3px 12px;text-align:left;color:var(--gc-muted);font-weight:700;">Glosa</th>
+                        <th style="padding:3px 12px;text-align:left;color:var(--gc-muted);font-weight:700;white-space:nowrap;">Origen</th>
+                        <th style="padding:3px 12px;text-align:right;color:var(--gc-muted);font-weight:700;">Debe</th>
+                        <th style="padding:3px 12px;text-align:right;color:var(--gc-muted);font-weight:700;">Haber</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if ($c['saldo_apertura']): ?>
                     <tr style="border-top:1px solid var(--gc-surface-2);color:var(--gc-muted);font-style:italic;">
-                        <td style="padding:6px 16px;" colspan="3">Saldo de apertura</td>
-                        <td style="padding:6px 16px;text-align:right;font-family:monospace;"><?= $fmt($c['saldo_apertura']['debe']) ?></td>
-                        <td style="padding:6px 16px;text-align:right;font-family:monospace;"><?= $fmt($c['saldo_apertura']['haber']) ?></td>
+                        <td style="padding:3px 12px;" colspan="3">Saldo de apertura</td>
+                        <td style="padding:3px 12px;text-align:right;font-family:monospace;"><?= $fmt($c['saldo_apertura']['debe']) ?></td>
+                        <td style="padding:3px 12px;text-align:right;font-family:monospace;"><?= $fmt($c['saldo_apertura']['haber']) ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php foreach ($c['movimientos'] as $m): ?>
                     <tr style="border-top:1px solid var(--gc-surface-2);">
-                        <td style="padding:6px 16px;white-space:nowrap;font-family:monospace;"><?= $fmtFecha($m['fecha']) ?></td>
-                        <td style="padding:6px 16px;color:var(--gc-label);"><?= htmlspecialchars($m['glosa']) ?></td>
-                        <td style="padding:6px 16px;white-space:nowrap;">
+                        <td style="padding:3px 12px;white-space:nowrap;font-family:monospace;"><?= $fmtFecha($m['fecha']) ?></td>
+                        <td style="padding:3px 12px;color:var(--gc-label);"><?= htmlspecialchars($m['glosa']) ?></td>
+                        <td style="padding:3px 12px;white-space:nowrap;">
                             <span style="background:var(--gc-surface-2);color:var(--gc-label);padding:1px 7px;border-radius:6px;font-size:11px;font-weight:600;"><?= $origenLabel[$m['origen']] ?? $m['origen'] ?></span>
                         </td>
-                        <td style="padding:6px 16px;text-align:right;font-family:monospace;"><?= $fmt($m['debe']) ?></td>
-                        <td style="padding:6px 16px;text-align:right;font-family:monospace;"><?= $fmt($m['haber']) ?></td>
+                        <td style="padding:3px 12px;text-align:right;font-family:monospace;"><?= $fmt($m['debe']) ?></td>
+                        <td style="padding:3px 12px;text-align:right;font-family:monospace;"><?= $fmt($m['haber']) ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
                 <tfoot>
                     <tr style="border-top:2px solid var(--gc-line);font-weight:700;background:var(--gc-bg);">
-                        <td style="padding:8px 16px;" colspan="3">Totales</td>
-                        <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($c['total_debe']) ?></td>
-                        <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($c['total_haber']) ?></td>
+                        <td style="padding:5px 12px;" colspan="3">Totales</td>
+                        <td style="padding:5px 12px;text-align:right;font-family:monospace;"><?= $fmt($c['total_debe']) ?></td>
+                        <td style="padding:5px 12px;text-align:right;font-family:monospace;"><?= $fmt($c['total_haber']) ?></td>
                     </tr>
                 </tfoot>
             </table>

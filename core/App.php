@@ -52,12 +52,14 @@ class App {
         // Motor contable — Libro Diario (generación de asientos)
         $router->get('/empresas/{id}/diario',          'diario/DiarioController@index');
         $router->post('/empresas/{id}/diario/generar', 'diario/DiarioController@generar');
+        $router->get('/empresas/{id}/diario/pdf',      'diario/DiarioController@pdf');
         // Motor contable — Asientos manuales (ajustes, provisiones)
         $router->get('/empresas/{id}/asientos',                 'asientos/AsientoManualController@index');
         $router->post('/empresas/{id}/asientos/guardar',        'asientos/AsientoManualController@guardar');
         $router->post('/empresas/{id}/asientos/{aid}/eliminar', 'asientos/AsientoManualController@eliminar');
         // Motor contable — Libro Mayor
         $router->get('/empresas/{id}/mayor', 'balance/MayorController@index');
+        $router->get('/empresas/{id}/mayor/pdf', 'balance/MayorController@pdf');
         // Motor contable — Balance de Comprobación
         $router->get('/empresas/{id}/balance', 'balance/BalanceController@comprobacion');
         $router->get('/empresas/{id}/balance/pdf', 'balance/BalanceController@pdf');
@@ -90,6 +92,7 @@ class App {
         $router->get('/empresas/{id}/caja',              'caja/CajaMovimientoController@index');
         $router->post('/empresas/{id}/caja',             'caja/CajaMovimientoController@store');
         $router->get('/empresas/{id}/caja/libro',        'caja/CajaMovimientoController@libro');
+        $router->get('/empresas/{id}/caja/libro/pdf',    'caja/CajaMovimientoController@libroPdf');
         // Honorarios por recibo (4ta categoría)
         $router->get('/empresas/{id}/honorarios',                'honorarios/HonorarioController@index');
         $router->post('/empresas/{id}/honorarios/crear',         'honorarios/HonorarioController@crear');

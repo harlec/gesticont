@@ -15,6 +15,7 @@ $totIng = array_fill_keys(array_keys($colsI), 0.0); $totEgr = array_fill_keys(ar
         <?php foreach ($anios as $a): $act = $a === $anio; ?>
         <a href="/empresas/<?= $empresa['id'] ?>/caja/libro?anio=<?= $a ?>" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:<?= $act ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $act ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;"><?= $a ?></a>
         <?php endforeach; ?>
+        <a href="/empresas/<?= $empresa['id'] ?>/caja/libro/pdf?anio=<?= $anio ?>" target="_blank" rel="noopener" class="no-print" style="margin-left:auto;background:var(--gc-surface-2);color:var(--gc-label);padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">📄 Descargar PDF</a>
     </div>
 
     <?php if (empty($colsI) && empty($colsE)): ?>

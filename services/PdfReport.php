@@ -168,6 +168,86 @@ class PdfReport extends FPDF
         $this->Ln();
     }
 
+    /* ---- Tabla continua para libros (Diario, Mayor, Caja) ----------------
+     * A diferencia de tabla(), repite la cabecera al saltar de página, no
+     * corta una fila entre dos páginas, trunca el texto que no cabe (en vez
+     * de pisar la celda vecina) y admite filas con estilo. */
+
+    private array $libroCols   = [];
+    private array $libroAnchos = [];
+    private array $libroAlign  = [];
+    private int   $libroZebra  = 0;
+
+    /** Recorta $texto con "…" hasta que quepa en $ancho mm con la fuente actual. */
+    private function ajustar(string $texto, float $ancho): string
+    {
+        $texto = $this->t($texto);
+        if ($this->GetStringWidth($texto) <= $ancho - 2) return $texto;
+        while ($texto !== '' && $this->GetStringWidth($texto . '...') > $ancho - 2) $texto = substr($texto, 0, -1);
+        return $texto . '...';
+    }
+
+    public function libroCabecera(array $columnas, array $anchos, array $alineacion = []): void
+    {
+        $this->libroCols = $columnas; $this->libroAnchos = $anchos; $this->libroAlign = $alineacion;
+        $this->libroZebra = 0;
+        $this->dibujarCabeceraLibro();
+    }
+
+    private function dibujarCabeceraLibro(): void
+    {
+        $w = $this->anchoUtil();
+        $this->SetFillColor(...self::BRAND);
+        $this->SetTextColor(...self::ON_BRAND);
+        $this->SetFont('Helvetica', 'B', 8);
+        foreach ($this->libroCols as $i => $col) {
+            $this->Cell($w * $this->libroAnchos[$i], 7, $this->t($col), 0, 0, $this->libroAlign[$i] ?? 'L', true);
+        }
+        $this->Ln();
+        $this->SetTextColor(...self::INK);
+    }
+
+    /**
+     * $estilo: 'normal' (zebra), 'titulo' (cabecera de asiento/cuenta),
+     * 'total' (negrita con raya), 'nota' (cursiva gris, p. ej. saldo de apertura).
+     */
+    public function libroFila(array $celdas, string $estilo = 'normal'): void
+    {
+        $h = 5.6;
+        if ($this->GetY() + $h > $this->PageBreakTrigger - ($estilo === 'titulo' ? 2 * $h : 0)) {
+            $this->AddPage();
+            $this->dibujarCabeceraLibro();
+        }
+        $w = $this->anchoUtil();
+        $bold = in_array($estilo, ['titulo', 'total'], true);
+        $this->SetFont('Helvetica', $bold ? 'B' : ($estilo === 'nota' ? 'I' : ''), 8.3);
+        $this->SetTextColor(...($estilo === 'nota' ? self::MUTED : self::INK));
+
+        $relleno = false;
+        if ($estilo === 'titulo')      { $this->SetFillColor(...self::BRAND_SOFT); $relleno = true; }
+        elseif ($estilo === 'total')   { $this->SetFillColor(...self::SURFACE_2);  $relleno = true; }
+        elseif ($estilo === 'normal' && $this->libroZebra++ % 2 === 1) { $this->SetFillColor(...[248, 250, 252]); $relleno = true; }
+
+        if ($estilo === 'total') {
+            $this->SetDrawColor(...self::LINE);
+            $this->Line($this->GetX(), $this->GetY(), $this->GetX() + $w, $this->GetY());
+        }
+        foreach ($celdas as $i => $val) {
+            $this->Cell($w * $this->libroAnchos[$i], $h, $this->ajustar((string)$val, $w * $this->libroAnchos[$i]), 0, 0, $this->libroAlign[$i] ?? 'L', $relleno);
+        }
+        $this->Ln();
+        $this->SetTextColor(...self::INK);
+    }
+
+    /** Fuerza que el siguiente bloque empiece en página nueva si queda poco espacio. */
+    public function reservar(float $mm): void
+    {
+        if ($this->GetY() + $mm > $this->PageBreakTrigger) {
+            $this->AddPage();
+            if ($this->libroCols) $this->dibujarCabeceraLibro();
+        }
+    }
+
     public function espacio(float $h = 4): void { $this->Ln($h); }
 
     public function salir(string $nombreArchivo): void

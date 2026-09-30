@@ -111,11 +111,11 @@ class SunatApiService
      */
     private function paginar(callable $pedirPagina, string $etiqueta): array
     {
-        $perPage = 500; // grande para necesitar pocas páginas; se baja a 100 si SUNAT lo rechaza
+        $perPage = 100; // tamaño probado en SIRE; uno mayor puede rechazarse (HTTP 422, que se confunde con "sin datos")
         $page = 1; $unicos = []; $fuente = null; $totalSunat = 0; $error = null; $paginas = 0;
         while (true) {
             $r = $pedirPagina($page, $fuente, $perPage);
-            if ($page === 1 && !empty($r['error']) && $perPage > 100) { $perPage = 100; continue; }
+            if ($page === 1 && (!empty($r['error']) || $r['fuente'] === 'sin_datos') && $perPage > 100) { $perPage = 100; continue; }
             if ($page === 1) { $fuente = $r['fuente']; $totalSunat = $r['total']; }
             if (!empty($r['error'])) { $error = "Página {$page}: " . $r['error']; break; }
             $paginas++;

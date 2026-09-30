@@ -317,7 +317,7 @@ class SyncController
 
     private function _pasoDescargar(int $empresaId, array $empresa, string $tipo, string $periodo, int $page, string $archivo): void
     {
-        $estado = ['perPage' => 500, 'fuente' => null, 'total' => 0, 'unicos' => [], 'guardado' => 0, 'ins' => 0, 'dup' => 0, 'rell' => 0];
+        $estado = ['perPage' => 100, 'fuente' => null, 'total' => 0, 'unicos' => [], 'guardado' => 0, 'ins' => 0, 'dup' => 0, 'rell' => 0];
         if ($page > 1 && is_file($archivo)) $estado = json_decode(file_get_contents($archivo), true) ?: $estado;
         if ($page === 1) $estado['unicos'] = [];
 
@@ -333,7 +333,7 @@ class SyncController
         $this->_msSunat = (microtime(true) - $ini) * 1000;
 
         // SUNAT rechazó el tamaño de página grande: se repite la página 1 con 100.
-        if ($page === 1 && !empty($r['error']) && $estado['perPage'] > 100) {
+        if ($page === 1 && (!empty($r['error']) || $r['fuente'] === 'sin_datos') && $estado['perPage'] > 100) {
             $estado['perPage'] = 100;
             file_put_contents($archivo, json_encode($estado));
             $this->_json(['ok' => true, 'reintentar' => true, 'siguiente' => 1, 'unicos' => 0, 'total' => 0]);

@@ -194,18 +194,20 @@ const etiquetaPeriodo = p => MESES[parseInt(p.slice(4,6),10)-1] + ' ' + p.slice(
 const num = n => Number(n).toLocaleString('es-PE');
 let syncCancelado = false;
 
-// POST con reintentos: un corte de red o un 504 puntual no debe tirar toda la sincronización.
+// Un 502/503/504 NO se reintenta: nginx corta al navegador pero PHP sigue trabajando en el
+// servidor, y reintentar solo apila más trabajo encima (puede afectar a otros sistemas).
+// Solo se repite una vez si fue un corte de red (la petición ni siquiera llegó).
 async function syncPost(ruta, datos) {
-    let ultimoError = 'sin respuesta';
-    for (let intento = 1; intento <= 3; intento++) {
+    for (let intento = 1; intento <= 2; intento++) {
         try {
             const r = await fetch(SYNC_URL + ruta, {method:'POST', body:new URLSearchParams(datos), credentials:'same-origin'});
             const t = await r.text();
-            try { return JSON.parse(t); } catch (e) { ultimoError = 'HTTP ' + r.status + (r.status===504 ? ' (el servidor tardó demasiado)' : ''); }
-        } catch (e) { ultimoError = 'error de red'; }
-        await new Promise(res => setTimeout(res, 1500 * intento));
+            try { return JSON.parse(t); } catch (e) {
+                const gw = [502, 503, 504].includes(r.status);
+                return {ok:false, gateway:gw, error:`El servidor respondió HTTP ${r.status}` + (gw ? ' (tardó demasiado en ' + ruta + ')' : '')};
+            }
+        } catch (e) { if (intento === 2) return {ok:false, error:'Error de red en ' + ruta}; await new Promise(res => setTimeout(res, 1500)); }
     }
-    return {ok:false, error:`No respondió el servidor en ${ruta} (${ultimoError}). Si acabas de lanzar otra sincronización, espera 2-3 minutos a que termine y reintenta.`};
 }
 
 function syncLog(html) {
@@ -246,7 +248,8 @@ async function iniciarSync(form) {
         document.getElementById('syncTareas').textContent = `Tarea ${Math.min(i + 1, n)} de ${n}`;
     };
 
-    for (let i = 0; i < n && !syncCancelado; i++) {
+    let detenido = false;
+    for (let i = 0; i < n && !syncCancelado && !detenido; i++) {
         const t = tareas[i], nombre = `${t.tipo === 'ventas' ? 'ventas' : 'compras'} ${etiquetaPeriodo(t.periodo)}`;
         const det = txt => document.getElementById('syncDetalle').textContent = txt;
         progreso(i, 0);
@@ -257,11 +260,12 @@ async function iniciarSync(form) {
         while (page && !syncCancelado) {
             det(`Descargando ${nombre}…` + (total ? ` ${num(total.unicos)} de ${num(total.total)}` : ''));
             const r = await syncPost('/paso', {fase:'descargar', tipo:t.tipo, periodo:t.periodo, page});
-            if (!r.ok) { falla = r.error; break; }
+            if (!r.ok) { falla = r.error; if (r.gateway) detenido = true; break; }
             if (r.reintentar) { page = 1; continue; }
             total = r;
             progreso(i, r.total ? 0.5 * Math.min(1, r.unicos / r.total) : 0.5);
             if (r.aviso) aviso = r.aviso;
+            syncLog(`· página ${r.pagina}: ${num(r.recibidas)} filas en ${(r.ms/1000).toFixed(1)} s (SUNAT ${(r.ms_sunat/1000).toFixed(1)} s)`);
             page = r.siguiente;
         }
 
@@ -270,7 +274,7 @@ async function iniciarSync(form) {
         while (!falla && !syncCancelado && !fin) {
             det(`Guardando ${nombre}…` + (total ? ` ${num(Math.min(offset, total.unicos))} de ${num(total.unicos)}` : ''));
             const r = await syncPost('/paso', {fase:'guardar', tipo:t.tipo, periodo:t.periodo, offset});
-            if (!r.ok) { falla = r.error; break; }
+            if (!r.ok) { falla = r.error; if (r.gateway) detenido = true; break; }
             progreso(i, 0.5 + 0.5 * (r.total ? Math.min(1, r.guardados / r.total) : 1));
             if (r.fin) { fin = true; syncLog(`✓ ${nombre}: ${num(r.total)} comprobantes (${num(r.nuevos)} nuevos)` + (aviso ? ` — <span style="color:var(--gc-neg);font-weight:600;">⚠ incompleto</span>` : '')); }
             else offset = r.siguiente;
@@ -279,6 +283,12 @@ async function iniciarSync(form) {
     }
 
     progreso(n, 0);
+    if (detenido) {
+        document.getElementById('syncDetalle').textContent = '⚠ Se detuvo: el servidor tardó demasiado. No reintentes de inmediato; avisa a soporte con este mensaje.';
+        document.getElementById('syncDetalle').style.color = 'var(--gc-neg)';
+        const b = document.getElementById('syncCancelar'); b.disabled = false; b.textContent = 'Cerrar'; b.onclick = () => location.reload();
+        return false;
+    }
     document.getElementById('syncDetalle').textContent = syncCancelado ? 'Cancelado.' : 'Listo. Cargando resultados…';
     setTimeout(() => location.href = SYNC_URL + '?ok=1', 700);
     return false;

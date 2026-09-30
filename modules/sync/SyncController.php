@@ -107,6 +107,7 @@ class SyncController
     private function _sire(int $empresaId, array $empresa, bool $renovar = false): array
     {
         $sunat = new SunatApiService();
+        $sunat->timeout = 22;   // fallback declarado→propuesta = hasta 2 llamadas: 44 s < 60 s de nginx
         $archivo = sprintf('%s/tok_%d_%d.json', $this->_dirSync(), $empresaId, Auth::id());
         if (!$renovar && is_file($archivo)) {
             $c = json_decode((string)file_get_contents($archivo), true);
@@ -219,58 +220,17 @@ class SyncController
     }
 
     /**
-     * Sincronización en una sola petición. Queda como respaldo si el navegador
-     * no ejecuta el JavaScript de la pantalla; con mucha data conviene la
-     * versión por partes (plan/paso), que evita el 504 del servidor.
+     * Ruta antigua que hacía TODO en una sola petición. Se desactivó: con miles
+     * de comprobantes superaba el tiempo de nginx (504) y, como nginx corta al
+     * cliente pero PHP sigue trabajando, cada intento dejaba procesos ocupando
+     * el servidor hasta 10 minutos. Ahora solo devuelve a la pantalla, que usa
+     * la sincronización por partes (plan/paso).
      */
     public function ejecutar(int $empresaId): void
     {
         Auth::require();
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: /empresas/{$empresaId}/sync"); exit;
-        }
-        $empresa = $this->_getEmpresa($empresaId);
-        if (!$empresa) { http_response_code(403); die('Sin acceso'); }
-
-        $tipo     = $_POST['tipo'] ?? 'ambos';
-        $periodos = $this->_periodosDe($_POST);
-        set_time_limit(600);
-        session_write_close();   // no bloquear otras peticiones del usuario mientras dura esto
-
-        try {
-            [$sunat, $token] = $this->_sire($empresaId, $empresa);
-        } catch (Throwable $e) {
-            session_start(); $_SESSION['sync_error'] = $e->getMessage();
-            header("Location: /empresas/{$empresaId}/sync"); exit;
-        }
-        $pdo = Model::db();
-        $resultado = ['ventas' => [], 'compras' => []];
-
-        foreach ($periodos as $p) {
-            foreach (['ventas', 'compras'] as $t) {
-                if (!in_array($tipo, [$t, 'ambos'])) continue;
-                try {
-                    $res = $t === 'ventas'
-                        ? $sunat->getAllVentasPeriodo($token, $p)
-                        : $sunat->getAllComprasPeriodo($token, $empresa['ruc'], $p);
-                    $filas = $res['registros'];
-                    [$ins, $dup, $rell] = $t === 'ventas'
-                        ? [...$this->_guardarVentas($pdo, $empresaId, $p, $res['fuente'], $filas), 0]
-                        : $this->_guardarCompras($pdo, $empresaId, $p, $res['fuente'], $filas);
-                    $resultado[$t][$p] = [
-                        'nuevos' => $ins, 'duplicados' => $dup, 'rellenados' => $rell,
-                        'total'  => count($filas), 'fuente' => $res['fuente'],
-                        'total_sunat' => $res['total_sunat'], 'paginas' => $res['paginas'], 'aviso' => $res['error'],
-                    ];
-                } catch (Exception $e) {
-                    $resultado[$t][$p] = ['error' => $e->getMessage()];
-                }
-            }
-        }
-
-        $this->_resultadoGuardar($empresaId, null, null, null);
-        foreach ($resultado as $t => $porPeriodo) foreach ($porPeriodo as $p => $d) $this->_resultadoGuardar($empresaId, $t, $p, $d);
-        header("Location: /empresas/{$empresaId}/sync?ok=1"); exit;
+        $_SESSION['sync_error'] = 'Actualiza la página (Ctrl+F5) y vuelve a pulsar "Sincronizar ahora": la sincronización ahora se hace por partes, con barra de progreso.';
+        header("Location: /empresas/{$empresaId}/sync"); exit;
     }
 
     /* ===================================================================
@@ -282,9 +242,12 @@ class SyncController
      * =================================================================== */
 
     private const LOTE_GUARDADO = 300;
+    private float $_t0 = 0.0;   // inicio del paso en curso (para medir cuánto tarda)
+    private float $_msSunat = 0.0;
 
     private function _json(array $data, int $code = 200): void
     {
+        if ($this->_t0 > 0) { $data['ms'] = (int)((microtime(true) - $this->_t0) * 1000); $data['ms_sunat'] = (int)$this->_msSunat; }
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -336,8 +299,10 @@ class SyncController
         if (!preg_match('/^\d{6}$/', $periodo)) $this->_json(['ok' => false, 'error' => 'Período inválido']);
         $fase    = $_POST['fase'] ?? '';
         $archivo = $this->_archivoTemporal($empresaId, $tipo, $periodo);
-        set_time_limit(120);
+        // Por debajo del corte de nginx (60 s): un paso trabado muere solo en vez de quedarse ocupando PHP.
+        set_time_limit(50);
         session_write_close();
+        $this->_t0 = microtime(true);
 
         try {
             $fase === 'descargar'
@@ -362,8 +327,10 @@ class SyncController
                 ? $sunat->getVentasPeriodo($token, $periodo, $page, $estado['perPage'], $estado['fuente'])
                 : $sunat->getComprasPeriodo($token, $empresa['ruc'], $periodo, $page, $estado['perPage'], $estado['fuente']);
         };
+        $ini = microtime(true);
         $r = $pedir(false);
         if (!empty($r['error']) && str_contains($r['error'], 'HTTP 401')) $r = $pedir(true);   // token vencido
+        $this->_msSunat = (microtime(true) - $ini) * 1000;
 
         // SUNAT rechazó el tamaño de página grande: se repite la página 1 con 100.
         if ($page === 1 && !empty($r['error']) && $estado['perPage'] > 100) {
@@ -393,6 +360,7 @@ class SyncController
         $this->_json([
             'ok' => true, 'unicos' => $unicos, 'total' => $estado['total'],
             'siguiente' => $listo ? null : $page + 1, 'aviso' => $aviso, 'fuente' => $estado['fuente'],
+            'recibidas' => count($r['registros']), 'pagina' => $page,
         ]);
     }
 

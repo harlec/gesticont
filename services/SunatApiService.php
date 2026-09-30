@@ -9,6 +9,8 @@ class SunatApiService
     private const SIRE_BASE = 'https://api-sire.sunat.gob.pe/v1/contribuyente/migeigv';
     private const SCOPE     = 'https://api.sunat.gob.pe/v1/contribuyente/migeigv';
     private array $tokenCache = [];
+    /** Segundos máximos por llamada a SUNAT (cada paso de la sincronización debe terminar antes del corte del servidor web). */
+    public int $timeout = 30;
 
     public function getToken(string $clientId, string $clientSecret,
                              string $ruc, string $usuario, string $clave): string
@@ -287,7 +289,8 @@ class SunatApiService
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER     => $headers,
-            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_TIMEOUT        => $this->timeout,
+            CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
         $body = curl_exec($ch);
@@ -316,7 +319,8 @@ class SunatApiService
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $postData,
             CURLOPT_HTTPHEADER     => $headers,
-            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_TIMEOUT        => $this->timeout,
+            CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
         $body = curl_exec($ch); curl_close($ch);

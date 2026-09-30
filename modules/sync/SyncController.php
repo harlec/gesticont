@@ -32,6 +32,8 @@ class SyncController
         $stmtC->execute([$empresaId]);
         $comprasSinc = $stmtC->fetchAll(PDO::FETCH_ASSOC);
 
+        $resultadoSync = $this->_resultadoLeer($empresaId, true);
+
         $pageTitle = 'Sincronizar SIRE — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/sync/views/index.php';
@@ -58,16 +60,58 @@ class SyncController
         return [preg_match('/^\d{6}$/', $periodo) ? $periodo : date('Ym', strtotime('first day of -1 month'))];
     }
 
+    /* ---- Estado de la sincronización fuera de la sesión ----------------
+     * PHP bloquea el archivo de sesión mientras dura CADA petición. Una
+     * sincronización larga (o una que el navegador ya abandonó tras un 504
+     * pero el servidor sigue procesando) dejaba esperando a cualquier otra
+     * petición del mismo usuario hasta que terminara — y ese bloqueo era
+     * otro 504. Por eso el token y los resultados van a archivos temporales
+     * y la sesión se suelta (session_write_close) apenas se valida el acceso. */
+
+    private function _dirSync(): string
+    {
+        $dir = sys_get_temp_dir() . '/gesticont_sync';
+        if (!is_dir($dir)) @mkdir($dir, 0700, true);
+        return $dir;
+    }
+
+    private function _resultadoArchivo(int $empresaId): string
+    {
+        return sprintf('%s/res_%d_%d.json', $this->_dirSync(), $empresaId, Auth::id());
+    }
+
+    private function _resultadoLeer(int $empresaId, bool $consumir = false): ?array
+    {
+        $f = $this->_resultadoArchivo($empresaId);
+        if (!is_file($f)) return null;
+        $r = json_decode((string)file_get_contents($f), true) ?: null;
+        if ($consumir) @unlink($f);
+        return $r;
+    }
+
+    private function _resultadoGuardar(int $empresaId, ?string $tipo, ?string $periodo, ?array $dato): void
+    {
+        $f = $this->_resultadoArchivo($empresaId);
+        $fp = fopen($f, 'c+'); flock($fp, LOCK_EX);
+        $r = json_decode((string)stream_get_contents($fp), true) ?: ['ventas' => [], 'compras' => []];
+        if ($tipo === null) $r = ['ventas' => [], 'compras' => []];      // reinicio
+        else $r[$tipo][$periodo] = $dato;
+        ftruncate($fp, 0); rewind($fp); fwrite($fp, json_encode($r)); fflush($fp); flock($fp, LOCK_UN); fclose($fp);
+    }
+
     /**
-     * Cliente SIRE + token. El token se guarda en sesión (dura ~1 h en SUNAT)
-     * para no pedir uno nuevo en cada paso de la sincronización por partes.
-     * $renovar descarta el guardado (p. ej. tras un 401).
+     * Cliente SIRE + token. El token dura ~1 h en SUNAT; se guarda en un
+     * archivo temporal para no pedir uno nuevo en cada paso. $renovar lo
+     * descarta (p. ej. tras un 401).
      */
     private function _sire(int $empresaId, array $empresa, bool $renovar = false): array
     {
         $sunat = new SunatApiService();
-        $c = $_SESSION['sire_token'][$empresaId] ?? null;
-        if (!$renovar && $c && $c['exp'] > time()) return [$sunat, $c['token']];
+        $archivo = sprintf('%s/tok_%d_%d.json', $this->_dirSync(), $empresaId, Auth::id());
+        if (!$renovar && is_file($archivo)) {
+            $c = json_decode((string)file_get_contents($archivo), true);
+            if ($c && $c['exp'] > time()) return [$sunat, $c['token']];
+        }
 
         $stmt = Model::db()->prepare("
             SELECT sol_usuario, sol_clave, api_client_id, api_client_secret
@@ -82,7 +126,8 @@ class SyncController
             $enc->decrypt($cert['api_client_id']), $enc->decrypt($cert['api_client_secret']),
             $empresa['ruc'], $enc->decrypt($cert['sol_usuario']), $enc->decrypt($cert['sol_clave'])
         );
-        $_SESSION['sire_token'][$empresaId] = ['token' => $token, 'exp' => time() + 1500];
+        file_put_contents($archivo, json_encode(['token' => $token, 'exp' => time() + 1500]), LOCK_EX);
+        @chmod($archivo, 0600);
         return [$sunat, $token];
     }
 
@@ -190,11 +235,12 @@ class SyncController
         $tipo     = $_POST['tipo'] ?? 'ambos';
         $periodos = $this->_periodosDe($_POST);
         set_time_limit(600);
+        session_write_close();   // no bloquear otras peticiones del usuario mientras dura esto
 
         try {
             [$sunat, $token] = $this->_sire($empresaId, $empresa);
         } catch (Throwable $e) {
-            $_SESSION['sync_error'] = $e->getMessage();
+            session_start(); $_SESSION['sync_error'] = $e->getMessage();
             header("Location: /empresas/{$empresaId}/sync"); exit;
         }
         $pdo = Model::db();
@@ -222,7 +268,8 @@ class SyncController
             }
         }
 
-        $_SESSION['sync_resultado'] = $resultado;
+        $this->_resultadoGuardar($empresaId, null, null, null);
+        foreach ($resultado as $t => $porPeriodo) foreach ($porPeriodo as $p => $d) $this->_resultadoGuardar($empresaId, $t, $p, $d);
         header("Location: /empresas/{$empresaId}/sync?ok=1"); exit;
     }
 
@@ -246,9 +293,7 @@ class SyncController
 
     private function _archivoTemporal(int $empresaId, string $tipo, string $periodo): string
     {
-        $dir = sys_get_temp_dir() . '/gesticont_sync';
-        if (!is_dir($dir)) @mkdir($dir, 0700, true);
-        return sprintf('%s/%d_%d_%s_%s.json', $dir, $empresaId, Auth::id(), $tipo, $periodo);
+        return sprintf('%s/%d_%d_%s_%s.json', $this->_dirSync(), $empresaId, Auth::id(), $tipo, $periodo);
     }
 
     /** POST: devuelve la lista de tareas (tipo + período) que el navegador irá ejecutando. */
@@ -259,15 +304,19 @@ class SyncController
         $empresa = $this->_getEmpresa($empresaId);
         if (!$empresa) $this->_json(['ok' => false, 'error' => 'Sin acceso'], 403);
 
-        try { $this->_sire($empresaId, $empresa, true); }   // token fresco y credenciales verificadas desde ya
-        catch (Throwable $e) { $this->_json(['ok' => false, 'error' => $e->getMessage()]); }
+        // Solo se comprueba que haya credenciales (consulta rápida a la base). El token de
+        // SUNAT se pide recién en el primer paso: así este plan responde siempre al instante.
+        $stmt = Model::db()->prepare("SELECT api_client_id FROM empresa_certificados WHERE empresa_id = ? AND estado = 'activo' LIMIT 1");
+        $stmt->execute([$empresaId]);
+        if (!$stmt->fetchColumn()) $this->_json(['ok' => false, 'error' => 'Sin credenciales API configuradas.']);
+        session_write_close();
 
         $tipo = $_POST['tipo'] ?? 'ambos';
         $tareas = [];
         foreach ($this->_periodosDe($_POST) as $p) {
             foreach (['ventas', 'compras'] as $t) if (in_array($tipo, [$t, 'ambos'])) $tareas[] = ['tipo' => $t, 'periodo' => $p];
         }
-        $_SESSION['sync_resultado'] = ['ventas' => [], 'compras' => []];
+        $this->_resultadoGuardar($empresaId, null, null, null);
         $this->_json(['ok' => true, 'tareas' => $tareas]);
     }
 
@@ -288,13 +337,14 @@ class SyncController
         $fase    = $_POST['fase'] ?? '';
         $archivo = $this->_archivoTemporal($empresaId, $tipo, $periodo);
         set_time_limit(120);
+        session_write_close();
 
         try {
             $fase === 'descargar'
                 ? $this->_pasoDescargar($empresaId, $empresa, $tipo, $periodo, max(1, (int)($_POST['page'] ?? 1)), $archivo)
                 : $this->_pasoGuardar($empresaId, $tipo, $periodo, max(0, (int)($_POST['offset'] ?? 0)), $archivo);
         } catch (Throwable $e) {
-            $_SESSION['sync_resultado'][$tipo][$periodo] = ['error' => $e->getMessage()];
+            $this->_resultadoGuardar($empresaId, $tipo, $periodo, ['error' => $e->getMessage()]);
             @unlink($archivo);
             $this->_json(['ok' => false, 'error' => $e->getMessage()]);
         }
@@ -376,11 +426,11 @@ class SyncController
         // Último lote: se deja el resumen en sesión (lo muestra la pantalla al recargar).
         $aviso = null;
         if ($total < ($estado['total'] ?? 0)) $aviso = "SUNAT informa {$estado['total']} comprobantes pero solo se recibieron {$total} distintos (páginas leídas: " . ($estado['paginas'] ?? '?') . ").";
-        $_SESSION['sync_resultado'][$tipo][$periodo] = [
+        $this->_resultadoGuardar($empresaId, $tipo, $periodo, [
             'nuevos' => $estado['ins'], 'duplicados' => $estado['dup'], 'rellenados' => $estado['rell'],
             'total' => $total, 'fuente' => $fuente,
             'total_sunat' => $estado['total'] ?? 0, 'paginas' => $estado['paginas'] ?? 0, 'aviso' => $aviso,
-        ];
+        ]);
         @unlink($archivo);
         $this->_json(['ok' => true, 'fin' => true, 'guardados' => $total, 'total' => $total, 'nuevos' => $estado['ins']]);
     }

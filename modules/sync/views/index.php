@@ -1,8 +1,7 @@
 <?php
 $ventasIdx  = array_column($ventasSinc,  null, 'periodo');
 $comprasIdx = array_column($comprasSinc, null, 'periodo');
-$resultado  = $_SESSION['sync_resultado'] ?? null;
-if ($resultado) unset($_SESSION['sync_resultado']);
+$resultado  = $resultadoSync ?? null;   // lo deja el controlador (archivo temporal, no sesión)
 
 function badgeFuente(?string $fuente): string {
     if ($fuente === 'declarado') return '<span style="background:var(--gc-pos-soft);color:var(--gc-pos);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">✓ Declarado</span>';
@@ -206,7 +205,7 @@ async function syncPost(ruta, datos) {
         } catch (e) { ultimoError = 'error de red'; }
         await new Promise(res => setTimeout(res, 1500 * intento));
     }
-    return {ok:false, error:'No respondió el servidor: ' + ultimoError};
+    return {ok:false, error:`No respondió el servidor en ${ruta} (${ultimoError}). Si acabas de lanzar otra sincronización, espera 2-3 minutos a que termine y reintenta.`};
 }
 
 function syncLog(html) {

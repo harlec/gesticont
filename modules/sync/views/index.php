@@ -30,7 +30,7 @@ function badgeFuente(?string $fuente): string {
         </div>
 
         <form method="POST" action="/empresas/<?= $empresa['id'] ?>/sync/ejecutar"
-              onsubmit="return iniciarSync(this);">
+              onsubmit="event.preventDefault(); iniciarSync(this); return false;">
             <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;">
                 <div>
                     <label style="display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">¿Qué sincronizar?</label>

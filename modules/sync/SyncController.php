@@ -39,173 +39,350 @@ class SyncController
         require_once ROOT . '/views/layout/base.php';
     }
 
+    /** Períodos a sincronizar según lo elegido en el formulario. */
+    private function _periodosDe(array $in): array
+    {
+        $rango   = $in['rango']   ?? 'periodo';
+        $periodo = $in['periodo'] ?? date('Ym', strtotime('first day of -1 month'));
+        if ($rango === 'todo') {
+            return array_map(fn($i) => date('Ym', strtotime("first day of -{$i} month")), range(1, 12));
+        }
+        if ($rango === 'anio') {
+            // Año vigente desde enero hasta el mes anterior (el mes en curso
+            // aún no está cerrado); en enero no hay mes anterior dentro del
+            // año, así que solo entonces se incluye el mes actual.
+            $anio  = (int)date('Y');
+            $hasta = max(1, (int)date('n') - 1);
+            return array_map(fn($m) => sprintf('%04d%02d', $anio, $m), range(1, $hasta));
+        }
+        return [preg_match('/^\d{6}$/', $periodo) ? $periodo : date('Ym', strtotime('first day of -1 month'))];
+    }
+
+    /**
+     * Cliente SIRE + token. El token se guarda en sesión (dura ~1 h en SUNAT)
+     * para no pedir uno nuevo en cada paso de la sincronización por partes.
+     * $renovar descarta el guardado (p. ej. tras un 401).
+     */
+    private function _sire(int $empresaId, array $empresa, bool $renovar = false): array
+    {
+        $sunat = new SunatApiService();
+        $c = $_SESSION['sire_token'][$empresaId] ?? null;
+        if (!$renovar && $c && $c['exp'] > time()) return [$sunat, $c['token']];
+
+        $stmt = Model::db()->prepare("
+            SELECT sol_usuario, sol_clave, api_client_id, api_client_secret
+            FROM empresa_certificados WHERE empresa_id = ? AND estado = 'activo' LIMIT 1
+        ");
+        $stmt->execute([$empresaId]);
+        $cert = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$cert || empty($cert['api_client_id'])) throw new RuntimeException('Sin credenciales API configuradas.');
+
+        $enc   = new EncryptService();
+        $token = $sunat->getToken(
+            $enc->decrypt($cert['api_client_id']), $enc->decrypt($cert['api_client_secret']),
+            $empresa['ruc'], $enc->decrypt($cert['sol_usuario']), $enc->decrypt($cert['sol_clave'])
+        );
+        $_SESSION['sire_token'][$empresaId] = ['token' => $token, 'exp' => time() + 1500];
+        return [$sunat, $token];
+    }
+
+    /** Guarda ventas ya descargadas; devuelve [nuevos, duplicados]. */
+    private function _guardarVentas(PDO $pdo, int $empresaId, string $p, string $fuente, array $ventas): array
+    {
+        $ins = 0; $dup = 0;
+        foreach ($ventas as $v) {
+            $chk = $pdo->prepare("SELECT id FROM registro_ventas WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?");
+            $chk->execute([$empresaId, $v['tipo_comp'], $v['serie'], $v['correlativo']]);
+            if ($chk->fetch()) {
+                // Actualizar fuente si mejoró a declarado
+                if ($fuente === 'declarado') {
+                    $pdo->prepare("UPDATE registro_ventas SET fuente='declarado', sync_at=NOW() WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?")
+                        ->execute([$empresaId, $v['tipo_comp'], $v['serie'], $v['correlativo']]);
+                }
+                $dup++; continue;
+            }
+            $pdo->prepare("
+                INSERT INTO registro_ventas
+                    (empresa_id, periodo, id_sire, cod_car, tipo_comp, serie, correlativo,
+                     fecha_emision, cliente_tipo_doc, cliente_num_doc, cliente_nombre,
+                     moneda, tipo_cambio, base_imponible, igv, exonerado, inafecto,
+                     total, estado_sunat, fuente)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ")->execute([
+                $empresaId, $p, $v['id_sire'], $v['cod_car'],
+                $v['tipo_comp'], $v['serie'], $v['correlativo'],
+                $v['fecha_emision'], $v['cliente_tipo_doc'], $v['cliente_num_doc'],
+                $v['cliente_nombre'], $v['moneda'], $v['tipo_cambio'],
+                $v['base_imponible'], $v['igv'], $v['exonerado'], $v['inafecto'],
+                $v['total'], $v['estado_sunat'], $fuente,
+            ]);
+            $ins++;
+        }
+        return [$ins, $dup];
+    }
+
+    /** Guarda compras ya descargadas; devuelve [nuevos, duplicados, rellenados]. */
+    private function _guardarCompras(PDO $pdo, int $empresaId, string $p, string $fuente, array $compras): array
+    {
+        $ins = 0; $dup = 0; $rellenados = 0;
+        foreach ($compras as $c) {
+            // La clave única de la tabla incluye al proveedor: dos proveedores
+            // distintos pueden emitir el mismo F001-123. Sin el RUC en la búsqueda
+            // el segundo se descartaba como "ya existía" y la compra se perdía.
+            // Un registro viejo con RUC vacío también cuenta (se rellena abajo).
+            $chk = $pdo->prepare("
+                SELECT id, proveedor_ruc FROM registro_compras
+                WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?
+                  AND (proveedor_ruc = ? OR proveedor_ruc = '' OR proveedor_ruc IS NULL)
+                ORDER BY (proveedor_ruc = ?) DESC LIMIT 1
+            ");
+            $chk->execute([$empresaId, $c['tipo_comp'], $c['serie'], $c['correlativo'], $c['proveedor_ruc'], $c['proveedor_ruc']]);
+            $existente = $chk->fetch(PDO::FETCH_ASSOC);
+            if ($existente) {
+                // Compras sincronizadas antes de leer bien el documento
+                // del proveedor quedaron con el RUC vacío — se completa
+                // aquí, sin tocar nada de lo ya clasificado.
+                if (($existente['proveedor_ruc'] ?? '') === '' && $c['proveedor_ruc'] !== '') {
+                    $pdo->prepare("UPDATE registro_compras SET proveedor_ruc=?, proveedor_tipo_doc=?, proveedor_nombre=IF(proveedor_nombre IS NULL OR proveedor_nombre='', ?, proveedor_nombre) WHERE id=?")
+                        ->execute([$c['proveedor_ruc'], $c['proveedor_tipo_doc'], $c['proveedor_nombre'], $existente['id']]);
+                    $rellenados++;
+                }
+                if ($fuente === 'declarado') {
+                    $pdo->prepare("UPDATE registro_compras SET fuente='declarado', sync_at=NOW() WHERE id=?")
+                        ->execute([$existente['id']]);
+                }
+                $dup++; continue;
+            }
+            $pdo->prepare("
+                INSERT INTO registro_compras
+                    (empresa_id, periodo, id_sire, cod_car, tipo_comp, serie, correlativo,
+                     fecha_emision, proveedor_tipo_doc, proveedor_ruc, proveedor_nombre,
+                     moneda, tipo_cambio, base_imponible, igv, exonerado, inafecto,
+                     total, estado_sunat, fuente)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ")->execute([
+                $empresaId, $p, $c['id_sire'], $c['cod_car'],
+                $c['tipo_comp'], $c['serie'], $c['correlativo'],
+                $c['fecha_emision'], $c['proveedor_tipo_doc'], $c['proveedor_ruc'],
+                $c['proveedor_nombre'], $c['moneda'], $c['tipo_cambio'],
+                $c['base_imponible'], $c['igv'], $c['exonerado'], $c['inafecto'],
+                $c['total'], $c['estado_sunat'], $fuente,
+            ]);
+            $ins++;
+        }
+        return [$ins, $dup, $rellenados];
+    }
+
+    /**
+     * Sincronización en una sola petición. Queda como respaldo si el navegador
+     * no ejecuta el JavaScript de la pantalla; con mucha data conviene la
+     * versión por partes (plan/paso), que evita el 504 del servidor.
+     */
     public function ejecutar(int $empresaId): void
     {
         Auth::require();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: /empresas/{$empresaId}/sync"); exit;
         }
-
         $empresa = $this->_getEmpresa($empresaId);
         if (!$empresa) { http_response_code(403); die('Sin acceso'); }
 
-        $tipo    = $_POST['tipo']    ?? 'ambos';
-        $rango   = $_POST['rango']   ?? 'periodo';
-        $periodo = $_POST['periodo'] ?? date('Ym', strtotime('first day of -1 month'));
+        $tipo     = $_POST['tipo'] ?? 'ambos';
+        $periodos = $this->_periodosDe($_POST);
+        set_time_limit(600);
 
-        if ($rango === 'todo') {
-            $periodos = array_map(fn($i) => date('Ym', strtotime("first day of -{$i} month")), range(1, 12));
-        } elseif ($rango === 'anio') {
-            // Año vigente desde enero hasta el mes anterior (el mes en curso
-            // aún no está cerrado); en enero no hay mes anterior dentro del
-            // año, así que solo entonces se incluye el mes actual.
-            $anio = (int)date('Y');
-            $hasta = max(1, (int)date('n') - 1);
-            $periodos = array_map(fn($m) => sprintf('%04d%02d', $anio, $m), range(1, $hasta));
-        } else {
-            $periodos = [$periodo];
-        }
-        // Varios meses = varias consultas a SUNAT por página; se da más margen
-        // que el límite por defecto para que no se corte a la mitad.
-        if (count($periodos) > 1) set_time_limit(600);
-
-        $pdo     = Model::db();
-        $stmtCrt = $pdo->prepare("
-            SELECT sol_usuario, sol_clave, api_client_id, api_client_secret
-            FROM empresa_certificados WHERE empresa_id = ? AND estado = 'activo' LIMIT 1
-        ");
-        $stmtCrt->execute([$empresaId]);
-        $cert = $stmtCrt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$cert || empty($cert['api_client_id'])) {
-            $_SESSION['sync_error'] = 'Sin credenciales API configuradas.';
+        try {
+            [$sunat, $token] = $this->_sire($empresaId, $empresa);
+        } catch (Throwable $e) {
+            $_SESSION['sync_error'] = $e->getMessage();
             header("Location: /empresas/{$empresaId}/sync"); exit;
         }
-
-        $enc   = new EncryptService();
-        $sunat = new SunatApiService();
-        $token = $sunat->getToken(
-            $enc->decrypt($cert['api_client_id']),
-            $enc->decrypt($cert['api_client_secret']),
-            $empresa['ruc'],
-            $enc->decrypt($cert['sol_usuario']),
-            $enc->decrypt($cert['sol_clave'])
-        );
-
+        $pdo = Model::db();
         $resultado = ['ventas' => [], 'compras' => []];
 
         foreach ($periodos as $p) {
-
-            // ── Ventas ──────────────────────────────────────────────────────
-            if (in_array($tipo, ['ventas', 'ambos'])) {
+            foreach (['ventas', 'compras'] as $t) {
+                if (!in_array($tipo, [$t, 'ambos'])) continue;
                 try {
-                    $res    = $sunat->getAllVentasPeriodo($token, $p);
-                    $ventas = $res['registros'];
-                    $fuente = $res['fuente'];
-                    $ins = 0; $dup = 0;
-                    foreach ($ventas as $v) {
-                        $chk = $pdo->prepare("SELECT id FROM registro_ventas WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?");
-                        $chk->execute([$empresaId, $v['tipo_comp'], $v['serie'], $v['correlativo']]);
-                        if ($chk->fetch()) {
-                            // Actualizar fuente si mejoró a declarado
-                            if ($fuente === 'declarado') {
-                                $pdo->prepare("UPDATE registro_ventas SET fuente='declarado', sync_at=NOW() WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?")
-                                    ->execute([$empresaId, $v['tipo_comp'], $v['serie'], $v['correlativo']]);
-                            }
-                            $dup++; continue;
-                        }
-                        $pdo->prepare("
-                            INSERT INTO registro_ventas
-                                (empresa_id, periodo, id_sire, cod_car, tipo_comp, serie, correlativo,
-                                 fecha_emision, cliente_tipo_doc, cliente_num_doc, cliente_nombre,
-                                 moneda, tipo_cambio, base_imponible, igv, exonerado, inafecto,
-                                 total, estado_sunat, fuente)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                        ")->execute([
-                            $empresaId, $p, $v['id_sire'], $v['cod_car'],
-                            $v['tipo_comp'], $v['serie'], $v['correlativo'],
-                            $v['fecha_emision'], $v['cliente_tipo_doc'], $v['cliente_num_doc'],
-                            $v['cliente_nombre'], $v['moneda'], $v['tipo_cambio'],
-                            $v['base_imponible'], $v['igv'], $v['exonerado'], $v['inafecto'],
-                            $v['total'], $v['estado_sunat'], $fuente,
-                        ]);
-                        $ins++;
-                    }
-                    $resultado['ventas'][$p] = [
-                        'nuevos' => $ins, 'duplicados' => $dup,
-                        'total'  => count($ventas), 'fuente' => $fuente,
+                    $res = $t === 'ventas'
+                        ? $sunat->getAllVentasPeriodo($token, $p)
+                        : $sunat->getAllComprasPeriodo($token, $empresa['ruc'], $p);
+                    $filas = $res['registros'];
+                    [$ins, $dup, $rell] = $t === 'ventas'
+                        ? [...$this->_guardarVentas($pdo, $empresaId, $p, $res['fuente'], $filas), 0]
+                        : $this->_guardarCompras($pdo, $empresaId, $p, $res['fuente'], $filas);
+                    $resultado[$t][$p] = [
+                        'nuevos' => $ins, 'duplicados' => $dup, 'rellenados' => $rell,
+                        'total'  => count($filas), 'fuente' => $res['fuente'],
                         'total_sunat' => $res['total_sunat'], 'paginas' => $res['paginas'], 'aviso' => $res['error'],
                     ];
                 } catch (Exception $e) {
-                    $resultado['ventas'][$p] = ['error' => $e->getMessage()];
-                }
-            }
-
-            // ── Compras ─────────────────────────────────────────────────────
-            if (in_array($tipo, ['compras', 'ambos'])) {
-                try {
-                    $res     = $sunat->getAllComprasPeriodo($token, $empresa['ruc'], $p);
-                    $compras = $res['registros'];
-                    $fuente  = $res['fuente'];
-                    $ins = 0; $dup = 0; $rellenados = 0;
-                    foreach ($compras as $c) {
-                        // La clave única de la tabla incluye al proveedor: dos proveedores
-                        // distintos pueden emitir el mismo F001-123. Sin el RUC en la búsqueda
-                        // el segundo se descartaba como "ya existía" y la compra se perdía.
-                        // Un registro viejo con RUC vacío también cuenta (se rellena abajo).
-                        $chk = $pdo->prepare("
-                            SELECT id, proveedor_ruc FROM registro_compras
-                            WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=?
-                              AND (proveedor_ruc = ? OR proveedor_ruc = '' OR proveedor_ruc IS NULL)
-                            ORDER BY (proveedor_ruc = ?) DESC LIMIT 1
-                        ");
-                        $chk->execute([$empresaId, $c['tipo_comp'], $c['serie'], $c['correlativo'], $c['proveedor_ruc'], $c['proveedor_ruc']]);
-                        $existente = $chk->fetch(PDO::FETCH_ASSOC);
-                        if ($existente) {
-                            // Compras sincronizadas antes de leer bien el documento
-                            // del proveedor quedaron con el RUC vacío — se completa
-                            // aquí, sin tocar nada de lo ya clasificado.
-                            if (($existente['proveedor_ruc'] ?? '') === '' && $c['proveedor_ruc'] !== '') {
-                                $pdo->prepare("UPDATE registro_compras SET proveedor_ruc=?, proveedor_tipo_doc=?, proveedor_nombre=IF(proveedor_nombre IS NULL OR proveedor_nombre='', ?, proveedor_nombre) WHERE id=?")
-                                    ->execute([$c['proveedor_ruc'], $c['proveedor_tipo_doc'], $c['proveedor_nombre'], $existente['id']]);
-                                $rellenados++;
-                            }
-                            if ($fuente === 'declarado') {
-                                $pdo->prepare("UPDATE registro_compras SET fuente='declarado', sync_at=NOW() WHERE id=?")
-                                    ->execute([$existente['id']]);
-                            }
-                            $dup++; continue;
-                        }
-                        $pdo->prepare("
-                            INSERT INTO registro_compras
-                                (empresa_id, periodo, id_sire, cod_car, tipo_comp, serie, correlativo,
-                                 fecha_emision, proveedor_tipo_doc, proveedor_ruc, proveedor_nombre,
-                                 moneda, tipo_cambio, base_imponible, igv, exonerado, inafecto,
-                                 total, estado_sunat, fuente)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                        ")->execute([
-                            $empresaId, $p, $c['id_sire'], $c['cod_car'],
-                            $c['tipo_comp'], $c['serie'], $c['correlativo'],
-                            $c['fecha_emision'], $c['proveedor_tipo_doc'], $c['proveedor_ruc'],
-                            $c['proveedor_nombre'], $c['moneda'], $c['tipo_cambio'],
-                            $c['base_imponible'], $c['igv'], $c['exonerado'], $c['inafecto'],
-                            $c['total'], $c['estado_sunat'], $fuente,
-                        ]);
-                        $ins++;
-                    }
-                    $resultado['compras'][$p] = [
-                        'nuevos' => $ins, 'duplicados' => $dup, 'rellenados' => $rellenados,
-                        'total'  => count($compras), 'fuente' => $fuente,
-                        'total_sunat' => $res['total_sunat'], 'paginas' => $res['paginas'], 'aviso' => $res['error'],
-                    ];
-                } catch (Exception $e) {
-                    $resultado['compras'][$p] = ['error' => $e->getMessage()];
+                    $resultado[$t][$p] = ['error' => $e->getMessage()];
                 }
             }
         }
 
         $_SESSION['sync_resultado'] = $resultado;
         header("Location: /empresas/{$empresaId}/sync?ok=1"); exit;
+    }
+
+    /* ===================================================================
+     * Sincronización POR PARTES (JSON) — la usa la pantalla con barra de
+     * progreso. Cada petición hace poco trabajo (una página de SUNAT, o
+     * 300 filas a la base) para no pasar el tiempo máximo del servidor
+     * (504 Gateway Time-out) en empresas con miles de comprobantes.
+     * Lo descargado se deja en un archivo temporal entre pasos.
+     * =================================================================== */
+
+    private const LOTE_GUARDADO = 300;
+
+    private function _json(array $data, int $code = 200): void
+    {
+        http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    private function _archivoTemporal(int $empresaId, string $tipo, string $periodo): string
+    {
+        $dir = sys_get_temp_dir() . '/gesticont_sync';
+        if (!is_dir($dir)) @mkdir($dir, 0700, true);
+        return sprintf('%s/%d_%d_%s_%s.json', $dir, $empresaId, Auth::id(), $tipo, $periodo);
+    }
+
+    /** POST: devuelve la lista de tareas (tipo + período) que el navegador irá ejecutando. */
+    public function plan(int $empresaId): void
+    {
+        Auth::require();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->_json(['ok' => false, 'error' => 'Método no permitido'], 405);
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) $this->_json(['ok' => false, 'error' => 'Sin acceso'], 403);
+
+        try { $this->_sire($empresaId, $empresa, true); }   // token fresco y credenciales verificadas desde ya
+        catch (Throwable $e) { $this->_json(['ok' => false, 'error' => $e->getMessage()]); }
+
+        $tipo = $_POST['tipo'] ?? 'ambos';
+        $tareas = [];
+        foreach ($this->_periodosDe($_POST) as $p) {
+            foreach (['ventas', 'compras'] as $t) if (in_array($tipo, [$t, 'ambos'])) $tareas[] = ['tipo' => $t, 'periodo' => $p];
+        }
+        $_SESSION['sync_resultado'] = ['ventas' => [], 'compras' => []];
+        $this->_json(['ok' => true, 'tareas' => $tareas]);
+    }
+
+    /**
+     * POST fase=descargar&tipo&periodo&page  → baja UNA página de SUNAT y la suma a lo ya bajado.
+     * POST fase=guardar&tipo&periodo&offset  → guarda un lote de filas en la base.
+     */
+    public function paso(int $empresaId): void
+    {
+        Auth::require();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->_json(['ok' => false, 'error' => 'Método no permitido'], 405);
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) $this->_json(['ok' => false, 'error' => 'Sin acceso'], 403);
+
+        $tipo    = ($_POST['tipo'] ?? '') === 'compras' ? 'compras' : 'ventas';
+        $periodo = $_POST['periodo'] ?? '';
+        if (!preg_match('/^\d{6}$/', $periodo)) $this->_json(['ok' => false, 'error' => 'Período inválido']);
+        $fase    = $_POST['fase'] ?? '';
+        $archivo = $this->_archivoTemporal($empresaId, $tipo, $periodo);
+        set_time_limit(120);
+
+        try {
+            $fase === 'descargar'
+                ? $this->_pasoDescargar($empresaId, $empresa, $tipo, $periodo, max(1, (int)($_POST['page'] ?? 1)), $archivo)
+                : $this->_pasoGuardar($empresaId, $tipo, $periodo, max(0, (int)($_POST['offset'] ?? 0)), $archivo);
+        } catch (Throwable $e) {
+            $_SESSION['sync_resultado'][$tipo][$periodo] = ['error' => $e->getMessage()];
+            @unlink($archivo);
+            $this->_json(['ok' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    private function _pasoDescargar(int $empresaId, array $empresa, string $tipo, string $periodo, int $page, string $archivo): void
+    {
+        $estado = ['perPage' => 500, 'fuente' => null, 'total' => 0, 'unicos' => [], 'guardado' => 0, 'ins' => 0, 'dup' => 0, 'rell' => 0];
+        if ($page > 1 && is_file($archivo)) $estado = json_decode(file_get_contents($archivo), true) ?: $estado;
+        if ($page === 1) $estado['unicos'] = [];
+
+        $pedir = function (bool $renovar) use ($empresaId, $empresa, $tipo, $periodo, $page, $estado) {
+            [$sunat, $token] = $this->_sire($empresaId, $empresa, $renovar);
+            return $tipo === 'ventas'
+                ? $sunat->getVentasPeriodo($token, $periodo, $page, $estado['perPage'], $estado['fuente'])
+                : $sunat->getComprasPeriodo($token, $empresa['ruc'], $periodo, $page, $estado['perPage'], $estado['fuente']);
+        };
+        $r = $pedir(false);
+        if (!empty($r['error']) && str_contains($r['error'], 'HTTP 401')) $r = $pedir(true);   // token vencido
+
+        // SUNAT rechazó el tamaño de página grande: se repite la página 1 con 100.
+        if ($page === 1 && !empty($r['error']) && $estado['perPage'] > 100) {
+            $estado['perPage'] = 100;
+            file_put_contents($archivo, json_encode($estado));
+            $this->_json(['ok' => true, 'reintentar' => true, 'siguiente' => 1, 'unicos' => 0, 'total' => 0]);
+        }
+        if ($page === 1) { $estado['fuente'] = $r['fuente']; $estado['total'] = $r['total']; }
+        if (!empty($r['error'])) throw new RuntimeException("Página {$page}: " . $r['error']);
+
+        // La API de SIRE solapa las páginas (la N trae N×perPage filas): se cuentan comprobantes ÚNICOS.
+        $nuevos = 0;
+        foreach ($r['registros'] as $reg) {
+            $k = $reg['cod_car'] ?: ($reg['id_sire'] ?: implode('|', [$reg['tipo_comp'], $reg['serie'], $reg['correlativo'], $reg['proveedor_ruc'] ?? '']));
+            if (!isset($estado['unicos'][$k])) { $estado['unicos'][$k] = $reg; $nuevos++; }
+        }
+        $unicos   = count($estado['unicos']);
+        $listo    = $unicos >= $estado['total'] || $nuevos === 0 || $page >= 2000;
+        $estado['paginas'] = $page;
+        file_put_contents($archivo, json_encode($estado));
+
+        $aviso = null;
+        if ($listo && $unicos < $estado['total']) {
+            $aviso = "SUNAT informa {$estado['total']} comprobantes pero solo se recibieron {$unicos} distintos (páginas leídas: {$page}).";
+            error_log("[SIRE {$tipo} {$periodo}] INCOMPLETO — {$aviso}");
+        }
+        $this->_json([
+            'ok' => true, 'unicos' => $unicos, 'total' => $estado['total'],
+            'siguiente' => $listo ? null : $page + 1, 'aviso' => $aviso, 'fuente' => $estado['fuente'],
+        ]);
+    }
+
+    private function _pasoGuardar(int $empresaId, string $tipo, string $periodo, int $offset, string $archivo): void
+    {
+        if (!is_file($archivo)) throw new RuntimeException('Se perdió lo descargado de este período; vuelve a sincronizarlo.');
+        $estado = json_decode(file_get_contents($archivo), true);
+        $filas  = array_values($estado['unicos']);
+        $total  = count($filas);
+        $fuente = $estado['fuente'] ?? 'propuesta';
+
+        // Si el navegador repite un lote ya guardado (reintento tras un corte), no se cuenta dos veces.
+        if ($offset >= $estado['guardado']) {
+            $pdo = Model::db();
+            $lote = array_slice($filas, $offset, self::LOTE_GUARDADO);
+            $pdo->beginTransaction();
+            try {
+                [$ins, $dup, $rell] = $tipo === 'ventas'
+                    ? [...$this->_guardarVentas($pdo, $empresaId, $periodo, $fuente, $lote), 0]
+                    : $this->_guardarCompras($pdo, $empresaId, $periodo, $fuente, $lote);
+                $pdo->commit();
+            } catch (Throwable $e) { $pdo->rollBack(); throw $e; }
+            $estado['ins'] += $ins; $estado['dup'] += $dup; $estado['rell'] += $rell;
+            $estado['guardado'] = $offset + count($lote);
+            file_put_contents($archivo, json_encode($estado));
+        }
+
+        $siguiente = $offset + self::LOTE_GUARDADO;
+        if ($siguiente < $total) $this->_json(['ok' => true, 'guardados' => min($estado['guardado'], $total), 'total' => $total, 'siguiente' => $siguiente]);
+
+        // Último lote: se deja el resumen en sesión (lo muestra la pantalla al recargar).
+        $aviso = null;
+        if ($total < ($estado['total'] ?? 0)) $aviso = "SUNAT informa {$estado['total']} comprobantes pero solo se recibieron {$total} distintos (páginas leídas: " . ($estado['paginas'] ?? '?') . ").";
+        $_SESSION['sync_resultado'][$tipo][$periodo] = [
+            'nuevos' => $estado['ins'], 'duplicados' => $estado['dup'], 'rellenados' => $estado['rell'],
+            'total' => $total, 'fuente' => $fuente,
+            'total_sunat' => $estado['total'] ?? 0, 'paginas' => $estado['paginas'] ?? 0, 'aviso' => $aviso,
+        ];
+        @unlink($archivo);
+        $this->_json(['ok' => true, 'fin' => true, 'guardados' => $total, 'total' => $total, 'nuevos' => $estado['ins']]);
     }
 
     /**

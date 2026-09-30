@@ -208,6 +208,128 @@ class SyncController
         header("Location: /empresas/{$empresaId}/sync?ok=1"); exit;
     }
 
+    /**
+     * Diagnóstico (solo superadmin): muestra qué devuelve SUNAT de verdad para
+     * un período y lo compara con lo guardado, para saber si faltan datos y
+     * por qué. Uso: /empresas/{id}/sync/diagnostico?periodo=202601&tipo=ventas
+     * Opcional: &f621=91999 (base declarada) para ver la diferencia.
+     */
+    public function diagnostico(int $empresaId): void
+    {
+        Auth::require();
+        if (!Auth::isSuperadmin()) { http_response_code(403); die('Solo superadmin'); }
+        $empresa = $this->_getEmpresa($empresaId);
+        if (!$empresa) { http_response_code(404); die('No encontrado'); }
+
+        header('Content-Type: text/plain; charset=utf-8');
+        set_time_limit(300);
+        $periodo = preg_match('/^\d{6}$/', $_GET['periodo'] ?? '') ? $_GET['periodo'] : date('Ym', strtotime('first day of -1 month'));
+        $tipo    = ($_GET['tipo'] ?? 'ventas') === 'compras' ? 'compras' : 'ventas';
+        $f621    = isset($_GET['f621']) ? (float)$_GET['f621'] : null;
+        $pdo     = Model::db();
+
+        $stmt = $pdo->prepare("SELECT sol_usuario, sol_clave, api_client_id, api_client_secret FROM empresa_certificados WHERE empresa_id = ? AND estado = 'activo' LIMIT 1");
+        $stmt->execute([$empresaId]);
+        $cert = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$cert || empty($cert['api_client_id'])) die('Sin credenciales API configuradas.');
+
+        $enc = new EncryptService();
+        $sunat = new SunatApiService();
+        $token = $sunat->getToken($enc->decrypt($cert['api_client_id']), $enc->decrypt($cert['api_client_secret']),
+            $empresa['ruc'], $enc->decrypt($cert['sol_usuario']), $enc->decrypt($cert['sol_clave']));
+
+        echo "DIAGNÓSTICO SIRE — {$empresa['razon_social']} — {$tipo} {$periodo}\n", str_repeat('=', 70), "\n\n";
+
+        foreach (['declarado', 'propuesta'] as $fuente) {
+            echo "── Fuente: {$fuente} ──\n";
+            try {
+                $r = $sunat->paginaCruda($token, $tipo, $empresa['ruc'], $periodo, $fuente, 1);
+            } catch (Throwable $e) { echo "  ERROR: ", $e->getMessage(), "\n\n"; continue; }
+            echo "  Claves de la respuesta : ", implode(', ', array_keys($r)), "\n";
+            echo "  paginacion             : ", json_encode($r['paginacion'] ?? null), "\n";
+            echo "  registros en pág. 1    : ", count($r['registros'] ?? []), "\n";
+            if (!empty($r['registros'][0])) echo "  1er registro (crudo)   : ", json_encode($r['registros'][0], JSON_UNESCAPED_UNICODE), "\n";
+            $totalSunat = (int)($r['paginacion']['totalRegistros'] ?? 0);
+            if ($totalSunat === 0) { echo "  (sin registros en esta fuente)\n\n"; continue; }
+
+            // Recorrer todas las páginas acumulando
+            $acumular = function (array &$grupo, string $clave, float $b, float $i, float $t): void {
+                $grupo[$clave] ??= ['n' => 0, 'base' => 0.0, 'igv' => 0.0, 'total' => 0.0];
+                $grupo[$clave]['n']++; $grupo[$clave]['base'] += $b; $grupo[$clave]['igv'] += $i; $grupo[$clave]['total'] += $t;
+            };
+            $porTipo = []; $porEstado = []; $porDia = []; $porPer = []; $series = []; $claves = []; $filas = 0; $sumB = $sumI = $sumT = 0.0; $rangos = 0;
+            for ($pg = 1; $pg <= 200; $pg++) {
+                try { $resp = $pg === 1 ? $r : $sunat->paginaCruda($token, $tipo, $empresa['ruc'], $periodo, $fuente, $pg); }
+                catch (Throwable $e) { echo "  Página {$pg}: ERROR ", $e->getMessage(), "\n"; break; }
+                $regs = $resp['registros'] ?? [];
+                echo "  Página {$pg}: ", count($regs), " registros\n";
+                if (!$regs) break;
+                foreach ($regs as $x) {
+                    $filas++;
+                    $tp = (string)($x['codTipoCDP'] ?? $x['codTipoComprobante'] ?? '?');
+                    $es = (string)($x['codEstadoComprobante'] ?? '?');
+                    $b = (float)($x['mtoBIGravada'] ?? ($x['montos']['mtoBIGravadaDG'] ?? 0));
+                    $i = (float)($x['mtoIGV'] ?? ($x['montos']['mtoIgvIpmDG'] ?? 0));
+                    $t = (float)($x['mtoTotalCP'] ?? ($x['montos']['mtoTotalCp'] ?? 0));
+                    $sumB += $b; $sumI += $i; $sumT += $t;
+                    $acumular($porTipo, $tp, $b, $i, $t);
+                    $acumular($porEstado, $es, $b, $i, $t);
+                    $fe = (string)($x['fecEmision'] ?? $x['fecEmisionCP'] ?? '?');
+                    $pt = (string)($x['perPeriodoTributario'] ?? '?');
+                    $porDia[$fe] = ($porDia[$fe] ?? 0) + 1;
+                    $porPer[$pt] = ($porPer[$pt] ?? 0) + 1;
+                    $sk = $tp . '-' . (string)($x['numSerieCDP'] ?? $x['numSerie'] ?? '?');
+                    $cn = (int)($x['numCDP'] ?? $x['numCdp'] ?? 0);
+                    if (!isset($series[$sk])) $series[$sk] = ['n' => 0, 'min' => $cn, 'max' => $cn, 'f_min' => $fe, 'f_max' => $fe, 'nums' => []];
+                    $series[$sk]['n']++; $series[$sk]['min'] = min($series[$sk]['min'], $cn); $series[$sk]['max'] = max($series[$sk]['max'], $cn);
+                    $series[$sk]['nums'][$cn] = true;
+                    foreach (array_keys($x) as $kk) $claves[$kk] = true;
+                    foreach ($x as $kk => $vv) if (preg_match('/final|rango|hasta/i', (string)$kk) && $vv !== '' && $vv !== null) { $rangos++; break; }
+                }
+                if ($filas >= $totalSunat) break;
+            }
+            echo "\n  Filas leídas: {$filas} de {$totalSunat} que informa SUNAT\n";
+            echo "  Filas con campo de rango/final (boletas agrupadas): {$rangos}\n";
+            echo sprintf("  SUMA  base=%.2f  igv=%.2f  total=%.2f\n", $sumB, $sumI, $sumT);
+            echo "  Por tipo de comprobante:\n";
+            foreach ($porTipo as $k => $a) echo sprintf("    %-3s n=%-6d base=%12.2f igv=%11.2f total=%12.2f\n", $k, $a['n'], $a['base'], $a['igv'], $a['total']);
+            echo "  Por estado:\n";
+            foreach ($porEstado as $k => $a) echo sprintf("    %-3s n=%-6d base=%12.2f igv=%11.2f total=%12.2f\n", $k, $a['n'], $a['base'], $a['igv'], $a['total']);
+            echo "  Campos de cada registro: ", implode(', ', array_keys($claves)), "\n";
+            // Distribución por fecha de emisión (dd/mm/aaaa o aaaa-mm-dd → ordenar por fecha real)
+            $orden = fn($f) => preg_match('/^(\d{2})\/(\d{2})\/(\d{4})/', $f, $m) ? "{$m[3]}-{$m[2]}-{$m[1]}" : $f;
+            uksort($porDia, fn($a, $b) => strcmp($orden($a), $orden($b)));
+            $dias = array_keys($porDia);
+            echo "\n  Fechas de emisión: ", count($dias), " días distintos · primera=", $dias[0] ?? '-', " · última=", end($dias) ?: '-', "\n";
+            echo "  Primeros 5 días: ", implode(' | ', array_map(fn($d) => "$d:{$porDia[$d]}", array_slice($dias, 0, 5))), "\n";
+            echo "  Últimos 5 días : ", implode(' | ', array_map(fn($d) => "$d:{$porDia[$d]}", array_slice($dias, -5))), "\n";
+            echo "  Por período tributario (perPeriodoTributario) — si hay más de uno, SUNAT mezcla períodos:\n";
+            foreach ($porPer as $k => $n) echo "    {$k}: {$n}\n";
+            echo "  Series y saltos de correlativo (faltantes = máx - mín + 1 - cantidad):\n";
+            foreach ($series as $k => $a) echo sprintf("    %-8s n=%-6d correlativo %d → %d  faltantes=%d\n", $k, $a['n'], $a['min'], $a['max'], $a['max'] - $a['min'] + 1 - count($a['nums']));
+            if ($f621 !== null && $tipo === 'ventas') echo sprintf("  F621 base declarada=%.2f  → diferencia contra SUNAT(base)=%.2f\n", $f621, $f621 - $sumB);
+            echo "\n";
+        }
+
+        $tabla = $tipo === 'ventas' ? 'registro_ventas' : 'registro_compras';
+        $st = $pdo->prepare("SELECT COUNT(*) n, COALESCE(SUM(base_imponible),0) base, COALESCE(SUM(igv),0) igv, COALESCE(SUM(total),0) total FROM {$tabla} WHERE empresa_id = ? AND periodo = ?");
+        $st->execute([$empresaId, $periodo]);
+        $db = $st->fetch(PDO::FETCH_ASSOC);
+        echo "── Guardado en GestiCont ({$tabla}) ──\n";
+        echo sprintf("  n=%d base=%.2f igv=%.2f total=%.2f\n", $db['n'], $db['base'], $db['igv'], $db['total']);
+        $st = $pdo->prepare("SELECT tipo_comp, estado_sunat, COUNT(*) n, SUM(base_imponible) base FROM {$tabla} WHERE empresa_id = ? AND periodo = ? GROUP BY tipo_comp, estado_sunat");
+        $st->execute([$empresaId, $periodo]);
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $x) echo sprintf("    tipo=%s estado=%s n=%d base=%.2f\n", $x['tipo_comp'], $x['estado_sunat'], $x['n'], $x['base']);
+        $st = $pdo->prepare("SELECT MIN(fecha_emision) f1, MAX(fecha_emision) f2, COUNT(DISTINCT fecha_emision) dias FROM {$tabla} WHERE empresa_id = ? AND periodo = ?");
+        $st->execute([$empresaId, $periodo]);
+        $x = $st->fetch(PDO::FETCH_ASSOC);
+        echo "  Fechas guardadas: {$x['f1']} → {$x['f2']} ({$x['dias']} días distintos)\n";
+        $st = $pdo->prepare("SELECT tipo_comp, serie, COUNT(*) n, MIN(correlativo) mn, MAX(correlativo) mx FROM {$tabla} WHERE empresa_id = ? AND periodo = ? GROUP BY tipo_comp, serie");
+        $st->execute([$empresaId, $periodo]);
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $x) echo sprintf("    %s-%-6s n=%-6d correlativo %d → %d  faltantes=%d\n", $x['tipo_comp'], $x['serie'], $x['n'], $x['mn'], $x['mx'], $x['mx'] - $x['mn'] + 1 - $x['n']);
+        exit;
+    }
+
     private function _getEmpresa(int $id): ?array
     {
         $pdo = Model::db();

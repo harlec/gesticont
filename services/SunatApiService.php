@@ -173,6 +173,19 @@ class SunatApiService
         return $this->paginar(fn(int $page, ?string $f) => $this->getComprasPeriodo($token, $ruc, $periodo, $page, 100, $f), "compras {$periodo}");
     }
 
+    /** Una página SIN normalizar — solo para diagnóstico (ver qué devuelve SUNAT realmente). */
+    public function paginaCruda(string $token, string $tipo, string $ruc, string $periodo, string $fuente, int $page, int $perPage = 100): array
+    {
+        if ($tipo === 'ventas') {
+            $url = self::SIRE_BASE . "/libros/rvie/propuesta/web/propuesta/{$periodo}/comprobantes?page={$page}&perPage={$perPage}";
+            if ($fuente === 'declarado') $url .= '&codTipoResumen=5';
+            return $this->get($url, $token);
+        }
+        $url = self::SIRE_BASE . "/libros/rce/propuesta/web/propuesta/{$periodo}/busqueda?codTipoOpe=3&page={$page}&perPage={$perPage}";
+        if ($fuente === 'declarado') $url .= '&codTipoResumen=5';
+        return $this->get($url, $token, $ruc);
+    }
+
     private function normalizarVenta(array $i): array
     {
         return [

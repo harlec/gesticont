@@ -37,6 +37,9 @@ class App {
         $router->post('/empresas/{id}/sync/plan',    'sync/SyncController@plan');
         $router->post('/empresas/{id}/sync/paso',    'sync/SyncController@paso');
         $router->get('/empresas/{id}/sync/diagnostico','sync/SyncController@diagnostico');
+        // Depuración de data anterior al período mínimo (solo superadmin)
+        $router->get('/empresas/{id}/depurar',       'depurar/DepurarController@index');
+        $router->post('/empresas/{id}/depurar/paso', 'depurar/DepurarController@paso');
         // Motor contable — clasificación (imputación) manual
         $router->get('/empresas/{id}/imputacion',            'imputacion/ImputacionController@index');
         $router->post('/empresas/{id}/imputacion/clasificar','imputacion/ImputacionController@clasificar');

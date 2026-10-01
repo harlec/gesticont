@@ -156,6 +156,15 @@ function badgeFuente(?string $fuente): string {
     <?php endif; ?>
 </div>
 
+<?php if (Auth::isSuperadmin()): ?>
+<div class="gc-content gc-w-content" style="padding-top:0;">
+    <div style="font-size:12px;color:var(--gc-muted);text-align:right;">
+        Solo superadmin ·
+        <a href="/empresas/<?= $empresa['id'] ?>/depurar" style="color:var(--gc-neg);text-decoration:underline;">Depurar datos anteriores a <?= Periodo::etiqueta(Periodo::minimo(), true) ?></a>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- Progreso de la sincronización por partes -->
 <div id="syncOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;align-items:center;justify-content:center;padding:16px;">
     <div style="background:var(--gc-surface);border-radius:14px;max-width:560px;width:100%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.35);">

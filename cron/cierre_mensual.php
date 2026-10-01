@@ -10,6 +10,8 @@ require_once ROOT . '/core/Model.php';
 
 $log = fn(string $msg) => print("[" . date('Y-m-d H:i:s') . "] $msg\n");
 $periodo = date('Ym', strtotime('first day of last month'));
+require_once ROOT . '/core/Periodo.php';
+if (!Periodo::permitido($periodo)) { echo "Período {$periodo} anterior al mínimo habilitado — nada que hacer.\n"; exit; }
 $log("=== CIERRE MENSUAL $periodo ===");
 $db = Model::db();
 $empresas = $db->query("SELECT id, ruc, razon_social, regimen FROM empresas WHERE activo = 1")->fetchAll(PDO::FETCH_ASSOC);

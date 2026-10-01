@@ -22,6 +22,8 @@ $sunat   = new SunatApiService();
 
 // Período anterior
 $periodo = date('Ym', strtotime('first day of last month'));
+require_once ROOT . '/core/Periodo.php';
+if (!Periodo::permitido($periodo)) { echo "Período {$periodo} anterior al mínimo habilitado — nada que hacer.\n"; exit; }
 $log("Período: {$periodo}");
 
 // Empresas activas con credenciales

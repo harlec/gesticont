@@ -1,5 +1,5 @@
 <?php
-$anios = range((int)date('Y'), (int)date('Y') - 4);
+$anios = Periodo::anios();
 ?>
 
 <div class="gc-content gc-w-content">

@@ -15,8 +15,7 @@ class SyncController
 
         $pdo = Model::db();
 
-        $periodos = [];
-        for ($i = 1; $i <= 12; $i++) $periodos[] = date('Ym', strtotime("first day of -{$i} month"));
+        $periodos = Periodo::opciones();
 
         $stmtV = $pdo->prepare("
             SELECT periodo, COUNT(*) as cant, SUM(total) as total, MAX(fuente) as fuente
@@ -47,7 +46,7 @@ class SyncController
         $rango   = $in['rango']   ?? 'periodo';
         $periodo = $in['periodo'] ?? date('Ym', strtotime('first day of -1 month'));
         if ($rango === 'todo') {
-            return array_map(fn($i) => date('Ym', strtotime("first day of -{$i} month")), range(1, 12));
+            return Periodo::opciones(12);
         }
         if ($rango === 'anio') {
             // Año vigente desde enero hasta el mes anterior (el mes en curso
@@ -55,9 +54,9 @@ class SyncController
             // año, así que solo entonces se incluye el mes actual.
             $anio  = (int)date('Y');
             $hasta = max(1, (int)date('n') - 1);
-            return array_map(fn($m) => sprintf('%04d%02d', $anio, $m), range(1, $hasta));
+            return array_values(array_filter(array_map(fn($m) => sprintf('%04d%02d', $anio, $m), range(1, $hasta)), [Periodo::class, 'permitido']));
         }
-        return [preg_match('/^\d{6}$/', $periodo) ? $periodo : date('Ym', strtotime('first day of -1 month'))];
+        return [Periodo::permitido($periodo) ? $periodo : max(Periodo::minimo(), date('Ym', strtotime('first day of -1 month')))];
     }
 
     /* ---- Estado de la sincronización fuera de la sesión ----------------
@@ -296,7 +295,7 @@ class SyncController
 
         $tipo    = ($_POST['tipo'] ?? '') === 'compras' ? 'compras' : 'ventas';
         $periodo = $_POST['periodo'] ?? '';
-        if (!preg_match('/^\d{6}$/', $periodo)) $this->_json(['ok' => false, 'error' => 'Período inválido']);
+        if (!Periodo::permitido($periodo)) $this->_json(['ok' => false, 'error' => 'Período fuera del rango habilitado (desde ' . Periodo::etiqueta(Periodo::minimo()) . ').']);
         $fase    = $_POST['fase'] ?? '';
         $archivo = $this->_archivoTemporal($empresaId, $tipo, $periodo);
         // Por debajo del corte de nginx (60 s): un paso trabado muere solo en vez de quedarse ocupando PHP.

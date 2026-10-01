@@ -17,6 +17,8 @@ $encrypt = new EncryptService();
 $sunat = new SunatApiService();
 $empresas = $db->query("SELECT e.id, e.ruc, e.razon_social, ec.sol_usuario, ec.sol_clave, ec.ambiente FROM empresas e INNER JOIN empresa_certificados ec ON ec.empresa_id = e.id AND ec.estado = 'activo' WHERE e.activo = 1")->fetchAll(PDO::FETCH_ASSOC);
 $periodo = date('Ym', strtotime('first day of last month'));
+require_once ROOT . '/core/Periodo.php';
+if (!Periodo::permitido($periodo)) { echo "Período {$periodo} anterior al mínimo habilitado — nada que hacer.\n"; exit; }
 foreach ($empresas as $empresa) {
     try {
         $log("Procesando: {$empresa['razon_social']}");

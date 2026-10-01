@@ -11,19 +11,54 @@
  */
 class Periodo
 {
+    /**
+     * Primer período (YYYYMM) con el que trabaja el sistema: nada anterior se
+     * ofrece en selectores ni se sincroniza. Es un filtro de visualización y de
+     * sincronización — no borra datos. Se puede cambiar con PERIODO_MINIMO en .env.
+     */
+    public static function minimo(): string
+    {
+        $m = getenv('PERIODO_MINIMO');
+        return ($m && preg_match('/^\d{6}$/', $m)) ? $m : '202601';
+    }
+
+    public static function permitido(string $periodo): bool
+    {
+        return (bool)preg_match('/^\d{6}$/', $periodo) && $periodo >= self::minimo();
+    }
+
+    /** Últimos $n meses (a partir de $desde meses atrás; 1 = el mes pasado), sin anteriores al mínimo. */
+    public static function opciones(int $n = 12, int $desde = 1): array
+    {
+        $out = [];
+        for ($i = $desde; $i < $desde + $n; $i++) {
+            $p = date('Ym', strtotime("first day of -{$i} month"));
+            if (self::permitido($p)) $out[] = $p;
+        }
+        return $out;
+    }
+
+    /** Años disponibles (más reciente primero), desde el año actual hasta el del período mínimo. */
+    public static function anios(): array
+    {
+        return range((int)date('Y'), max((int)substr(self::minimo(), 0, 4), 2000));
+    }
+
     public static function resolver(int $empresaId): string
     {
-        if (!empty($_GET['periodo']) && preg_match('/^\d{6}$/', $_GET['periodo'])) {
+        if (!empty($_GET['periodo']) && self::permitido($_GET['periodo'])) {
             $_SESSION['periodo_activo'][$empresaId] = $_GET['periodo'];
         }
-        return $_SESSION['periodo_activo'][$empresaId] ?? date('Ym', strtotime('first day of -1 month'));
+        $guardado = $_SESSION['periodo_activo'][$empresaId] ?? null;
+        if ($guardado && self::permitido($guardado)) return $guardado;
+        return max(self::minimo(), date('Ym', strtotime('first day of -1 month')));
     }
 
     /** Para pantallas a nivel de año (Apertura, Cierre) — respeta un
      *  ?anio= explícito si viene, si no deriva del período activo. */
     public static function anio(int $empresaId): int
     {
-        if (!empty($_GET['anio'])) return (int)$_GET['anio'];
+        if (!empty($_GET['anio'])) return max((int)$_GET['anio'], (int)substr(self::minimo(), 0, 4));
         return (int)substr(self::resolver($empresaId), 0, 4);
     }
 

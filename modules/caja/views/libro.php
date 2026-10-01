@@ -1,6 +1,6 @@
 <?php
 $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
-$anios = range((int)date('Y'), (int)date('Y') - 4);
+$anios = Periodo::anios();
 $colsI = $columnas['ingreso']; $colsE = $columnas['egreso'];
 $th  = 'padding:7px 10px;text-align:right;font-weight:700;color:var(--gc-muted);white-space:nowrap;';
 $td  = 'padding:6px 10px;text-align:right;font-family:monospace;white-space:nowrap;';

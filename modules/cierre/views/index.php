@@ -1,5 +1,5 @@
 <?php
-$anios = range((int)date('Y'), (int)date('Y') - 4);
+$anios = Periodo::anios();
 $fmt = fn($v) => number_format((float)$v, 2);
 ?>
 

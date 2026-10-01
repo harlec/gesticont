@@ -53,6 +53,11 @@ class CobranzaController
             if ($estado === 'todos' || $estado === $d['estado']) $docs[] = $d;
         }
 
+        // Esta pantalla solo lista lo ya clasificado: se cuenta lo pendiente del período para avisarlo.
+        $stmtPend = $pdo->prepare("SELECT COUNT(*) FROM {$c['tabla']} WHERE empresa_id = ? AND periodo = ? AND estado_imputacion = 'pendiente' AND estado_sunat = '1'");
+        $stmtPend->execute([$empresaId, $periodo]);
+        $sinClasificar = (int)$stmtPend->fetchColumn();
+
         // Períodos con comprobantes clasificados, para el selector.
         $stmtP = $pdo->prepare("
             SELECT DISTINCT periodo FROM {$c['tabla']}

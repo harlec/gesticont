@@ -28,6 +28,13 @@ $inp = 'padding:6px 8px;border:1px solid var(--gc-line);border-radius:6px;font-s
     </div>
     <?php unset($_SESSION['cobranza_error']); endif; ?>
 
+    <?php if (!empty($sinClasificar)): ?>
+    <div style="background:var(--gc-warn-soft);color:var(--gc-warn);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
+        ⚠ Hay <?= number_format($sinClasificar) ?> <?= $esVenta ? 'venta(s)' : 'compra(s)' ?> de este período <strong>sin clasificar</strong>: no aparecen aquí hasta que las
+        <a href="/empresas/<?= $empresa['id'] ?>/imputacion" style="color:var(--gc-warn);text-decoration:underline;">clasifiques en Imputación</a>.
+    </div>
+    <?php endif; ?>
+
     <div style="margin-bottom:14px;">
         <div style="font-size:16px;font-weight:700;color:var(--gc-ink);">Cobros y pagos</div>
         <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;">

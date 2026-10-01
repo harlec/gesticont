@@ -1,7 +1,7 @@
 <?php
 $fmt   = fn($v) => number_format((float)$v, 2);
 $base  = "/empresas/{$empresa['id']}/asientos";
-$anios = range((int)date('Y'), (int)date('Y') - 4);
+$anios = Periodo::anios();
 if (!in_array($anio, $anios, true)) array_unshift($anios, $anio);
 
 // Borrador tras un error de validación (no se pierde lo digitado) o asiento en edición.

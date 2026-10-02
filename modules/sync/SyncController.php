@@ -166,10 +166,15 @@ class SyncController
         return [$ins, $dup];
     }
 
-    /** Guarda compras ya descargadas; devuelve [nuevos, duplicados, rellenados]. */
+    /**
+     * Guarda compras ya descargadas; devuelve [nuevos, duplicados, rellenados, choques, muestras].
+     * "Choque" = otro proveedor ya usa el mismo tipo-serie-número y la clave única de la base
+     * (que en producción NO incluye al proveedor) no admite ambos: se cuenta y se informa, en vez
+     * de abortar todo el período con un error de clave duplicada.
+     */
     private function _guardarCompras(PDO $pdo, int $empresaId, string $p, string $fuente, array $compras): array
     {
-        $ins = 0; $dup = 0; $rellenados = 0;
+        $ins = 0; $dup = 0; $rellenados = 0; $choques = 0; $muestras = [];
         foreach ($compras as $c) {
             // La clave única de la tabla incluye al proveedor: dos proveedores
             // distintos pueden emitir el mismo F001-123. Sin el RUC en la búsqueda
@@ -198,24 +203,34 @@ class SyncController
                 }
                 $dup++; continue;
             }
-            $pdo->prepare("
-                INSERT INTO registro_compras
-                    (empresa_id, periodo, id_sire, cod_car, tipo_comp, serie, correlativo,
-                     fecha_emision, proveedor_tipo_doc, proveedor_ruc, proveedor_nombre,
-                     moneda, tipo_cambio, base_imponible, igv, exonerado, inafecto,
-                     total, estado_sunat, fuente)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            ")->execute([
-                $empresaId, $p, $c['id_sire'], $c['cod_car'],
-                $c['tipo_comp'], $c['serie'], $c['correlativo'],
-                $c['fecha_emision'], $c['proveedor_tipo_doc'], $c['proveedor_ruc'],
-                $c['proveedor_nombre'], $c['moneda'], $c['tipo_cambio'],
-                $c['base_imponible'], $c['igv'], $c['exonerado'], $c['inafecto'],
-                $c['total'], $c['estado_sunat'], $fuente,
-            ]);
-            $ins++;
+            try {
+                $pdo->prepare("
+                    INSERT INTO registro_compras
+                        (empresa_id, periodo, id_sire, cod_car, tipo_comp, serie, correlativo,
+                         fecha_emision, proveedor_tipo_doc, proveedor_ruc, proveedor_nombre,
+                         moneda, tipo_cambio, base_imponible, igv, exonerado, inafecto,
+                         total, estado_sunat, fuente)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ")->execute([
+                    $empresaId, $p, $c['id_sire'], $c['cod_car'],
+                    $c['tipo_comp'], $c['serie'], $c['correlativo'],
+                    $c['fecha_emision'], $c['proveedor_tipo_doc'], $c['proveedor_ruc'],
+                    $c['proveedor_nombre'], $c['moneda'], $c['tipo_cambio'],
+                    $c['base_imponible'], $c['igv'], $c['exonerado'], $c['inafecto'],
+                    $c['total'], $c['estado_sunat'], $fuente,
+                ]);
+                $ins++;
+            } catch (PDOException $e) {
+                if ((int)($e->errorInfo[1] ?? 0) !== 1062) throw $e;
+                $choques++;
+                if (count($muestras) < 5) {
+                    $ex = $pdo->prepare("SELECT proveedor_ruc FROM registro_compras WHERE empresa_id=? AND tipo_comp=? AND serie=? AND correlativo=? LIMIT 1");
+                    $ex->execute([$empresaId, $c['tipo_comp'], $c['serie'], $c['correlativo']]);
+                    $muestras[] = "{$c['tipo_comp']}-{$c['serie']}-{$c['correlativo']} (RUC {$c['proveedor_ruc']}; ya guardado con RUC " . ($ex->fetchColumn() ?: '—') . ')';
+                }
+            }
         }
-        return [$ins, $dup, $rellenados];
+        return [$ins, $dup, $rellenados, $choques, $muestras];
     }
 
     /**
@@ -377,12 +392,14 @@ class SyncController
             $lote = array_slice($filas, $offset, self::LOTE_GUARDADO);
             $pdo->beginTransaction();
             try {
-                [$ins, $dup, $rell] = $tipo === 'ventas'
-                    ? [...$this->_guardarVentas($pdo, $empresaId, $periodo, $fuente, $lote), 0]
+                [$ins, $dup, $rell, $cho, $mue] = $tipo === 'ventas'
+                    ? [...$this->_guardarVentas($pdo, $empresaId, $periodo, $fuente, $lote), 0, 0, []]
                     : $this->_guardarCompras($pdo, $empresaId, $periodo, $fuente, $lote);
                 $pdo->commit();
             } catch (Throwable $e) { $pdo->rollBack(); throw $e; }
             $estado['ins'] += $ins; $estado['dup'] += $dup; $estado['rell'] += $rell;
+            $estado['choques'] = ($estado['choques'] ?? 0) + $cho;
+            $estado['muestras'] = array_slice(array_merge($estado['muestras'] ?? [], $mue), 0, 5);
             $estado['guardado'] = $offset + count($lote);
             file_put_contents($archivo, json_encode($estado));
         }
@@ -392,7 +409,10 @@ class SyncController
 
         // Último lote: se deja el resumen en sesión (lo muestra la pantalla al recargar).
         $aviso = null;
-        if ($total < ($estado['total'] ?? 0)) $aviso = "SUNAT informa {$estado['total']} comprobantes pero solo se recibieron {$total} distintos (páginas leídas: " . ($estado['paginas'] ?? '?') . ").";
+        if (($estado['choques'] ?? 0) > 0) {
+            $aviso = $estado['choques'] . ' compra(s) NO se pudieron guardar: otro proveedor ya tiene el mismo tipo-serie-número y la clave única de la base no admite ambos. Ejemplos: '
+                   . implode('; ', $estado['muestras'] ?? []) . '. Solución: aplicar la migración fase1j_uq_compra_proveedor.sql.';
+        } elseif ($total < ($estado['total'] ?? 0)) $aviso = "SUNAT informa {$estado['total']} comprobantes pero solo se recibieron {$total} distintos (páginas leídas: " . ($estado['paginas'] ?? '?') . ").";
         $this->_resultadoGuardar($empresaId, $tipo, $periodo, [
             'nuevos' => $estado['ins'], 'duplicados' => $estado['dup'], 'rellenados' => $estado['rell'],
             'total' => $total, 'fuente' => $fuente,

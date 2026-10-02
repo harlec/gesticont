@@ -196,12 +196,20 @@ $labelMes  = fn($p) => Periodo::etiqueta($p);
                                 ✓ Confirmar
                             </button>
                         </div>
+                        <?php if ((float)$doc['total'] < 0): ?>
+                        <div style="font-size:12px;color:var(--gc-warn);">
+                            <input type="checkbox" class="im-cobrado" name="cobrado" disabled style="display:none;">
+                            <input type="date" name="fecha_cobro" class="im-fecha-cobro" value="<?= $doc['fecha_emision'] ?>" disabled style="display:none;">
+                            ↩ Nota de crédito: <?= $esVenta ? 'anula la venta (resta del total vendido). Si la factura original figura como cobrada, pásala a crédito en Cobros y pagos' : 'queda como saldo a favor para otra compra' ?>. No genera cobro ni pago.
+                        </div>
+                        <?php else: ?>
                         <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gc-label);cursor:pointer;">
                             <input type="checkbox" class="im-cobrado" name="cobrado" checked style="width:14px;height:14px;">
                             <?= $esVenta ? '¿Ya se cobró?' : '¿Ya se pagó?' ?>
                             <input type="date" name="fecha_cobro" class="im-fecha-cobro" value="<?= $doc['fecha_emision'] ?>"
                                    style="padding:3px 6px;border:1px solid var(--gc-line);border-radius:6px;font-size:12px;color:var(--gc-label);">
                         </label>
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>

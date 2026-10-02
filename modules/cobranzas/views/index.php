@@ -11,6 +11,7 @@ $badge     = [
     'pagado'  => ['var(--gc-pos-soft)',  'var(--gc-pos)',  $esVenta ? 'Cobrado' : 'Pagado'],
     'parcial' => ['var(--gc-warn-soft)', 'var(--gc-warn)', 'Parcial'],
     'credito' => ['var(--gc-neg-soft)',  'var(--gc-neg)',  'A crédito'],
+    'nota'    => ['var(--gc-surface-2)', 'var(--gc-label)', 'Nota de crédito'],
 ];
 $inp = 'padding:6px 8px;border:1px solid var(--gc-line);border-radius:6px;font-size:12px;color:var(--gc-ink);background:var(--gc-surface);';
 ?>
@@ -142,7 +143,7 @@ $inp = 'padding:6px 8px;border:1px solid var(--gc-line);border-radius:6px;font-s
                     </td>
                     <td style="padding:8px 14px;">
                         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                            <?php if ($d['estado'] !== 'pagado'): ?>
+                            <?php if ($d['estado'] !== 'pagado' && $d['estado'] !== 'nota'): ?>
                             <form method="POST" action="<?= $base ?>/registrar" style="display:flex;gap:6px;align-items:center;">
                                 <input type="hidden" name="origen" value="<?= $origen ?>">
                                 <input type="hidden" name="periodo" value="<?= $periodo ?>">

@@ -253,6 +253,11 @@ class ImputacionController
         // (caso más común — pagado/cobrado al contado el mismo día).
         $fechaCobro = $fecha ?: $doc['fecha_emision'];
 
+        // Nota de crédito (monto negativo): en ventas anula/reduce la operación y en compras queda
+        // como saldo a favor para otra compra — no mueve dinero, así que no genera cobro ni pago.
+        // (Antes el servicio rechazaba el monto negativo y la clasificación entera fallaba.)
+        $esNota = (float)$doc['total'] < 0;
+
         Model::beginTransaction();
         try {
             $pdo->prepare("
@@ -268,7 +273,7 @@ class ImputacionController
             // emitió). Genera el movimiento de Caja contra la cuenta por
             // cobrar/pagar (121/421) que la clasificación normal deja abierta,
             // para no tener que repetir el dato a mano en la pantalla de Caja.
-            if ($cobrado) {
+            if ($cobrado && !$esNota) {
                 $r = CobroPagoService::registrar($empresaId, $origen, $documentoId, (float)$doc['total'], $fechaCobro, Auth::id());
                 if (!$r['ok']) {
                     Model::rollback();
@@ -282,7 +287,7 @@ class ImputacionController
             return ['ok' => false, 'error' => 'Error al guardar la clasificación.'];
         }
 
-        return ['ok' => true, 'cuenta_codigo' => $tipo['codigo'], 'cuenta_nombre' => $tipo['nombre'], 'cobrado' => $cobrado];
+        return ['ok' => true, 'cuenta_codigo' => $tipo['codigo'], 'cuenta_nombre' => $tipo['nombre'], 'cobrado' => $cobrado && !$esNota, 'nota_credito' => $esNota];
     }
 
     private function _getEmpresa(int $id): ?array

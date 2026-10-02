@@ -39,13 +39,22 @@ class CobranzaController
         $stmt->execute([$empresaId, $c['tipoMov'], $empresaId, $periodo]);
 
         $docs = [];
-        $resumen = ['total' => 0.0, 'pagado' => 0.0, 'saldo' => 0.0, 'credito' => 0, 'parcial' => 0, 'pagado_n' => 0];
+        $resumen = ['total' => 0.0, 'pagado' => 0.0, 'saldo' => 0.0, 'credito' => 0, 'parcial' => 0, 'pagado_n' => 0, 'notas' => 0];
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $d) {
             $total  = round((float)$d['total'], 2);
             $pagado = round((float)$d['pagado'], 2);
             $saldo  = round($total - $pagado, 2);
             $d['saldo']  = $saldo;
             $d['estado'] = $saldo <= CobroPagoService::TOLERANCIA ? 'pagado' : ($pagado > 0 ? 'parcial' : 'credito');
+
+            // Nota de crédito (total negativo): no se cobra ni se paga; resta del total del período y queda aparte.
+            if ((float)$d['total'] < 0) {
+                $d['estado'] = 'nota';
+                $resumen['total'] += (float)$d['total'];
+                $resumen['notas']++;
+                if ($estado === 'todos') $docs[] = $d;
+                continue;
+            }
 
             $resumen['total'] += $total; $resumen['pagado'] += $pagado; $resumen['saldo'] += max($saldo, 0);
             $resumen[$d['estado'] === 'pagado' ? 'pagado_n' : $d['estado']]++;

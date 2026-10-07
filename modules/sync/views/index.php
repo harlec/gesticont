@@ -257,7 +257,7 @@ async function iniciarSync(form) {
         document.getElementById('syncTareas').textContent = `Tarea ${Math.min(i + 1, n)} de ${n}`;
     };
 
-    let detenido = false;
+    let detenido = false, ultimaFalla = '';
     for (let i = 0; i < n && !syncCancelado && !detenido; i++) {
         const t = tareas[i], nombre = `${t.tipo === 'ventas' ? 'ventas' : 'compras'} ${etiquetaPeriodo(t.periodo)}`;
         const det = txt => document.getElementById('syncDetalle').textContent = txt;
@@ -269,7 +269,7 @@ async function iniciarSync(form) {
         while (page && !syncCancelado) {
             det(`Descargando ${nombre}…` + (total ? ` ${num(total.unicos)} de ${num(total.total)}` : ''));
             const r = await syncPost('/paso', {fase:'descargar', tipo:t.tipo, periodo:t.periodo, page});
-            if (!r.ok) { falla = r.error; if (r.gateway) detenido = true; break; }
+            if (!r.ok) { falla = r.error; if (r.gateway || r.fatal) detenido = true; break; }
             if (r.reintentar) { page = 1; continue; }
             total = r;
             progreso(i, r.total ? 0.5 * Math.min(1, r.unicos / r.total) : 0.5);
@@ -288,12 +288,13 @@ async function iniciarSync(form) {
             if (r.fin) { fin = true; syncLog(`✓ ${nombre}: ${num(r.total)} comprobantes (${num(r.nuevos)} nuevos)` + (aviso ? ` — <span style="color:var(--gc-neg);font-weight:600;">⚠ incompleto</span>` : '')); }
             else offset = r.siguiente;
         }
+        if (falla) ultimaFalla = falla;
         if (falla) syncLog(`<span style="color:var(--gc-neg);">⚠ ${nombre}: ${falla}</span>`);
     }
 
     progreso(n, 0);
     if (detenido) {
-        document.getElementById('syncDetalle').textContent = '⚠ Se detuvo: el servidor tardó demasiado. No reintentes de inmediato; avisa a soporte con este mensaje.';
+        document.getElementById('syncDetalle').textContent = ultimaFalla && !/tard/i.test(ultimaFalla) ? '⚠ Se detuvo: ' + ultimaFalla : '⚠ Se detuvo: el servidor tardó demasiado. No reintentes de inmediato; avisa a soporte con este mensaje.';
         document.getElementById('syncDetalle').style.color = 'var(--gc-neg)';
         const b = document.getElementById('syncCancelar'); b.disabled = false; b.textContent = 'Cerrar'; b.onclick = () => location.reload();
         return false;

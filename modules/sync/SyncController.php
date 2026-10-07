@@ -113,6 +113,15 @@ class SyncController
             if ($c && $c['exp'] > time()) return [$sunat, $c['token']];
         }
 
+        // SUNAT rechazó las credenciales hace poco: no insistir. Varios intentos fallidos seguidos
+        // pueden bloquear el usuario SOL, y repetirlos por cada período solo lo empeora.
+        $bloqueo = sprintf('%s/rechazo_%d.json', $this->_dirSync(), $empresaId);
+        if (is_file($bloqueo)) {
+            $b = json_decode((string)file_get_contents($bloqueo), true);
+            if ($b && $b['hasta'] > time()) throw new RuntimeException($b['mensaje']);
+            @unlink($bloqueo);
+        }
+
         $stmt = Model::db()->prepare("
             SELECT sol_usuario, sol_clave, api_client_id, api_client_secret
             FROM empresa_certificados WHERE empresa_id = ? AND estado = 'activo' LIMIT 1
@@ -121,11 +130,21 @@ class SyncController
         $cert = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$cert || empty($cert['api_client_id'])) throw new RuntimeException('Sin credenciales API configuradas.');
 
-        $enc   = new EncryptService();
-        $token = $sunat->getToken(
-            $enc->decrypt($cert['api_client_id']), $enc->decrypt($cert['api_client_secret']),
-            $empresa['ruc'], $enc->decrypt($cert['sol_usuario']), $enc->decrypt($cert['sol_clave'])
-        );
+        $enc = new EncryptService();
+        try {
+            $token = $sunat->getToken(
+                $enc->decrypt($cert['api_client_id']), $enc->decrypt($cert['api_client_secret']),
+                $empresa['ruc'], $enc->decrypt($cert['sol_usuario']), $enc->decrypt($cert['sol_clave'])
+            );
+        } catch (RuntimeException $e) {
+            if (!str_contains($e->getMessage(), 'Token SUNAT fallido')) throw $e;
+            $msg = str_contains($e->getMessage(), 'access_denied')
+                ? 'SUNAT rechazó las credenciales de esta empresa (usuario SOL o clave incorrectos, vencidos o bloqueados). Verifícalos entrando al portal de SUNAT con ese usuario y actualízalos en la empresa. No se reintentará por 10 minutos para no bloquear el usuario SOL.'
+                : $e->getMessage();
+            file_put_contents($bloqueo, json_encode(['hasta' => time() + 600, 'mensaje' => $msg]), LOCK_EX);
+            throw new RuntimeException($msg);
+        }
+        @unlink($bloqueo);
         file_put_contents($archivo, json_encode(['token' => $token, 'exp' => time() + 1500]), LOCK_EX);
         @chmod($archivo, 0600);
         return [$sunat, $token];
@@ -325,7 +344,8 @@ class SyncController
         } catch (Throwable $e) {
             $this->_resultadoGuardar($empresaId, $tipo, $periodo, ['error' => $e->getMessage()]);
             @unlink($archivo);
-            $this->_json(['ok' => false, 'error' => $e->getMessage()]);
+            $fatal = str_contains($e->getMessage(), 'no permite el acceso a SIRE') || str_contains($e->getMessage(), 'rechazó las credenciales') || str_contains($e->getMessage(), 'Token SUNAT fallido') || str_contains($e->getMessage(), 'Sin credenciales');
+            $this->_json(['ok' => false, 'error' => $e->getMessage(), 'fatal' => $fatal]);
         }
     }
 
@@ -344,6 +364,10 @@ class SyncController
         $ini = microtime(true);
         $r = $pedir(false);
         if (!empty($r['error']) && str_contains($r['error'], 'HTTP 401')) $r = $pedir(true);   // token vencido
+        if (!empty($r['error']) && str_contains($r['error'], 'HTTP 401')) {
+            // El token se obtuvo bien (las credenciales pasaron) pero SIRE no deja entrar con él.
+            throw new RuntimeException('SUNAT aceptó el usuario SOL pero no permite el acceso a SIRE (HTTP 401). Suele ser que el usuario SOL no tiene el permiso de SIRE, o que este RUC no está habilitado en SIRE (p. ej. asociaciones o sindicatos sin obligación de llevar registros de compras y ventas). Verifícalo entrando a SUNAT Operaciones en Línea con ese usuario: si no aparece SIRE en el menú, la API tampoco funcionará.');
+        }
         $this->_msSunat = (microtime(true) - $ini) * 1000;
 
         // SUNAT rechazó el tamaño de página grande: se repite la página 1 con 100.
@@ -448,11 +472,35 @@ class SyncController
         if (!$cert || empty($cert['api_client_id'])) die('Sin credenciales API configuradas.');
 
         $enc = new EncryptService();
-        $sunat = new SunatApiService();
-        $token = $sunat->getToken($enc->decrypt($cert['api_client_id']), $enc->decrypt($cert['api_client_secret']),
-            $empresa['ruc'], $enc->decrypt($cert['sol_usuario']), $enc->decrypt($cert['sol_clave']));
+        try { [$sunat, $token] = $this->_sire($empresaId, $empresa, true); }   // token FRESCO (no el guardado)
+        catch (Throwable $e) { die('No se pudo obtener el token: ' . $e->getMessage()); }
 
         echo "DIAGNÓSTICO SIRE — {$empresa['razon_social']} — {$tipo} {$periodo}\n", str_repeat('=', 70), "\n\n";
+
+        // ── Qué token nos dieron y cómo responde SIRE a una consulta simple ──
+        echo "── Token ──\n";
+        $partes = explode('.', $token);
+        $claims = count($partes) >= 2 ? json_decode(base64_decode(strtr($partes[1], '-_', '+/')), true) : null;
+        if (is_array($claims)) {
+            foreach (['sub', 'username', 'user', 'aud', 'scope', 'client_id', 'iss'] as $k) if (isset($claims[$k])) echo "  {$k}: ", is_array($claims[$k]) ? json_encode($claims[$k]) : $claims[$k], "\n";
+            if (isset($claims['exp'])) echo '  vence: ', date('Y-m-d H:i:s', (int)$claims['exp']), ' (en ', (int)$claims['exp'] - time(), " s)\n";
+            if (isset($claims['iat'])) echo '  emitido: ', date('Y-m-d H:i:s', (int)$claims['iat']), "\n";
+            echo "  otras claves: ", implode(', ', array_diff(array_keys($claims), ['sub','username','user','aud','scope','client_id','iss','exp','iat'])), "\n";
+        } else {
+            echo "  (el token no es un JWT legible; longitud ", strlen($token), ")\n";
+        }
+        echo "  RUC de la empresa: {$empresa['ruc']}\n";
+        $url = 'https://api-sire.sunat.gob.pe/v1/contribuyente/migeigv/libros/' . ($tipo === 'ventas' ? 'rvie' : 'rce')
+             . '/propuesta/web/propuesta/' . $periodo . '/' . ($tipo === 'ventas' ? 'comprobantes' : 'busqueda')
+             . '?' . ($tipo === 'compras' ? 'codTipoOpe=3&' : '') . 'page=1&perPage=1';
+        $h = ['Authorization: Bearer ' . $token, 'Accept: application/json'];
+        if ($tipo === 'compras') $h[] = 'Num-Ruc: ' . $empresa['ruc'];
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_HTTPHEADER => $h, CURLOPT_TIMEOUT => 20, CURLOPT_SSL_VERIFYPEER => false]);
+        $resp = curl_exec($ch); $hs = curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        echo "  Consulta de prueba a SIRE → HTTP {$code}\n";
+        foreach (explode("\r\n", trim(substr((string)$resp, 0, $hs))) as $linea) if (preg_match('/^(HTTP|www-authenticate|content-type|x-|server|date)/i', $linea)) echo "    {$linea}\n";
+        echo "    cuerpo: ", substr(trim(strip_tags(substr((string)$resp, $hs))), 0, 200), "\n\n";
 
         foreach (['declarado', 'propuesta'] as $fuente) {
             echo "── Fuente: {$fuente} ──\n";

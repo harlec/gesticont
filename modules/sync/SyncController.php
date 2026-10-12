@@ -482,25 +482,32 @@ class SyncController
         $partes = explode('.', $token);
         $claims = count($partes) >= 2 ? json_decode(base64_decode(strtr($partes[1], '-_', '+/')), true) : null;
         if (is_array($claims)) {
-            foreach (['sub', 'username', 'user', 'aud', 'scope', 'client_id', 'iss'] as $k) if (isset($claims[$k])) echo "  {$k}: ", is_array($claims[$k]) ? json_encode($claims[$k]) : $claims[$k], "\n";
+            foreach (['sub', 'username', 'user', 'userdata', 'clientId', 'grantType', 'scope', 'client_id'] as $k) if (isset($claims[$k])) echo "  {$k}: ", is_array($claims[$k]) ? json_encode($claims[$k]) : $claims[$k], "\n";
             if (isset($claims['exp'])) echo '  vence: ', date('Y-m-d H:i:s', (int)$claims['exp']), ' (en ', (int)$claims['exp'] - time(), " s)\n";
             if (isset($claims['iat'])) echo '  emitido: ', date('Y-m-d H:i:s', (int)$claims['iat']), "\n";
-            echo "  otras claves: ", implode(', ', array_diff(array_keys($claims), ['sub','username','user','aud','scope','client_id','iss','exp','iat'])), "\n";
+            $aud = json_encode($claims['aud'] ?? []);
+            echo '  El token declara acceso a api-sire: ', str_contains($aud, 'api-sire.sunat.gob.pe') && str_contains($aud, 'migeigv') ? 'SÍ' : 'NO', "\n";
+            echo "  otras claves: ", implode(', ', array_diff(array_keys($claims), ['sub','username','user','userdata','clientId','grantType','scope','client_id','aud','iss','exp','iat','nbf'])), "\n";
         } else {
             echo "  (el token no es un JWT legible; longitud ", strlen($token), ")\n";
         }
         echo "  RUC de la empresa: {$empresa['ruc']}\n";
-        $url = 'https://api-sire.sunat.gob.pe/v1/contribuyente/migeigv/libros/' . ($tipo === 'ventas' ? 'rvie' : 'rce')
-             . '/propuesta/web/propuesta/' . $periodo . '/' . ($tipo === 'ventas' ? 'comprobantes' : 'busqueda')
-             . '?' . ($tipo === 'compras' ? 'codTipoOpe=3&' : '') . 'page=1&perPage=1';
-        $h = ['Authorization: Bearer ' . $token, 'Accept: application/json'];
-        if ($tipo === 'compras') $h[] = 'Num-Ruc: ' . $empresa['ruc'];
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_HTTPHEADER => $h, CURLOPT_TIMEOUT => 20, CURLOPT_SSL_VERIFYPEER => false]);
-        $resp = curl_exec($ch); $hs = curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-        echo "  Consulta de prueba a SIRE → HTTP {$code}\n";
-        foreach (explode("\r\n", trim(substr((string)$resp, 0, $hs))) as $linea) if (preg_match('/^(HTTP|www-authenticate|content-type|x-|server|date)/i', $linea)) echo "    {$linea}\n";
-        echo "    cuerpo: ", substr(trim(strip_tags(substr((string)$resp, $hs))), 0, 200), "\n\n";
+        // Se prueban LOS DOS libros (ventas y compras) con el mismo token: si uno responde y el otro no,
+        // el problema es de ese libro/RUC y no del token ni de las credenciales.
+        foreach (['ventas', 'compras'] as $lib) {
+            $url = 'https://api-sire.sunat.gob.pe/v1/contribuyente/migeigv/libros/' . ($lib === 'ventas' ? 'rvie' : 'rce')
+                 . '/propuesta/web/propuesta/' . $periodo . '/' . ($lib === 'ventas' ? 'comprobantes' : 'busqueda')
+                 . '?' . ($lib === 'compras' ? 'codTipoOpe=3&' : '') . 'page=1&perPage=1';
+            $h = ['Authorization: Bearer ' . $token, 'Accept: application/json'];
+            if ($lib === 'compras') $h[] = 'Num-Ruc: ' . $empresa['ruc'];
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_HTTPHEADER => $h, CURLOPT_TIMEOUT => 20, CURLOPT_SSL_VERIFYPEER => false]);
+            $resp = curl_exec($ch); $hs = curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+            echo "  Consulta de prueba a SIRE ({$lib}) → HTTP {$code}\n";
+            foreach (explode("\r\n", trim(substr((string)$resp, 0, $hs))) as $linea) if (preg_match('/^(www-authenticate|x-servicename|server-timing)/i', $linea)) echo "    {$linea}\n";
+            echo "    cuerpo: ", substr(trim(preg_replace('/\s+/', ' ', strip_tags(substr((string)$resp, $hs)))), 0, 160), "\n";
+        }
+        echo "\n";
 
         foreach (['declarado', 'propuesta'] as $fuente) {
             echo "── Fuente: {$fuente} ──\n";

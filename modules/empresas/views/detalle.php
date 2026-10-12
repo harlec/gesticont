@@ -1,5 +1,5 @@
 <?php
-$regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'Régimen Especial','rus'=>'Nuevo RUS'];
+$regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'RER (Régimen Especial de Renta)','rus'=>'Nuevo RUS'];
 $fmt = fn($v) => number_format((float)$v, 2);
 $mesesCorto = ['01'=>'Ene','02'=>'Feb','03'=>'Mar','04'=>'Abr','05'=>'May','06'=>'Jun','07'=>'Jul','08'=>'Ago','09'=>'Set','10'=>'Oct','11'=>'Nov','12'=>'Dic'];
 

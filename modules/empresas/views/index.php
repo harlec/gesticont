@@ -40,7 +40,7 @@
             elseif ($dias <= 7)             { $certBg='var(--gc-neg-soft-2)'; $certColor='var(--gc-neg)'; $certTxt="Vence en {$dias}d"; }
             elseif ($dias <= 30)            { $certBg='var(--gc-warn-soft)'; $certColor='var(--gc-warn)'; $certTxt="Vence en {$dias}d"; }
             else                            { $certBg='var(--gc-pos-soft)'; $certColor='var(--gc-pos)'; $certTxt='Vigente'; }
-            $regimenes = ['general'=>'General','mype'=>'MYPE','especial'=>'Especial','rus'=>'RUS'];
+            $regimenes = ['general'=>'General','mype'=>'MYPE','especial'=>'RER','rus'=>'RUS'];
             ?>
             <tr style="border-top:1px solid var(--gc-surface-2);" onmouseover="this.style.background='var(--gc-bg)'" onmouseout="this.style.background='var(--gc-surface)'">
                 <td style="padding:14px 20px;">

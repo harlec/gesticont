@@ -19,7 +19,7 @@
                 <select name="regimen" style="width:100%;padding:10px 14px;border:1.5px solid var(--gc-line);border-radius:8px;font-size:14px;outline:none;font-family:inherit;background:var(--gc-surface);">
                     <option value="mype">MYPE Tributario</option>
                     <option value="general">Régimen General</option>
-                    <option value="especial">Régimen Especial</option>
+                    <option value="especial">RER (Régimen Especial de Renta)</option>
                     <option value="rus">Nuevo RUS</option>
                 </select>
             </div>

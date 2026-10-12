@@ -49,6 +49,44 @@ class BalanceService
     }
 
     /**
+     * Cierre de un par Pérdidas/Ganancias (naturaleza o función): la columna corta se completa con
+     * la utilidad o pérdida y ambas igualan. Misma regla que cierreResultado() para Resultados.
+     */
+    public static function cierrePar(float $perdidas, float $ganancias): array
+    {
+        $r = round($ganancias - $perdidas, 2);
+        $ajP = $r > 0 ? $r : 0.0;
+        $ajG = $r < 0 ? -$r : 0.0;
+        return [
+            'tipo'  => $r > 0 ? 'utilidad' : ($r < 0 ? 'perdida' : 'nulo'),
+            'monto' => abs($r),
+            'ajuste_perdidas' => $ajP, 'ajuste_ganancias' => $ajG,
+            'iguales_perdidas' => round($perdidas + $ajP, 2), 'iguales_ganancias' => round($ganancias + $ajG, 2),
+        ];
+    }
+
+    /**
+     * Resultado por NATURALEZA (cuentas 6x y 7x tal como se contabilizan: compras, variación de
+     * existencias, personal, servicios, ventas…) y por FUNCIÓN (costo de ventas 69, costo de
+     * producción 92, gastos de administración 94, de venta 95, financieros 96, más los ingresos).
+     * Son dos presentaciones del MISMO resultado, así que las dos restas dan igual. Las cuentas de
+     * destino 79 (cargas imputables) quedan fuera de ambas: solo sirven de contrapartida.
+     *
+     * @return array{0:float,1:float,2:float,3:float} [nat_perdidas, nat_ganancias, fun_perdidas, fun_ganancias]
+     */
+    private static function resultadoNatFun(string $tipo, string $codigo, float $deudor, float $acreedor): array
+    {
+        $nat = in_array($tipo, ['gasto', 'ingreso'], true) ? [$deudor, $acreedor] : [0.0, 0.0];
+
+        if ($tipo === 'destino')                                        $fun = str_starts_with($codigo, '79') ? [0.0, 0.0] : [$deudor, $acreedor];
+        elseif ($tipo === 'gasto' && str_starts_with($codigo, '69'))    $fun = [$deudor, $acreedor];
+        elseif ($tipo === 'ingreso')                                    $fun = [$deudor, $acreedor];
+        else                                                            $fun = [0.0, 0.0];
+
+        return [$nat[0], $nat[1], $fun[0], $fun[1]];
+    }
+
+    /**
      * Compras de mercadería/materia prima/suministros/envases (601-604) que
      * siguen en el gasto sin haber pasado a existencias. Se compensa con su
      * contrapartida en 61 (611-614, saldo acreedor tras el asiento de
@@ -120,6 +158,8 @@ class BalanceService
                 $ganancias = $acreedor;
             }
 
+            [$natP, $natG, $funP, $funG] = self::resultadoNatFun($f['tipo'], $f['codigo'], $deudor, $acreedor);
+
             $resultado[] = [
                 'codigo' => $f['codigo'], 'nombre' => $f['nombre'], 'tipo' => $f['tipo'],
                 'es_inventariable' => (bool)$f['es_inventariable'],
@@ -127,10 +167,13 @@ class BalanceService
                 'deudor' => $deudor, 'acreedor' => $acreedor,
                 'activo' => $activo, 'pasivo' => $pasivo,
                 'perdidas' => $perdidas, 'ganancias' => $ganancias,
+                'nat_perdidas' => $natP, 'nat_ganancias' => $natG,
+                'fun_perdidas' => $funP, 'fun_ganancias' => $funG,
             ];
         }
 
-        $totales = ['debe' => 0, 'haber' => 0, 'deudor' => 0, 'acreedor' => 0, 'activo' => 0, 'pasivo' => 0, 'perdidas' => 0, 'ganancias' => 0];
+        $totales = ['debe' => 0, 'haber' => 0, 'deudor' => 0, 'acreedor' => 0, 'activo' => 0, 'pasivo' => 0, 'perdidas' => 0, 'ganancias' => 0,
+                    'nat_perdidas' => 0, 'nat_ganancias' => 0, 'fun_perdidas' => 0, 'fun_ganancias' => 0];
         foreach ($resultado as $r) {
             foreach ($totales as $k => $v) $totales[$k] += $r[$k];
         }

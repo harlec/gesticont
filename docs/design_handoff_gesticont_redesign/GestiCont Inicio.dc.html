@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Atkinson+Hyperlegible+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f6f4ef}
+button,input{font-family:inherit}
+a{color:#1f4e79}
+a:hover{color:#163a5c}
+</style>
+</helmet>
+<div style="zoom:{{zoom}};display:flex;min-height:100vh;font-family:'Atkinson Hyperlegible Next',system-ui,sans-serif;font-size:17px;line-height:1.45;color:#1c1b19;background:#f6f4ef">
+
+  <aside style="width:276px;flex-shrink:0;background:#ffffff;border-right:1px solid #e2ded5;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;padding:22px 16px;overflow-y:auto">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 8px">
+      <div style="width:34px;height:34px;border-radius:9px;background:#1f4e79;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px">G</div>
+      <div style="font-size:20px;font-weight:700;letter-spacing:-0.01em">GestiCont</div>
+    </div>
+
+    <button onClick="{{openSwitcher}}" style="display:flex;flex-direction:column;gap:4px;text-align:left;background:#f6f4ef;border:1px solid #e2ded5;border-radius:12px;padding:14px 14px 12px;cursor:pointer;color:#1c1b19" style-hover="border-color:#1f4e79">
+      <span style="font-size:14px;color:#5a5750">Empresa actual</span>
+      <span style="font-size:17px;font-weight:700;line-height:1.25;text-wrap:pretty">{{company.name}}</span>
+      <span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:14px;color:#5a5750">RUC {{company.ruc}}</span>
+      <span style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:10px;border-top:1px solid #e2ded5">
+        <span style="font-size:16px;font-weight:600;color:#1f4e79">Cambiar empresa</span>
+        <span style="font-size:13px;color:#5a5750;border:1px solid #d6d1c6;border-radius:6px;padding:1px 6px;background:#ffffff">Ctrl + K</span>
+      </span>
+    </button>
+
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{navItems}}" as="item" hint-placeholder-count="8">
+        <button onClick="{{item.go}}" style="display:flex;align-items:center;min-height:46px;padding:0 14px;border:0;border-radius:10px;text-align:left;font-size:17px;cursor:pointer;background:{{item.bg}};color:{{item.fg}};font-weight:{{item.weight}}" style-hover="background:#f0ede6">{{item.label}}</button>
+      </sc-for>
+    </nav>
+
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:12px">
+      <button onClick="{{goEmpresas}}" style="display:flex;flex-direction:column;gap:2px;text-align:left;min-height:56px;padding:10px 14px;border:1px solid #e2ded5;border-radius:10px;cursor:pointer;background:{{empresasBg}};color:#1c1b19" style-hover="border-color:#1f4e79">
+        <span style="font-size:17px;font-weight:600">Mis empresas</span>
+        <span style="font-size:14px;color:#a3261d">{{carteraAlert}}</span>
+      </button>
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 8px">
+        <div style="width:38px;height:38px;border-radius:50%;background:#e6eef6;color:#1f4e79;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px">CC</div>
+        <div style="display:flex;flex-direction:column;line-height:1.2">
+          <span style="font-size:16px;font-weight:600">Carlos Cuba</span>
+          <span style="font-size:14px;color:#5a5750">Contador</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <header style="position:sticky;top:0;z-index:10;background:#ffffff;border-bottom:1px solid #e2ded5;padding:14px 32px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+      <h1 style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.01em;flex:1 1 auto">{{pageTitle}}</h1>
+
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:15px;color:#5a5750">Período</span>
+        <button onClick="{{prevPeriod}}" aria-label="Mes anterior" style="width:44px;height:44px;border:1px solid #d6d1c6;border-radius:10px;background:#ffffff;font-size:20px;cursor:pointer;color:#1c1b19;opacity:{{prevOpacity}}" style-hover="border-color:#1f4e79">‹</button>
+        <div style="min-width:168px;text-align:center;font-size:18px;font-weight:700">{{periodLabel}}</div>
+        <button onClick="{{nextPeriod}}" aria-label="Mes siguiente" style="width:44px;height:44px;border:1px solid #d6d1c6;border-radius:10px;background:#ffffff;font-size:20px;cursor:pointer;color:#1c1b19;opacity:{{nextOpacity}}" style-hover="border-color:#1f4e79">›</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:15px;color:#5a5750">Letra</span>
+        <div style="display:flex;border:1px solid #d6d1c6;border-radius:10px;overflow:hidden">
+          <sc-for list="{{sizes}}" as="s" hint-placeholder-count="3">
+            <button onClick="{{s.set}}" aria-label="{{s.label}}" style="width:44px;height:42px;border:0;cursor:pointer;font-weight:700;background:{{s.bg}};color:{{s.fg}};font-size:{{s.px}}">A</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="font-size:15px;color:#5a5750">Hoy: martes 6 de octubre</div>
+    </header>
+
+    <div style="padding:28px 32px 48px;width:100%;max-width:1360px;display:flex;flex-direction:column;gap:24px">
+
+      <sc-if value="{{isInicio}}" hint-placeholder-val="{{true}}">
+        <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+
+          <section style="flex:2 1 620px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+            <div style="padding:24px 28px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;border-bottom:1px solid #e2ded5">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:16px;font-weight:600;color:#5a5750">Vencimientos SUNAT</span>
+                <span style="font-size:26px;font-weight:700;line-height:1.2">{{next.title}}</span>
+                <span style="font-size:16px;color:#5a5750">{{next.sub}}</span>
+              </div>
+              <div style="min-width:132px;padding:12px 18px;border-radius:14px;text-align:center;background:{{next.bg}};color:{{next.fg}}">
+                <div style="font-size:42px;font-weight:700;line-height:1">{{next.big}}</div>
+                <div style="font-size:16px;font-weight:600;margin-top:4px">{{next.word}}</div>
+              </div>
+            </div>
+            <sc-for list="{{obligations}}" as="o" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:20px;padding:18px 28px;border-bottom:1px solid #efece5;flex-wrap:wrap">
+                <div style="flex:1 1 280px;display:flex;flex-direction:column;gap:3px">
+                  <span style="font-size:18px;font-weight:700">{{o.name}}</span>
+                  <span style="font-size:15px;color:#5a5750">Período {{o.period}} · vence el {{o.dueLabel}}</span>
+                  <span style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:{{o.statusColor}}">
+                    <span style="width:9px;height:9px;border-radius:50%;background:{{o.statusColor}};flex-shrink:0"></span>{{o.statusText}}
+                  </span>
+                </div>
+                <span style="font-size:15px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;background:{{o.chipBg}};color:{{o.chipFg}}">{{o.chipText}}</span>
+                <div style="flex:0 0 auto;display:flex;justify-content:flex-end">
+                  <sc-if value="{{o.hasAction}}" hint-placeholder-val="{{true}}">
+                    <button onClick="{{o.act}}" style="min-height:46px;padding:0 18px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;background:{{o.btnBg}};color:{{o.btnFg}};border:1.5px solid {{o.btnBorder}}">{{o.actionLabel}}</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+            <div style="padding:14px 28px;font-size:15px;color:#5a5750">Fechas según el cronograma SUNAT para RUC terminado en {{company.digit}}.</div>
+          </section>
+
+          <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:24px">
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px">
+              <span style="font-size:16px;font-weight:600;color:#5a5750">Por clasificar</span>
+              <sc-if value="{{hasPend}}" hint-placeholder-val="{{true}}">
+                <span style="font-size:34px;font-weight:700;line-height:1.1">{{pendCount}} <span style="font-size:20px">ventas</span></span>
+                <span style="font-size:16px;text-wrap:pretty">Sin una cuenta asignada no se puede presentar el Registro de Ventas.</span>
+                <button onClick="{{goClasificar}}" style="min-height:52px;border:0;border-radius:12px;background:#1f4e79;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer" style-hover="background:#163a5c">Clasificar ahora</button>
+              </sc-if>
+              <sc-if value="{{noPend}}" hint-placeholder-val="{{false}}">
+                <span style="font-size:20px;font-weight:700;color:#1e6b3a">Todo clasificado</span>
+                <span style="font-size:16px;color:#5a5750">No hay comprobantes sin cuenta asignada.</span>
+              </sc-if>
+            </section>
+
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px">
+              <span style="font-size:16px;font-weight:600;color:#5a5750">Estado de la empresa</span>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:17px;font-weight:700;color:#1e6b3a">Balance de comprobación cuadra</span>
+                <span style="font-size:15px;color:#5a5750">Revisado al cierre de agosto</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:17px;font-weight:700;color:#a3261d">Sin certificado digital</span>
+                <span style="font-size:15px;color:#5a5750">Súbelo en Datos de la empresa para firmar libros electrónicos.</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:17px;font-weight:700">Última sincronización con SUNAT</span>
+                <span style="font-size:15px;color:#5a5750">{{lastSync}}</span>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap">
+            <h2 style="margin:0;font-size:22px;font-weight:700">Resumen de {{periodLabel}}</h2>
+            <span style="font-size:15px;color:#5a5750">Montos con IGV</span>
+          </div>
+          <sc-if value="{{hasMonth}}" hint-placeholder-val="{{true}}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+              <sc-for list="{{stats}}" as="st" hint-placeholder-count="4">
+                <div style="background:#f6f4ef;border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:6px">
+                  <span style="font-size:16px;font-weight:600;color:#5a5750">{{st.label}}</span>
+                  <span style="font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;color:{{st.color}}">{{st.value}}</span>
+                  <span style="font-size:15px;color:#5a5750">{{st.note}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{noMonth}}" hint-placeholder-val="{{false}}">
+            <div style="background:#f6f4ef;border-radius:12px;padding:28px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:20px;font-weight:700">Aún no hay comprobantes de {{periodLabel}}</span>
+                <span style="font-size:16px;color:#5a5750">Se descargan de SUNAT al sincronizar el período.</span>
+              </div>
+              <button onClick="{{sync}}" style="min-height:52px;padding:0 24px;border:0;border-radius:12px;background:#1f4e79;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer;opacity:{{syncOpacity}}" style-hover="background:#163a5c">{{syncLabel}}</button>
+            </div>
+          </sc-if>
+        </section>
+
+        <div style="display:flex;flex-wrap:wrap;gap:24px">
+          <sc-if value="{{showChart}}" hint-placeholder-val="{{true}}">
+            <section style="flex:2 1 620px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px 28px;display:flex;flex-direction:column;gap:18px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+                <div style="display:flex;flex-direction:column;gap:2px">
+                  <h2 style="margin:0;font-size:22px;font-weight:700">Año 2026</h2>
+                  <span style="font-size:15px;color:#5a5750">Toca un mes para ver su resumen</span>
+                </div>
+                <div style="display:flex;gap:24px;flex-wrap:wrap">
+                  <div style="display:flex;flex-direction:column">
+                    <span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#5a5750"><span style="width:12px;height:12px;border-radius:3px;background:#1f4e79"></span>Ventas</span>
+                    <span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums">{{yearV}}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column">
+                    <span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#5a5750"><span style="width:12px;height:12px;border-radius:3px;background:#c98a3d"></span>Compras</span>
+                    <span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums">{{yearC}}</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;height:220px">
+                <sc-for list="{{bars}}" as="b" hint-placeholder-count="12">
+                  <button onClick="{{b.pick}}" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px;border:0;border-radius:10px;padding:8px 2px;cursor:pointer;background:{{b.bg}}" style-hover="background:#efece5">
+                    <span style="flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:3px">
+                      <span style="width:38%;max-width:18px;border-radius:4px 4px 0 0;background:#1f4e79;height:{{b.hv}}"></span>
+                      <span style="width:38%;max-width:18px;border-radius:4px 4px 0 0;background:#c98a3d;height:{{b.hc}}"></span>
+                    </span>
+                    <span style="font-size:15px;color:{{b.fg}};font-weight:{{b.weight}}">{{b.label}}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </section>
+          </sc-if>
+
+          <section style="flex:1 1 320px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px">
+            <h2 style="margin:0;font-size:22px;font-weight:700">Saldos pendientes</h2>
+            <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:16px;border-bottom:1px solid #efece5">
+              <span style="font-size:16px;font-weight:600;color:#5a5750">Por cobrar a clientes</span>
+              <span style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">{{cobrar}}</span>
+              <span style="font-size:15px;color:#5a5750">{{cobrarN}} comprobantes</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:16px;font-weight:600;color:#5a5750">Por pagar a proveedores</span>
+              <span style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">{{pagar}}</span>
+              <span style="font-size:15px;color:#5a5750">{{pagarN}} comprobantes</span>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isEmpresas}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <sc-for list="{{carteraStats}}" as="cs" hint-placeholder-count="3">
+            <div style="flex:1 1 220px;background:#ffffff;border:1px solid #e2ded5;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:32px;font-weight:700;color:{{cs.color}}">{{cs.value}}</span>
+              <span style="font-size:16px;color:#5a5750">{{cs.label}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+          <div style="padding:18px 24px;border-bottom:1px solid #e2ded5;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+            <input value="{{carteraQ}}" onChange="{{setCarteraQ}}" placeholder="Buscar por nombre o RUC" style="flex:1 1 320px;height:50px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 16px;font-size:17px;color:#1c1b19;outline:none" style-focus="border-color:#1f4e79">
+            <span style="font-size:15px;color:#5a5750">Ordenadas por vencimiento más cercano</span>
+          </div>
+          <div style="overflow-x:auto"><div style="min-width:900px;display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,1fr) 120px;gap:16px;padding:12px 24px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+            <span>Empresa</span><span>Próximo vencimiento</span><span>Por presentar</span><span>Por clasificar</span><span>Certificado</span><span></span>
+          </div>
+          <sc-for list="{{cartera}}" as="r" hint-placeholder-count="9">
+            <div style="min-width:900px;display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,1fr) 120px;gap:16px;padding:16px 24px;border-top:1px solid #efece5;align-items:center;background:{{r.rowBg}}">
+              <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                <span style="font-size:17px;font-weight:700;line-height:1.25">{{r.name}}</span>
+                <span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:14px;color:#5a5750">RUC {{r.ruc}} · {{r.reg}}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+                <span style="font-size:16px">{{r.dueDate}}</span>
+                <span style="font-size:14px;font-weight:700;padding:3px 10px;border-radius:999px;background:{{r.chipBg}};color:{{r.chipFg}}">{{r.chipText}}</span>
+              </div>
+              <span style="font-size:16px">{{r.openLabel}}</span>
+              <span style="font-size:16px;font-weight:600;color:{{r.pendColor}}">{{r.pendLabel}}</span>
+              <span style="font-size:15px;font-weight:600;color:{{r.certColor}}">{{r.certLabel}}</span>
+              <button onClick="{{r.open}}" style="min-height:44px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer" style-hover="border-color:#1f4e79">{{r.openText}}</button>
+            </div>
+          </sc-for>
+          </div>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{isComp}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;gap:4px;border-bottom:2px solid #e2ded5;flex-wrap:wrap">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+            <button onClick="{{t.go}}" style="display:flex;align-items:center;gap:10px;min-height:54px;padding:0 18px;margin-bottom:-2px;border:0;border-bottom:3px solid {{t.line}};background:transparent;cursor:pointer;font-size:18px;color:{{t.fg}};font-weight:{{t.weight}}" style-hover="background:#efece5">
+              <span>{{t.label}}</span>
+              <sc-if value="{{t.hasBadge}}" hint-placeholder-val="{{false}}"><span style="font-size:14px;font-weight:700;padding:2px 9px;border-radius:999px;background:{{t.badgeBg}};color:{{t.badgeFg}}">{{t.badge}}</span></sc-if>
+            </button>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{compNoData}}" hint-placeholder-val="{{false}}">
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:36px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:22px;font-weight:700">Aún no hay comprobantes de {{periodLabel}}</span>
+              <span style="font-size:16px;color:#5a5750">Descárgalos de SUNAT para verlos, clasificarlos y registrar cobros.</span>
+            </div>
+            <button onClick="{{sync}}" style="min-height:52px;padding:0 24px;border:0;border-radius:12px;background:#1f4e79;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer;opacity:{{syncOpacity}}" style-hover="background:#163a5c">{{syncLabel}}</button>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isList}}" hint-placeholder-val="{{false}}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+            <sc-for list="{{listStats}}" as="st" hint-placeholder-count="4">
+              <div style="background:#ffffff;border:1px solid #e2ded5;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:16px;font-weight:600;color:#5a5750">{{st.label}}</span>
+                <span style="font-size:28px;font-weight:700;font-variant-numeric:tabular-nums">{{st.value}}</span>
+                <span style="font-size:15px;color:#5a5750">{{st.note}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+            <div style="padding:18px 24px;border-bottom:1px solid #e2ded5;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+              <input value="{{listQ}}" onChange="{{setListQ}}" placeholder="{{listPh}}" style="flex:1 1 300px;height:50px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 16px;font-size:17px;color:#1c1b19;outline:none" style-focus="border-color:#1f4e79">
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <sc-for list="{{listFilters}}" as="f" hint-placeholder-count="3">
+                  <button onClick="{{f.set}}" style="min-height:44px;padding:0 16px;border-radius:999px;font-size:16px;font-weight:600;cursor:pointer;background:{{f.bg}};color:{{f.fg}};border:1px solid {{f.border}}">{{f.label}}</button>
+                </sc-for>
+              </div>
+              <button onClick="{{exportList}}" style="min-height:44px;padding:0 16px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer" style-hover="border-color:#1f4e79">Descargar Excel</button>
+            </div>
+            <div style="overflow-x:auto">
+              <div style="min-width:1000px;display:grid;grid-template-columns:120px minmax(0,1.3fr) minmax(0,2fr) minmax(0,0.9fr) minmax(0,0.8fr) minmax(0,0.9fr) minmax(0,1.3fr);gap:16px;padding:12px 24px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+                <span>Fecha</span><span>Comprobante</span><span>{{partyHeader}}</span><span style="text-align:right">Base</span><span style="text-align:right">IGV</span><span style="text-align:right">Total</span><span>Cuenta</span>
+              </div>
+              <sc-for list="{{listRows}}" as="r" hint-placeholder-count="10">
+                <div style="min-width:1000px;display:grid;grid-template-columns:120px minmax(0,1.3fr) minmax(0,2fr) minmax(0,0.9fr) minmax(0,0.8fr) minmax(0,0.9fr) minmax(0,1.3fr);gap:16px;padding:14px 24px;border-top:1px solid #efece5;align-items:center;font-size:16px;opacity:{{r.op}}">
+                  <span>{{r.date}}</span>
+                  <span style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:700;padding:2px 7px;border-radius:6px;background:#efece5;color:#3d3b36">{{r.tipo}}</span><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px">{{r.serie}}</span></span>
+                  <span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:600;line-height:1.25">{{r.party}}</span><span style="font-size:14px;color:#5a5750">{{r.doc}}</span></span>
+                  <span style="text-align:right;font-variant-numeric:tabular-nums">{{r.base}}</span>
+                  <span style="text-align:right;font-variant-numeric:tabular-nums">{{r.igv}}</span>
+                  <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700">{{r.total}}</span>
+                  <span style="font-size:15px;font-weight:600;color:{{r.accColor}}">{{r.acc}}</span>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{noListRows}}" hint-placeholder-val="{{false}}">
+              <div style="padding:28px 24px;font-size:17px;color:#5a5750;border-top:1px solid #efece5">No hay comprobantes que coincidan con la búsqueda.</div>
+            </sc-if>
+            <div style="padding:14px 24px;border-top:1px solid #e2ded5;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#f6f4ef">
+              <span style="font-size:15px;color:#5a5750">{{listCount}}</span>
+              <sc-if value="{{listMore}}" hint-placeholder-val="{{true}}">
+                <button onClick="{{showMore}}" style="min-height:44px;padding:0 18px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer">Mostrar 15 más</button>
+              </sc-if>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isClasMain}}" hint-placeholder-val="{{false}}">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;border:1px solid #d6d1c6;border-radius:12px;overflow:hidden;background:#ffffff">
+              <sc-for list="{{clasKinds}}" as="k" hint-placeholder-count="2">
+                <button onClick="{{k.set}}" style="min-height:48px;padding:0 20px;border:0;font-size:17px;font-weight:700;cursor:pointer;background:{{k.bg}};color:{{k.fg}}">{{k.label}}</button>
+              </sc-for>
+            </div>
+            <button onClick="{{openRules}}" style="min-height:48px;padding:0 18px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer" style-hover="border-color:#1f4e79">Reglas de clasificación ({{rulesCount}})</button>
+          </div>
+
+          <sc-if value="{{clasHasPend}}" hint-placeholder-val="{{true}}">
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:26px 28px;display:flex;flex-direction:column;gap:16px">
+              <span style="font-size:16px;font-weight:600;color:#5a5750">Propuesta para {{periodLabel}}</span>
+              <span style="font-size:26px;font-weight:700;line-height:1.25;text-wrap:pretty">Asignar las {{clasPend}} ventas pendientes a {{genAccName}}</span>
+              <span style="font-size:16px;color:#3d3b36;text-wrap:pretty">Es tu cuenta general de ventas. Los clientes con regla propia usan su propia cuenta.</span>
+              <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <button onClick="{{applyAll}}" style="min-height:54px;padding:0 26px;border:0;border-radius:12px;background:#1f4e79;color:#ffffff;font-size:18px;font-weight:700;cursor:pointer" style-hover="background:#163a5c">Aplicar a las {{clasPend}} ventas</button>
+                <button onClick="{{openRules}}" style="min-height:54px;padding:0 22px;border:1.5px solid #b9c8d8;border-radius:12px;background:#ffffff;color:#1f4e79;font-size:17px;font-weight:700;cursor:pointer">Cambiar cuenta general</button>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding-top:14px;border-top:1px solid #efece5;font-size:15px;color:#5a5750">
+                <span>Se marcarán como cobradas en la fecha del comprobante. Si alguna fue a crédito, corrígela después en</span>
+                <button onClick="{{goCobros}}" style="border:0;background:transparent;padding:0;color:#1f4e79;font-size:15px;font-weight:700;cursor:pointer;text-decoration:underline">Cobros y pagos</button>
+              </div>
+            </section>
+
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+              <div style="padding:18px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;border-bottom:1px solid #e2ded5">
+                <h2 style="margin:0;font-size:20px;font-weight:700">O revísalas una por una</h2>
+                <label style="display:flex;align-items:center;gap:10px;font-size:16px;cursor:pointer;min-height:44px">
+                  <input type="checkbox" checked="{{allVisSel}}" onChange="{{toggleAllVis}}" style="width:22px;height:22px;accent-color:#1f4e79;cursor:pointer">
+                  <span>Seleccionar estas {{clasVisN}}</span>
+                </label>
+              </div>
+              <sc-if value="{{hasSel}}" hint-placeholder-val="{{false}}">
+                <div style="padding:14px 24px;background:#e6eef6;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:1px solid #c9d7e5">
+                  <span style="font-size:17px;font-weight:700;color:#1f4e79">{{selCount}} seleccionadas</span>
+                  <span style="font-size:16px">Asignar a</span>
+                  <select value="{{bulkAcc}}" onChange="{{setBulkAcc}}" style="height:46px;min-width:240px;border:1.5px solid #b9c8d8;border-radius:10px;padding:0 12px;font-size:16px;background:#ffffff;color:#1c1b19">
+                    <sc-for list="{{accOptsV}}" as="a" hint-placeholder-count="0"><option value="{{a.code}}">{{a.label}}</option></sc-for>
+                  </select>
+                  <button onClick="{{confirmSel}}" style="min-height:46px;padding:0 20px;border:0;border-radius:10px;background:#1f4e79;color:#ffffff;font-size:16px;font-weight:700;cursor:pointer">Confirmar seleccionadas</button>
+                  <button onClick="{{clearSel}}" style="min-height:46px;padding:0 14px;border:0;background:transparent;color:#1f4e79;font-size:16px;font-weight:600;cursor:pointer">Quitar selección</button>
+                </div>
+              </sc-if>
+              <div style="overflow-x:auto">
+                <sc-for list="{{clasRows}}" as="r" hint-placeholder-count="6">
+                  <div style="min-width:1040px;display:grid;grid-template-columns:28px minmax(0,1.3fr) minmax(0,1.6fr) 110px minmax(220px,1.5fr) 150px 130px;gap:16px;padding:14px 24px;border-top:1px solid #efece5;align-items:center;background:{{r.bg}}">
+                    <input type="checkbox" checked="{{r.checked}}" onChange="{{r.toggle}}" aria-label="Seleccionar {{r.serie}}" style="width:22px;height:22px;accent-color:#1f4e79;cursor:pointer">
+                    <span style="display:flex;flex-direction:column"><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;font-weight:500">{{r.tipo}} {{r.serie}}</span><span style="font-size:14px;color:#5a5750">{{r.date}}</span></span>
+                    <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:16px;font-weight:600;line-height:1.25">{{r.party}}</span><span style="font-size:14px;color:#5a5750">{{r.doc}}</span></span>
+                    <span style="text-align:right;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">{{r.total}}</span>
+                    <select value="{{r.acc}}" onChange="{{r.setAcc}}" style="height:46px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 12px;font-size:16px;background:#ffffff;color:#1c1b19">
+                      <sc-for list="{{accOptsV}}" as="a" hint-placeholder-count="0"><option value="{{a.code}}">{{a.label}}</option></sc-for>
+                    </select>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:16px;cursor:pointer;min-height:44px">
+                      <input type="checkbox" checked="{{r.paid}}" onChange="{{r.togglePaid}}" style="width:20px;height:20px;accent-color:#1f4e79;cursor:pointer">
+                      <span>Ya se cobró</span>
+                    </label>
+                    <button onClick="{{r.confirm}}" style="min-height:46px;border:1.5px solid #1f4e79;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer" style-hover="background:#1f4e79;color:#ffffff">Confirmar</button>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="padding:14px 24px;border-top:1px solid #e2ded5;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#f6f4ef">
+                <span style="font-size:15px;color:#5a5750">{{clasCount}}</span>
+                <sc-if value="{{clasMore}}" hint-placeholder-val="{{true}}">
+                  <button onClick="{{showMore}}" style="min-height:44px;padding:0 18px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer">Mostrar 15 más</button>
+                </sc-if>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{clasNoPend}}" hint-placeholder-val="{{false}}">
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:32px 28px;display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:22px;font-weight:700;color:#1e6b3a">{{clasDoneTitle}}</span>
+              <span style="font-size:16px;color:#5a5750;text-wrap:pretty">{{clasDoneSub}}</span>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{hasOtherPend}}" hint-placeholder-val="{{false}}">
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:22px 28px;display:flex;flex-direction:column;gap:14px">
+              <span style="font-size:17px;font-weight:700">Otros meses con ventas por clasificar</span>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <sc-for list="{{otherPend}}" as="o" hint-placeholder-count="3">
+                  <button onClick="{{o.go}}" style="min-height:46px;padding:0 16px;border:1.5px solid #e8c98a;border-radius:10px;background:#fdf6e7;color:#5c3b00;font-size:16px;font-weight:600;cursor:pointer" style-hover="border-color:#7a4f00">{{o.label}}</button>
+                </sc-for>
+              </div>
+            </section>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{isRules}}" hint-placeholder-val="{{false}}">
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+            <button onClick="{{closeRules}}" style="min-height:44px;padding:0 4px;border:0;background:transparent;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer">← Volver a Clasificar</button>
+            <h2 style="margin:0;font-size:24px;font-weight:700">Reglas de clasificación</h2>
+            <span style="font-size:16px;color:#5a5750;max-width:720px;text-wrap:pretty">Define una vez a qué cuenta va cada proveedor o cliente. Al clasificar, aparecerá como propuesta lista para aplicar.</span>
+          </div>
+          <div style="display:flex;border:1px solid #d6d1c6;border-radius:12px;overflow:hidden;background:#ffffff;align-self:flex-start">
+            <sc-for list="{{rulesKinds}}" as="k" hint-placeholder-count="2">
+              <button onClick="{{k.set}}" style="min-height:48px;padding:0 20px;border:0;font-size:17px;font-weight:700;cursor:pointer;background:{{k.bg}};color:{{k.fg}}">{{k.label}}</button>
+            </sc-for>
+          </div>
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px 28px;display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between">
+            <div style="flex:1 1 380px;display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:16px;font-weight:600;color:#5a5750">Cuenta general</span>
+              <span style="font-size:20px;font-weight:700">Para todos los {{rulesWho}} sin regla propia</span>
+              <span style="font-size:15px;color:#5a5750;text-wrap:pretty">Útil cuando casi todo va a la misma cuenta, por ejemplo una bodega donde todo lo que se compra es mercadería.</span>
+            </div>
+            <select value="{{genValue}}" onChange="{{setGen}}" style="height:50px;min-width:280px;border:1.5px solid #1f4e79;border-radius:10px;padding:0 14px;font-size:17px;font-weight:600;background:#ffffff;color:#1c1b19">
+              <sc-for list="{{rulesAccOpts}}" as="a" hint-placeholder-count="0"><option value="{{a.code}}">{{a.label}}</option></sc-for>
+            </select>
+          </section>
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+            <div style="padding:18px 24px;border-bottom:1px solid #e2ded5;display:flex;flex-direction:column;gap:12px">
+              <h2 style="margin:0;font-size:20px;font-weight:700">Reglas por RUC ({{rulesN}})</h2>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+                <input value="{{newRuc}}" onChange="{{setNewRuc}}" placeholder="RUC del {{rulesWhoOne}} (11 números)" inputmode="numeric" style="flex:1 1 260px;height:50px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 16px;font-size:17px;color:#1c1b19;outline:none;font-family:'Atkinson Hyperlegible Mono',monospace" style-focus="border-color:#1f4e79">
+                <select value="{{newAcc}}" onChange="{{setNewAcc}}" style="height:50px;min-width:240px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 12px;font-size:16px;background:#ffffff;color:#1c1b19">
+                  <sc-for list="{{rulesAccOpts}}" as="a" hint-placeholder-count="0"><option value="{{a.code}}">{{a.label}}</option></sc-for>
+                </select>
+                <button onClick="{{addRule}}" style="min-height:50px;padding:0 22px;border:0;border-radius:10px;background:#1f4e79;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer">Agregar regla</button>
+              </div>
+              <sc-if value="{{hasRuleErr}}" hint-placeholder-val="{{false}}"><span style="font-size:16px;font-weight:600;color:#a3261d">{{ruleErr}}</span></sc-if>
+            </div>
+            <div style="overflow-x:auto">
+              <div style="min-width:760px;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) 150px 110px;gap:16px;padding:12px 24px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+                <span>{{rulesWhoCap}}</span><span>Cuenta</span><span style="text-align:right">Veces aplicada</span><span></span>
+              </div>
+              <sc-for list="{{rulesRows}}" as="r" hint-placeholder-count="5">
+                <div style="min-width:760px;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) 150px 110px;gap:16px;padding:14px 24px;border-top:1px solid #efece5;align-items:center">
+                  <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:16px;font-weight:600">{{r.name}}</span><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:14px;color:#5a5750">RUC {{r.ruc}}</span></span>
+                  <span style="font-size:16px">{{r.acc}}</span>
+                  <span style="text-align:right;font-size:16px;font-variant-numeric:tabular-nums">{{r.times}}</span>
+                  <button onClick="{{r.remove}}" style="min-height:44px;border:0;background:transparent;color:#a3261d;font-size:16px;font-weight:600;cursor:pointer;justify-self:end">Quitar</button>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{noRules}}" hint-placeholder-val="{{false}}">
+              <div style="padding:24px;font-size:16px;color:#5a5750;border-top:1px solid #efece5">Aún no hay reglas. Todo se clasifica con la cuenta general.</div>
+            </sc-if>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isCob}}" hint-placeholder-val="{{false}}">
+          <sc-if value="{{cobWarn}}" hint-placeholder-val="{{false}}">
+            <div style="background:#fdf6e7;border:1px solid #e8c98a;border-radius:14px;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <span style="font-size:17px;color:#5c3b00;text-wrap:pretty"><strong>Hay {{clasPend}} ventas de {{periodLabel}} sin clasificar.</strong> No aparecen aquí hasta que las clasifiques.</span>
+              <button onClick="{{goClasTab}}" style="min-height:46px;padding:0 18px;border:0;border-radius:10px;background:#7a4f00;color:#ffffff;font-size:16px;font-weight:700;cursor:pointer">Ir a Clasificar</button>
+            </div>
+          </sc-if>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;border:1px solid #d6d1c6;border-radius:12px;overflow:hidden;background:#ffffff">
+              <sc-for list="{{cobKinds}}" as="k" hint-placeholder-count="2">
+                <button onClick="{{k.set}}" style="min-height:48px;padding:0 20px;border:0;font-size:17px;font-weight:700;cursor:pointer;background:{{k.bg}};color:{{k.fg}}">{{k.label}}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{cobFilters}}" as="f" hint-placeholder-count="3">
+                <button onClick="{{f.set}}" style="min-height:44px;padding:0 16px;border-radius:999px;font-size:16px;font-weight:600;cursor:pointer;background:{{f.bg}};color:{{f.fg}};border:1px solid {{f.border}}">{{f.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+            <sc-for list="{{cobStats}}" as="st" hint-placeholder-count="3">
+              <div style="background:#ffffff;border:1px solid #e2ded5;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:16px;font-weight:600;color:#5a5750">{{st.label}}</span>
+                <span style="font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;color:{{st.color}}">{{st.value}}</span>
+                <span style="font-size:15px;color:#5a5750">{{st.note}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+            <div style="overflow-x:auto">
+              <div style="min-width:1060px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.8fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,0.9fr) 130px 170px;gap:16px;padding:12px 24px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+                <span>Comprobante</span><span>{{cobParty}}</span><span style="text-align:right">Total</span><span style="text-align:right">{{cobPaidH}}</span><span style="text-align:right">Saldo</span><span>Estado</span><span></span>
+              </div>
+              <sc-for list="{{cobRows}}" as="r" hint-placeholder-count="8">
+                <div style="min-width:1060px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.8fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,0.9fr) 130px 170px;gap:16px;padding:14px 24px;border-top:1px solid #efece5;align-items:center;font-size:16px">
+                  <span style="display:flex;flex-direction:column"><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;font-weight:500">{{r.tipo}} {{r.serie}}</span><span style="font-size:14px;color:#5a5750">{{r.date}}</span></span>
+                  <span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:600;line-height:1.25">{{r.party}}</span><span style="font-size:14px;color:#5a5750">{{r.doc}}</span></span>
+                  <span style="text-align:right;font-variant-numeric:tabular-nums">{{r.total}}</span>
+                  <span style="text-align:right;font-variant-numeric:tabular-nums;color:#1e6b3a">{{r.paid}}</span>
+                  <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:{{r.saldoColor}}">{{r.saldo}}</span>
+                  <span style="justify-self:start;font-size:14px;font-weight:700;padding:4px 10px;border-radius:999px;background:{{r.stBg}};color:{{r.stFg}}">{{r.stText}}</span>
+                  <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{true}}">
+                    <button onClick="{{r.act}}" style="min-height:44px;border:0;border-radius:10px;background:#1f4e79;color:#ffffff;font-size:16px;font-weight:700;cursor:pointer" style-hover="background:#163a5c">{{r.actLabel}}</button>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{noCobRows}}" hint-placeholder-val="{{false}}">
+              <div style="padding:28px 24px;font-size:17px;color:#5a5750;border-top:1px solid #efece5">{{cobEmpty}}</div>
+            </sc-if>
+            <div style="padding:14px 24px;border-top:1px solid #e2ded5;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#f6f4ef">
+              <span style="font-size:15px;color:#5a5750">{{cobCount}}</span>
+              <sc-if value="{{cobMore}}" hint-placeholder-val="{{true}}">
+                <button onClick="{{showMore}}" style="min-height:44px;padding:0 18px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer">Mostrar 15 más</button>
+              </sc-if>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isSync}}" hint-placeholder-val="{{false}}">
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:16px;font-weight:600;color:#5a5750">Conexión con SUNAT</span>
+              <span style="display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;color:#1e6b3a"><span style="width:10px;height:10px;border-radius:50%;background:#1e6b3a"></span>Clave SOL conectada</span>
+              <span style="font-size:15px;color:#5a5750">Usuario secundario GESTI01 · descarga las propuestas del SIRE de ventas y compras</span>
+            </div>
+            <sc-if value="{{hasSyncPend}}" hint-placeholder-val="{{true}}">
+              <button onClick="{{syncPendGo}}" style="min-height:54px;padding:0 24px;border:0;border-radius:12px;background:#1f4e79;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer" style-hover="background:#163a5c">{{syncPendLabel}}</button>
+            </sc-if>
+          </section>
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+            <div style="overflow-x:auto">
+              <div style="min-width:940px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,1.3fr) 200px;gap:16px;padding:12px 24px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+                <span>Mes</span><span>Ventas</span><span>Compras</span><span>Última descarga</span><span></span>
+              </div>
+              <sc-for list="{{syncRows}}" as="r" hint-placeholder-count="9">
+                <div style="min-width:940px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,1.3fr) 200px;gap:16px;padding:14px 24px;border-top:1px solid #efece5;align-items:center;font-size:16px;background:{{r.bg}}">
+                  <button onClick="{{r.view}}" style="justify-self:start;border:0;background:transparent;padding:6px 0;font-size:17px;font-weight:700;color:#1c1b19;cursor:pointer;text-align:left" style-hover="color:#1f4e79;text-decoration:underline">{{r.month}}</button>
+                  <span style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+                    <span style="color:{{r.vColor}};font-weight:{{r.vWeight}}">{{r.vText}}</span>
+                    <sc-if value="{{r.hasPend}}" hint-placeholder-val="{{false}}"><span style="font-size:14px;font-weight:700;padding:2px 9px;border-radius:999px;background:#fbefd5;color:#7a4f00">{{r.pendText}}</span></sc-if>
+                  </span>
+                  <span style="color:{{r.vColor}};font-weight:{{r.vWeight}}">{{r.cText}}</span>
+                  <span style="font-size:15px;color:#5a5750">{{r.when}}</span>
+                  <button onClick="{{r.act}}" style="min-height:44px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;background:{{r.btnBg}};color:{{r.btnFg}};border:1.5px solid {{r.btnBorder}};opacity:{{r.op}}">{{r.actLabel}}</button>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+          <span style="font-size:15px;color:#5a5750;text-wrap:pretty">SUNAT publica la propuesta de cada mes desde el día 1 del mes siguiente. Volver a descargar no borra lo que ya clasificaste.</span>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{isOther}}" hint-placeholder-val="{{false}}">
+        <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:40px;display:flex;flex-direction:column;gap:14px;align-items:flex-start">
+          <span style="font-size:20px;font-weight:700">Esta sección no está incluida en el prototipo</span>
+          <span style="font-size:16px;color:#5a5750">El rediseño cubre Inicio, la navegación y el cambio de empresa.</span>
+          <button onClick="{{goInicio}}" style="min-height:48px;padding:0 20px;border:0;border-radius:10px;background:#1f4e79;color:#ffffff;font-size:16px;font-weight:700;cursor:pointer">Volver al inicio</button>
+        </section>
+      </sc-if>
+    </div>
+  </main>
+
+  <sc-if value="{{switcherOpen}}" hint-placeholder-val="{{false}}">
+    <div onClick="{{closeSwitcher}}" style="position:fixed;inset:0;z-index:50;background:rgba(28,27,25,0.38);display:flex;justify-content:center;align-items:flex-start;padding:72px 16px 16px">
+      <div onClick="{{stop}}" style="width:100%;max-width:680px;background:#ffffff;border-radius:18px;box-shadow:0 24px 60px rgba(28,27,25,0.25);overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 100px)">
+        <div style="padding:22px 24px 16px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid #e2ded5">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:22px;font-weight:700">Cambiar de empresa</span>
+            <button onClick="{{closeSwitcher}}" style="min-height:40px;padding:0 14px;border:1px solid #d6d1c6;border-radius:10px;background:#ffffff;font-size:15px;cursor:pointer;color:#1c1b19">Cerrar</button>
+          </div>
+          <input ref="{{searchRef}}" value="{{query}}" onChange="{{setQuery}}" onKeyDown="{{onKey}}" placeholder="Escribe el nombre o RUC" style="height:54px;border:1.5px solid #1f4e79;border-radius:12px;padding:0 16px;font-size:18px;color:#1c1b19;outline:none">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+              <button onClick="{{f.set}}" style="min-height:40px;padding:0 14px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;background:{{f.bg}};color:{{f.fg}};border:1px solid {{f.border}}">{{f.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="overflow-y:auto;flex:1">
+          <sc-for list="{{results}}" as="r" hint-placeholder-count="6">
+            <button onClick="{{r.select}}" onMouseEnter="{{r.hover}}" style="width:100%;display:flex;align-items:center;gap:16px;padding:14px 24px;border:0;border-bottom:1px solid #efece5;text-align:left;cursor:pointer;color:#1c1b19;background:{{r.bg}}">
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:17px;font-weight:700;line-height:1.25">{{r.name}} <span style="font-size:14px;font-weight:600;color:#1f4e79">{{r.currentTag}}</span></span>
+                <span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:14px;color:#5a5750">RUC {{r.ruc}}</span>
+              </span>
+              <span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                <span style="font-size:14px;font-weight:700;padding:3px 10px;border-radius:999px;background:{{r.chipBg}};color:{{r.chipFg}}">{{r.chipText}}</span>
+                <span style="font-size:14px;color:#7a4f00">{{r.pendLabel}}</span>
+              </span>
+            </button>
+          </sc-for>
+          <sc-if value="{{noResults}}" hint-placeholder-val="{{false}}">
+            <div style="padding:28px 24px;font-size:17px;color:#5a5750">No hay empresas que coincidan con “{{query}}”.</div>
+          </sc-if>
+        </div>
+        <div style="padding:12px 24px;border-top:1px solid #e2ded5;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#f6f4ef">
+          <span style="font-size:14px;color:#5a5750">Flechas ↑ ↓ para moverte · Enter para abrir · Esc para cerrar</span>
+          <button onClick="{{goEmpresas}}" style="border:0;background:transparent;color:#1f4e79;font-size:15px;font-weight:700;cursor:pointer;padding:8px 0">Ver todas mis empresas →</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{cobOpen}}" hint-placeholder-val="{{false}}">
+    <div onClick="{{closeCobro}}" style="position:fixed;inset:0;z-index:55;background:rgba(28,27,25,0.38);display:flex;justify-content:center;align-items:flex-start;padding:90px 16px 16px">
+      <div onClick="{{stop}}" style="width:100%;max-width:540px;background:#ffffff;border-radius:18px;box-shadow:0 24px 60px rgba(28,27,25,0.25);overflow:hidden;display:flex;flex-direction:column">
+        <div style="padding:22px 26px 18px;border-bottom:1px solid #e2ded5;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:22px;font-weight:700">{{cob.title}}</span>
+          <span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;color:#5a5750">{{cob.serie}}</span>
+          <span style="font-size:16px">{{cob.party}}</span>
+        </div>
+        <div style="padding:20px 26px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;background:#f6f4ef;border-radius:12px;padding:14px 18px">
+            <span style="font-size:16px;color:#5a5750">Saldo pendiente</span>
+            <span style="font-size:24px;font-weight:700;font-variant-numeric:tabular-nums">{{cob.saldo}}</span>
+          </div>
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:16px;font-weight:600">Monto (S/)</span>
+            <span style="display:flex;gap:10px">
+              <input value="{{cobAmt}}" onChange="{{setCobAmt}}" inputmode="decimal" style="flex:1;height:54px;border:1.5px solid #1f4e79;border-radius:12px;padding:0 16px;font-size:20px;font-weight:700;color:#1c1b19;outline:none;font-variant-numeric:tabular-nums">
+              <button onClick="{{cobAll}}" style="min-height:54px;padding:0 16px;border:1.5px solid #b9c8d8;border-radius:12px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer">Todo el saldo</button>
+            </span>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:16px;font-weight:600">Fecha</span>
+            <input value="{{cobDate}}" onChange="{{setCobDate}}" style="height:50px;border:1.5px solid #d6d1c6;border-radius:12px;padding:0 16px;font-size:17px;color:#1c1b19;outline:none" style-focus="border-color:#1f4e79">
+          </label>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:16px;font-weight:600">Medio de pago</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{cobMedios}}" as="md" hint-placeholder-count="4">
+                <button onClick="{{md.set}}" style="min-height:44px;padding:0 16px;border-radius:999px;font-size:16px;font-weight:600;cursor:pointer;background:{{md.bg}};color:{{md.fg}};border:1px solid {{md.border}}">{{md.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{hasCobErr}}" hint-placeholder-val="{{false}}"><span style="font-size:16px;font-weight:600;color:#a3261d">{{cobErr}}</span></sc-if>
+        </div>
+        <div style="padding:16px 26px;border-top:1px solid #e2ded5;display:flex;justify-content:flex-end;gap:12px;background:#f6f4ef">
+          <button onClick="{{closeCobro}}" style="min-height:50px;padding:0 20px;border:1px solid #d6d1c6;border-radius:12px;background:#ffffff;color:#1c1b19;font-size:16px;font-weight:600;cursor:pointer">Cancelar</button>
+          <button onClick="{{saveCobro}}" style="min-height:50px;padding:0 24px;border:0;border-radius:12px;background:#1f4e79;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{hasToast}}" hint-placeholder-val="{{false}}">
+    <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;background:#1c1b19;color:#ffffff;padding:14px 22px;border-radius:12px;font-size:16px;box-shadow:0 10px 30px rgba(0,0,0,0.25)">{{toast}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;textSize&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Normal&quot;,&quot;Grande&quot;,&quot;Muy grande&quot;],&quot;default&quot;:&quot;Normal&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showChart&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mis empresas&quot;,&quot;Inicio&quot;],&quot;default&quot;:&quot;Mis empresas&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const TODAY = new Date(2026, 9, 6);
+const MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
+const MES_C = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+const DIA = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const DUE = {0:15,1:16,2:19,3:19,4:20,5:20,6:21,7:21,8:22,9:22};
+const BASE_V = [140200.40, 50523.30, 95939.15, 104104.30, 40136.25, 42405.80, 41118.90, 91922.75];
+const BASE_C = [82110.20, 88240.50, 90015.74, 86825.37, 80395.58, 74647.25, 75319.86, 73598.26];
+const COMPANIES = [
+  {id:'arias', name:'ARIAS GONZALES GLEICER DALILA', ruc:'10329108100', reg:'MYPE Tributario', f:1, pend:7080, presented:[], planilla:true},
+  {id:'acevedo', name:'ACEVEDO PAYANO MARIA YESICA', ruc:'10463748514', reg:'Régimen Especial', f:0.18, pend:0, presented:['rvie','rce']},
+  {id:'acsa', name:'ACSA', ruc:'20114100731', reg:'Régimen General', f:2.4, pend:0, presented:[], planilla:true},
+  {id:'azanedo', name:'AZAÑEDO MENDOZA YENNY FANNY', ruc:'10406147423', reg:'Régimen Especial', f:0.09, pend:0, presented:['rvie','rce','621']},
+  {id:'cabel', name:'CABEL TAPA CESAR ALEXANDER', ruc:'10449403555', reg:'MYPE Tributario', f:0.35, pend:0, presented:[]},
+  {id:'osan', name:'CONSTRUCTORA Y SERV. GENERALES OSAN S.A.C.', ruc:'20541781740', reg:'Régimen General', f:3.1, pend:0, presented:['rvie'], planilla:true},
+  {id:'fundicion', name:'FUNDICIÓN PROGRESO E.I.R.L.', ruc:'20232534614', reg:'MYPE Tributario', f:1.6, pend:0, presented:[], planilla:true},
+  {id:'mendo', name:'MENDO LOZANO JESSE EMERSON', ruc:'10327324441', reg:'MYPE Tributario', f:0.42, pend:381, presented:[], overdue:true},
+  {id:'pelaez', name:'PELAEZ AIRAC JAQUELIN JANET', ruc:'10441580954', reg:'Régimen Especial', f:0.22, pend:0, presented:[]},
+];
+const NAV = [['inicio','Inicio'],['comprobantes','Comprobantes'],['caja','Caja'],['contabilidad','Contabilidad'],['planillas','Planillas'],['honorarios','Honorarios'],['apertura','Apertura'],['empresa','Datos de la empresa']];
+const SIZES = [{k:'Normal',z:1,px:'14px'},{k:'Grande',z:1.12,px:'17px'},{k:'Muy grande',z:1.25,px:'20px'}];
+
+const fmt = n => 'S/ ' + n.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2});
+const num = n => Math.round(n).toLocaleString('es-PE');
+const daysTo = d => Math.round((d - TODAY) / 86400000);
+const shortDate = d => DIA[d.getDay()] + ' ' + d.getDate() + ' de ' + MES[d.getMonth()].toLowerCase();
+const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const daysText = d => d < 0 ? 'Vencido hace ' + (-d) + (d === -1 ? ' día' : ' días') : d === 0 ? 'Vence hoy' : d === 1 ? 'Vence mañana' : 'Faltan ' + d + ' días';
+const tone = (d, done) => done ? {bg:'#e5f2e8', fg:'#1e6b3a'} : d < 0 ? {bg:'#fbe3e0', fg:'#a3261d'} : d <= 7 ? {bg:'#fbefd5', fg:'#7a4f00'} : {bg:'#e6eef6', fg:'#1f4e79'};
+
+const TABS = [['ventas','Ventas'],['compras','Compras'],['clasificar','Clasificar'],['cobros','Cobros y pagos'],['sync','Sincronizar SIRE']];
+const ACC = {
+  v: [['701','701 Mercaderías'],['702','702 Productos terminados'],['704','704 Prestación de servicios'],['759','759 Otros ingresos']],
+  c: [['601','601 Mercaderías'],['602','602 Materias primas'],['603','603 Materiales auxiliares'],['631','631 Transporte'],['636','636 Servicios básicos'],['656','656 Suministros']],
+};
+const accName = (k, code) => (ACC[k].find(a => a[0] === code) || [code, code])[1];
+const accOpts = k => ACC[k].map(([code, label]) => ({code, label}));
+const CLIENTS = [['20601234567','DISTRIBUIDORA EL SOL S.A.C.'],['20512345678','COMERCIAL SAN MARTÍN E.I.R.L.'],['10456789012','QUISPE HUAMÁN ROSA'],['20487654321','MINIMARKET LA ECONOMÍA S.R.L.'],['20555667788','RESTAURANTE EL BUEN SABOR S.A.C.']];
+const SUPPLIERS = [['20515631829','ALICORP S.A.A.'],['20481921491','DISTRIBUIDORA NORTE PACÍFICO S.A.C.'],['20608557190','INVERSIONES LA CANASTA S.A.C.'],['20397180817','GLORIA S.A.'],['20481555371','LUZ DEL SUR S.A.A.'],['20100047218','BACKUS Y JOHNSTON S.A.A.'],['20100070970','SUPERMERCADOS PERUANOS S.A.']];
+const partyName = ruc => ((SUPPLIERS.concat(CLIENTS)).find(p => p[0] === ruc) || [0, 'Contribuyente sin nombre registrado'])[1];
+const PEND0 = {arias:{2:256,3:1263,4:1311,5:1385,6:1343,7:1522}, mendo:{7:381}};
+const TICKET = 30.6;
+const MEDIOS = ['Efectivo','Transferencia','Yape / Plin','Tarjeta'];
+const rng = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const hash = s => { let x = 2166136261; for (let i = 0; i < s.length; i++) x = Math.imul(x ^ s.charCodeAt(i), 16777619); return x >>> 0; };
+const dd = (m, d) => String(d).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/2026';
+const nowHM = () => new Date().toTimeString().slice(0, 5);
+const ROWS = {};
+function genRows(c, m, kind, total) {
+  const key = c.id + ':' + m + ':' + kind;
+  if (ROWS[key] && ROWS[key].total === total) return ROWS[key].rows;
+  const r = rng(hash(key));
+  const N = kind === 'v' ? Math.round(total / TICKET) : Math.max(1, Math.round(total / 460));
+  const p0 = kind === 'v' ? ((PEND0[c.id] || {})[m] || 0) : 0;
+  const dim = new Date(2026, m + 1, 0).getDate();
+  const rows = []; let sum = 0, nb = 0, nf = 0;
+  for (let i = 0; i < N; i++) {
+    const day = 1 + Math.floor(i * dim / N);
+    let tipo, serie, party, ruc = '', amt;
+    if (kind === 'v') {
+      if (r() < 0.06) { tipo = 'FAC'; nf++; serie = 'F001-' + String(4210 + m * 90 + nf).padStart(6, '0'); const p = CLIENTS[Math.floor(r() * CLIENTS.length)]; party = p[1]; ruc = p[0]; amt = 150 + r() * 900; }
+      else { tipo = 'BOL'; nb++; serie = 'B001-' + (300000 + m * 4700 + nb); party = 'Público en general'; amt = 2 + Math.pow(r(), 1.6) * 110; }
+    } else {
+      const p = SUPPLIERS[Math.floor(r() * SUPPLIERS.length)]; tipo = r() < 0.9 ? 'FAC' : 'BOL';
+      serie = (tipo === 'FAC' ? 'F' : 'B') + String(1 + Math.floor(r() * 30)).padStart(3, '0') + '-' + String(Math.floor(r() * 90000) + 1000).padStart(8, '0'); party = p[1]; ruc = p[0]; amt = 80 + Math.pow(r(), 1.3) * 1200;
+    }
+    const anul = kind === 'v' && i >= p0 && r() < 0.004;
+    if (!anul) sum += amt;
+    rows.push({i, id:key + ':' + i, day, date:dd(m, day), tipo, serie, party, ruc, doc: ruc ? 'RUC ' + ruc : 'Sin documento', amt, anul});
+  }
+  const k = sum ? total / sum : 1;
+  rows.forEach(x => { x.total = Math.round(x.amt * k * 100) / 100; x.base = Math.round(x.total / 1.18 * 100) / 100; x.igv = Math.round((x.total - x.base) * 100) / 100; });
+  ROWS[key] = {total, rows};
+  return rows;
+}
+const chip = (sel) => sel ? {bg:'#1f4e79', fg:'#ffffff', border:'#1f4e79'} : {bg:'#ffffff', fg:'#1c1b19', border:'#d6d1c6'};
+const seg = (sel) => sel ? {bg:'#1f4e79', fg:'#ffffff'} : {bg:'#ffffff', fg:'#1c1b19'};
+
+function obligations(c, pr) {
+  const day = DUE[c.ruc.slice(-1)];
+  const due = new Date(2026, 9, day);
+  const done = k => !!pr[c.id + ':' + k] || c.presented.includes(k);
+  const st = k => pr[c.id + ':' + k] ? 'hoy' : 'el 3 de octubre';
+  const out = [];
+  if (c.overdue) out.push({key:'621ago', name:'IGV-Renta mensual (PDT 621)', period:'Agosto 2026', due:new Date(2026, 8, day + 1), state: done('621ago') ? 'done' : 'ready'});
+  out.push({key:'rvie', name:'Registro de Ventas (SIRE)', period:'Setiembre 2026', due, state: done('rvie') ? 'done' : c.pend > 0 ? 'blocked' : 'ready'});
+  out.push({key:'rce', name:'Registro de Compras (SIRE)', period:'Setiembre 2026', due, state: done('rce') ? 'done' : 'ready'});
+  out.push({key:'621', name:'IGV-Renta mensual (PDT 621)', period:'Setiembre 2026', due, state: done('621') ? 'done' : (done('rvie') && done('rce')) ? 'ready' : 'waiting'});
+  if (c.planilla) out.push({key:'plame', name:'Planilla electrónica (PLAME)', period:'Setiembre 2026', due, state: done('plame') ? 'done' : 'ready'});
+  return out.map(o => ({...o, days: daysTo(o.due), when: st(o.key)}));
+}
+function summary(c, pr) {
+  const obl = obligations(c, pr);
+  const open = obl.filter(o => o.state !== 'done').sort((a, b) => a.days - b.days);
+  const next = open[0];
+  const t = tone(next ? next.days : 0, !next);
+  return {obl, open, next, chipText: next ? daysText(next.days) : 'Todo presentado', chipBg: t.bg, chipFg: t.fg, sortKey: next ? next.days : 999, overdue: open.some(o => o.days < 0)};
+}
+
+class Component extends DCLogic {
+  state = {companyId:'arias', view:this.props.startView === 'Inicio' ? 'inicio' : 'empresas', period:8, size:null, presented:{}, synced:{}, syncing:false,
+    switcherOpen:false, query:'', filter:'todas', hi:0, carteraQ:'', toast:'',
+    tab:'ventas', listQ:'', listF:'todos', shown:15, clasMode:'main', clasKind:'v', clasDone:{}, clasAll:{}, sel:{}, rowAcc:{}, rowPaid:{}, bulkAcc:null,
+    rulesKind:'c', rules:{}, genAcc:{}, newRuc:'', newAcc:null, ruleErr:'', cobKind:'v', cobF:'pend', paid:{}, cobro:null, cobAmt:'', cobDate:'06/10/2026', cobMedio:'Efectivo', cobErr:'', resync:{}, syncM:null};
+  searchRef = React.createRef();
+
+  componentDidMount() {
+    this.onGlobalKey = e => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.openSwitcher(); }
+      else if (e.key === 'Escape' && (this.state.switcherOpen || this.state.cobro)) this.setState({switcherOpen:false, cobro:null});
+    };
+    window.addEventListener('keydown', this.onGlobalKey);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onGlobalKey); clearTimeout(this.tt); }
+  componentDidUpdate(_, prev) {
+    if (this.state.switcherOpen && !prev.switcherOpen) setTimeout(() => this.searchRef.current && this.searchRef.current.focus(), 30);
+  }
+  openSwitcher = () => this.setState({switcherOpen:true, query:'', hi:0, filter:'todas'});
+  showToast(msg) { clearTimeout(this.tt); this.setState({toast:msg}); this.tt = setTimeout(() => this.setState({toast:''}), 2600); }
+  pickCompany(id) { this.setState({companyId:id, switcherOpen:false, view:'inicio'}); this.showToast('Ahora trabajas en ' + COMPANIES.find(c => c.id === id).name); }
+
+  monthData(c, m) {
+    const idx = COMPANIES.indexOf(c);
+    if (m === 8) return this.state.synced[c.id] ? {v:88450.10 * c.f, c:70210.40 * c.f} : {v:0, c:0};
+    if (m > 8) return {v:0, c:0};
+    const w = c.id === 'arias' ? 1 : 1 + 0.18 * Math.sin(m * 1.7 + idx);
+    return {v:BASE_V[m] * c.f * w, c:BASE_C[m] * c.f * w};
+  }
+
+  pendOf(c, m) {
+    const P0 = (PEND0[c.id] || {})[m] || 0, k = c.id + ':' + m;
+    if (!P0 || this.state.clasAll[k]) return 0;
+    return Math.max(0, P0 - Object.keys(this.state.clasDone[k] || {}).length);
+  }
+  genAcc(c) { return this.state.genAcc[c.id] || {v:'701', c:'601'}; }
+  rulesOf(c) {
+    return this.state.rules[c.id] || (c.id === 'arias' ? {c: SUPPLIERS.slice(0, 6).map((s, i) => ({ruc:s[0], acc: i === 4 ? '636' : '601', times:[42, 31, 18, 12, 9, 6][i]})), v:[]} : {c:[], v:[]});
+  }
+  setRules(c, kind, list) { this.setState(s => ({rules:{...s.rules, [c.id]:{...this.rulesOf(c), [kind]:list}}})); }
+  goClas() {
+    const c = COMPANIES.find(x => x.id === this.state.companyId);
+    let m = this.state.period;
+    if (!this.pendOf(c, m)) { const ms = [8, 7, 6, 5, 4, 3, 2, 1, 0].filter(x => this.pendOf(c, x) > 0); if (ms.length) m = ms[0]; }
+    this.setState({view:'comprobantes', tab:'clasificar', clasMode:'main', clasKind:'v', period:m, shown:15, sel:{}});
+  }
+  doSync(c, mm) {
+    if (this.state.syncM !== null) return;
+    this.setState({syncM:mm});
+    setTimeout(() => {
+      this.setState(s => ({syncM:null, synced: mm === 8 ? {...s.synced, [c.id]:true} : s.synced, resync:{...s.resync, [c.id + ':' + mm]:'Hoy a las ' + nowHM()}}));
+      this.showToast(MES[mm] + ' 2026 descargado de SUNAT');
+    }, 1400);
+  }
+
+  compVals(c) {
+    const S = this.state, m = S.period, ck = c.id + ':' + m;
+    const md = this.monthData(c, m), has = md.v > 0;
+    const V = has ? genRows(c, m, 'v', md.v) : [], C = has ? genRows(c, m, 'c', md.c) : [];
+    const P0 = (PEND0[c.id] || {})[m] || 0, all = !!S.clasAll[ck], done = S.clasDone[ck] || {};
+    const isPend = i => !all && i < P0 && !done[i];
+    const pend = this.pendOf(c, m);
+    const gen = this.genAcc(c), rules = this.rulesOf(c);
+    const accOf = (x, kind) => S.rowAcc[x.id] || ((rules[kind].find(r => r.ruc && r.ruc === x.ruc) || {}).acc) || gen[kind];
+    const reset = {shown:15, sel:{}};
+    const tabs = TABS.map(([k, l]) => {
+      const badge = k === 'clasificar' ? (pend ? num(pend) : '') : k === 'ventas' ? (has ? num(V.length) : '') : k === 'compras' ? (has ? num(C.length) : '') : k === 'sync' && !this.state.synced[c.id] ? '1 mes' : '';
+      const warn = (k === 'clasificar' && pend) || k === 'sync';
+      return {label:l, go:() => this.setState({tab:k, listQ:'', listF:'todos', clasMode:'main', ...reset}), line: S.tab === k ? '#1f4e79' : 'transparent', fg: S.tab === k ? '#1f4e79' : '#3d3b36', weight: S.tab === k ? 700 : 500,
+        hasBadge:!!badge, badge, badgeBg: warn ? '#fbefd5' : '#efece5', badgeFg: warn ? '#7a4f00' : '#5a5750'};
+    });
+    const o = {tabs, compNoData: !has && S.tab !== 'sync', showMore:() => this.setState(s => ({shown:s.shown + 15})),
+      isList: has && (S.tab === 'ventas' || S.tab === 'compras'), isClasMain: has && S.tab === 'clasificar' && S.clasMode === 'main', isRules: S.tab === 'clasificar' && S.clasMode === 'rules' && has,
+      isCob: has && S.tab === 'cobros', isSync: S.tab === 'sync', clasPend:num(pend)};
+
+    // Ventas / Compras
+    const kind = S.tab === 'compras' ? 'c' : 'v', src = kind === 'v' ? V : C;
+    const q = norm(S.listQ.trim());
+    const filt = src.filter(x => (S.listF === 'todos' || (S.listF === 'anul' ? x.anul : x.tipo === S.listF && !x.anul)) && (!q || norm(x.serie + ' ' + x.party + ' ' + x.ruc).includes(q)));
+    const act = src.filter(x => !x.anul), nAnul = src.length - act.length;
+    const sumF = f => act.reduce((a, x) => a + x[f], 0);
+    o.listStats = [
+      {label:'Comprobantes', value:num(act.length), note: nAnul ? 'Sin contar ' + nAnul + ' anulados' : (kind === 'v' ? 'Emitidos en el mes' : 'Recibidos en el mes')},
+      {label:'Base imponible', value:fmt(sumF('base')), note:'Monto sin IGV'},
+      {label:'IGV', value:fmt(sumF('igv')), note: kind === 'v' ? 'IGV cobrado a clientes' : 'IGV pagado a proveedores'},
+      {label:'Total', value:fmt(sumF('total')), note:'Con IGV'},
+    ];
+    o.listFilters = [['todos', 'Todos'], ['BOL', 'Boletas'], ['FAC', 'Facturas']].concat(nAnul ? [['anul', 'Anulados']] : []).map(([k, l]) => {
+      const n = k === 'todos' ? src.length : k === 'anul' ? nAnul : act.filter(x => x.tipo === k).length;
+      return {label:l + ' (' + num(n) + ')', set:() => this.setState({listF:k, shown:15}), ...chip(S.listF === k)};
+    });
+    o.listQ = S.listQ; o.setListQ = e => this.setState({listQ:e.target.value, shown:15});
+    o.listPh = kind === 'v' ? 'Buscar por número, cliente o RUC' : 'Buscar por número, proveedor o RUC';
+    o.partyHeader = kind === 'v' ? 'Cliente' : 'Proveedor';
+    o.listRows = filt.slice(0, S.shown).map(x => {
+      const p = kind === 'v' && isPend(x.i);
+      return {date:x.date, tipo:x.tipo, serie:x.serie, party:x.party, doc:x.doc, base:fmt(x.base), igv:fmt(x.igv), total:fmt(x.total), op: x.anul ? 0.6 : 1,
+        acc: x.anul ? 'Anulado' : p ? 'Sin clasificar' : accName(kind, accOf(x, kind)), accColor: x.anul ? '#a3261d' : p ? '#7a4f00' : '#1c1b19'};
+    });
+    o.noListRows = filt.length === 0; o.listMore = filt.length > S.shown;
+    o.listCount = 'Mostrando ' + num(Math.min(S.shown, filt.length)) + ' de ' + num(filt.length);
+    o.exportList = () => this.showToast('Descargando ' + (kind === 'v' ? 'ventas' : 'compras') + ' de ' + MES[m] + ' en Excel');
+
+    // Clasificar
+    const ck2 = S.clasKind, pendRows = ck2 === 'v' ? V.filter(x => isPend(x.i)) : [];
+    const vis = pendRows.slice(0, S.shown);
+    const markDone = (idx, extra) => this.setState(s => {
+      const d = {...(s.clasDone[ck] || {})}, sel = {...s.sel};
+      idx.forEach(i => { d[i] = true; delete sel[i]; });
+      return {clasDone:{...s.clasDone, [ck]:d}, sel, ...(extra ? extra(s) : {})};
+    });
+    o.clasKinds = [['v', 'Ventas (' + num(pend) + ')'], ['c', 'Compras (0)']].map(([k, l]) => ({label:l, set:() => this.setState({clasKind:k, ...reset}), ...seg(ck2 === k)}));
+    o.rulesCount = rules.c.length + rules.v.length;
+    o.openRules = () => this.setState({clasMode:'rules', rulesKind: ck2, ruleErr:'', newRuc:''});
+    o.closeRules = () => this.setState({clasMode:'main'});
+    o.clasHasPend = pendRows.length > 0; o.clasNoPend = pendRows.length === 0;
+    o.genAccName = accName('v', gen.v);
+    o.applyAll = () => { this.setState(s => ({clasAll:{...s.clasAll, [ck]:true}, sel:{}})); this.showToast(num(pend) + ' ventas clasificadas en ' + accName('v', gen.v)); };
+    o.goCobros = () => this.setState({tab:'cobros', cobKind:'v', ...reset});
+    o.goClasTab = () => this.setState({tab:'clasificar', clasMode:'main', clasKind:'v', ...reset});
+    o.accOptsV = accOpts('v');
+    const selIdx = Object.keys(S.sel).filter(k => S.sel[k]).map(Number);
+    o.hasSel = selIdx.length > 0; o.selCount = num(selIdx.length);
+    o.bulkAcc = S.bulkAcc || gen.v; o.setBulkAcc = e => this.setState({bulkAcc:e.target.value});
+    o.confirmSel = () => {
+      const a = S.bulkAcc || gen.v;
+      markDone(selIdx, s => { const ra = {...s.rowAcc}; selIdx.forEach(i => { ra[ck + ':v:' + i] = a; }); return {rowAcc:ra}; });
+      this.showToast(selIdx.length + ' ventas clasificadas en ' + accName('v', a));
+    };
+    o.clearSel = () => this.setState({sel:{}});
+    o.clasVisN = num(vis.length);
+    o.allVisSel = vis.length > 0 && vis.every(x => S.sel[x.i]);
+    o.toggleAllVis = () => this.setState(s => { const sel = {}; if (!o.allVisSel) vis.forEach(x => { sel[x.i] = true; }); return {sel}; });
+    o.clasRows = vis.map(x => {
+      const acc = S.rowAcc[x.id] || gen.v, paid = S.rowPaid[x.id] !== false;
+      return {serie:x.serie, tipo:x.tipo, date:x.date, party:x.party, doc:x.doc, total:fmt(x.total), acc, paid, checked:!!S.sel[x.i], bg: S.sel[x.i] ? '#f4f7fa' : '#ffffff',
+        toggle:() => this.setState(s => ({sel:{...s.sel, [x.i]:!s.sel[x.i]}})),
+        setAcc:e => { const v = e.target.value; this.setState(s => ({rowAcc:{...s.rowAcc, [x.id]:v}})); },
+        togglePaid:() => this.setState(s => ({rowPaid:{...s.rowPaid, [x.id]: s.rowPaid[x.id] === false}})),
+        confirm:() => { markDone([x.i], s => ({rowAcc:{...s.rowAcc, [x.id]:acc}})); this.showToast(x.serie + ' clasificada en ' + accName('v', acc) + (paid ? '' : ' · queda a crédito')); }};
+    });
+    o.clasCount = 'Mostrando ' + num(vis.length) + ' de ' + num(pendRows.length);
+    o.clasMore = pendRows.length > S.shown;
+    o.clasDoneTitle = ck2 === 'v' ? 'Todas las ventas de ' + MES[m] + ' 2026 están clasificadas' : 'Todas las compras de ' + MES[m] + ' 2026 están clasificadas';
+    o.clasDoneSub = ck2 === 'v' ? 'Ya puedes revisar los cobros pendientes o presentar el Registro de Ventas.' : 'Se aplicaron tus ' + rules.c.length + ' reglas por proveedor y la cuenta general ' + accName('c', gen.c) + ' al descargar.';
+    const other = [8, 7, 6, 5, 4, 3, 2, 1, 0].filter(mm => mm !== m && this.pendOf(c, mm) > 0);
+    o.hasOtherPend = ck2 === 'v' && other.length > 0;
+    o.otherPend = other.map(mm => ({label:MES[mm] + ' · ' + num(this.pendOf(c, mm)) + ' ventas', go:() => this.setState({period:mm, ...reset})}));
+
+    // Reglas
+    const rk = S.rulesKind;
+    o.rulesKinds = [['c', 'Compras (proveedores) · ' + rules.c.length], ['v', 'Ventas (clientes) · ' + rules.v.length]].map(([k, l]) => ({label:l, set:() => this.setState({rulesKind:k, ruleErr:'', newAcc:null}), ...seg(rk === k)}));
+    o.rulesWho = rk === 'c' ? 'proveedores' : 'clientes'; o.rulesWhoOne = rk === 'c' ? 'proveedor' : 'cliente'; o.rulesWhoCap = rk === 'c' ? 'Proveedor' : 'Cliente';
+    o.rulesAccOpts = accOpts(rk);
+    o.genValue = gen[rk];
+    o.setGen = e => { const v = e.target.value; this.setState(s => ({genAcc:{...s.genAcc, [c.id]:{...gen, [rk]:v}}})); this.showToast('Cuenta general de ' + o.rulesWho + ': ' + accName(rk, v)); };
+    o.rulesN = rules[rk].length; o.noRules = rules[rk].length === 0;
+    o.rulesRows = rules[rk].map((r, i) => ({name:partyName(r.ruc), ruc:r.ruc, acc:accName(rk, r.acc), times:num(r.times),
+      remove:() => { this.setRules(c, rk, rules[rk].filter((_, j) => j !== i)); this.showToast('Regla quitada'); }}));
+    o.newRuc = S.newRuc; o.setNewRuc = e => this.setState({newRuc:e.target.value.replace(/\D/g, '').slice(0, 11), ruleErr:''});
+    o.newAcc = S.newAcc || ACC[rk][0][0]; o.setNewAcc = e => this.setState({newAcc:e.target.value});
+    o.hasRuleErr = !!S.ruleErr; o.ruleErr = S.ruleErr;
+    o.addRule = () => {
+      if (S.newRuc.length !== 11) return this.setState({ruleErr:'El RUC debe tener 11 números.'});
+      if (rules[rk].some(r => r.ruc === S.newRuc)) return this.setState({ruleErr:'Ya existe una regla para ese RUC.'});
+      this.setRules(c, rk, [{ruc:S.newRuc, acc:o.newAcc, times:0}].concat(rules[rk]));
+      this.setState({newRuc:'', ruleErr:''}); this.showToast('Regla agregada: ' + accName(rk, o.newAcc));
+    };
+
+    // Cobros y pagos
+    const kk = S.cobKind, isV = kk === 'v';
+    const paidOf = x => S.paid[x.id] !== undefined ? S.paid[x.id] : isV ? (S.rowPaid[x.id] === false || x.tipo === 'FAC' ? 0 : x.total) : (hash(x.id) % 10 < 4 ? 0 : x.total);
+    const cob = (isV ? V : C).filter(x => !x.anul && !(isV && isPend(x.i))).map(x => { const p = Math.min(x.total, paidOf(x)); return {x, p, s:Math.round((x.total - p) * 100) / 100}; });
+    const cobF = cob.filter(r => S.cobF === 'todos' || (S.cobF === 'pend' ? r.s > 0 : r.s === 0));
+    o.cobWarn = isV && pend > 0;
+    o.cobKinds = [['v', 'Ventas (por cobrar)'], ['c', 'Compras (por pagar)']].map(([k, l]) => ({label:l, set:() => this.setState({cobKind:k, ...reset}), ...seg(kk === k)}));
+    o.cobFilters = [['pend', 'Con saldo'], ['ok', isV ? 'Cobrados' : 'Pagados'], ['todos', 'Todos']].map(([k, l]) => {
+      const n = k === 'todos' ? cob.length : cob.filter(r => k === 'pend' ? r.s > 0 : r.s === 0).length;
+      return {label:l + ' (' + num(n) + ')', set:() => this.setState({cobF:k, shown:15}), ...chip(S.cobF === k)};
+    });
+    const tot = cob.reduce((a, r) => a + r.x.total, 0), pd = cob.reduce((a, r) => a + r.p, 0), nPend = cob.filter(r => r.s > 0).length;
+    o.cobStats = [
+      {label:'Total del mes', value:fmt(tot), note:num(cob.length) + ' comprobantes', color:'#1c1b19'},
+      {label: isV ? 'Ya cobrado' : 'Ya pagado', value:fmt(pd), note: isV ? 'Ingresó a Caja' : 'Salió de Caja', color:'#1e6b3a'},
+      {label: isV ? 'Falta cobrar' : 'Falta pagar', value:fmt(tot - pd), note:num(nPend) + ' comprobantes con saldo', color: tot - pd > 0.005 ? '#a3261d' : '#1e6b3a'},
+    ];
+    o.cobParty = isV ? 'Cliente' : 'Proveedor'; o.cobPaidH = isV ? 'Cobrado' : 'Pagado';
+    o.cobRows = cobF.slice(0, S.shown).map(({x, p, s}) => {
+      const st = s === 0 ? {t: isV ? 'Cobrado' : 'Pagado', bg:'#e5f2e8', fg:'#1e6b3a'} : p > 0 ? {t:'Parcial', bg:'#fbefd5', fg:'#7a4f00'} : {t:'A crédito', bg:'#fbe3e0', fg:'#a3261d'};
+      return {tipo:x.tipo, serie:x.serie, date:x.date, party:x.party, doc:x.doc, total:fmt(x.total), paid:fmt(p), saldo:fmt(s), saldoColor: s > 0 ? '#a3261d' : '#5a5750',
+        stText:st.t, stBg:st.bg, stFg:st.fg, hasAct: s > 0, actLabel: isV ? 'Registrar cobro' : 'Registrar pago',
+        act:() => this.setState({cobro:{id:x.id, serie:x.tipo + ' ' + x.serie, party:x.party, saldo:s, paid:p, kind:kk}, cobAmt:s.toFixed(2), cobDate:'06/10/2026', cobMedio:'Efectivo', cobErr:''})};
+    });
+    o.noCobRows = cobF.length === 0; o.cobMore = cobF.length > S.shown;
+    o.cobEmpty = S.cobF === 'pend' ? (isV ? 'No hay ventas con saldo por cobrar en este mes.' : 'No hay compras con saldo por pagar en este mes.') : 'No hay comprobantes en esta vista.';
+    o.cobCount = 'Mostrando ' + num(Math.min(S.shown, cobF.length)) + ' de ' + num(cobF.length);
+    const cb = S.cobro;
+    o.cobOpen = !!cb;
+    o.cob = cb ? {title: cb.kind === 'v' ? 'Registrar cobro' : 'Registrar pago', serie:cb.serie, party:cb.party, saldo:fmt(cb.saldo)} : {};
+    o.cobAmt = S.cobAmt; o.setCobAmt = e => this.setState({cobAmt:e.target.value.replace(',', '.'), cobErr:''});
+    o.cobAll = () => cb && this.setState({cobAmt:cb.saldo.toFixed(2), cobErr:''});
+    o.cobDate = S.cobDate; o.setCobDate = e => this.setState({cobDate:e.target.value});
+    o.cobMedios = MEDIOS.map(md2 => ({label:md2, set:() => this.setState({cobMedio:md2}), ...chip(S.cobMedio === md2)}));
+    o.hasCobErr = !!S.cobErr; o.cobErr = S.cobErr;
+    o.closeCobro = () => this.setState({cobro:null});
+    o.saveCobro = () => {
+      const a = parseFloat(S.cobAmt);
+      if (!(a > 0)) return this.setState({cobErr:'Escribe un monto mayor a cero.'});
+      if (a > cb.saldo + 0.001) return this.setState({cobErr:'El monto no puede ser mayor al saldo (' + fmt(cb.saldo) + ').'});
+      this.setState(s => ({paid:{...s.paid, [cb.id]:cb.paid + a}, cobro:null}));
+      this.showToast((cb.kind === 'v' ? 'Cobro' : 'Pago') + ' de ' + fmt(a) + ' registrado en Caja (' + S.cobMedio + ')');
+    };
+
+    // Sincronizar
+    o.syncRows = [0, 1, 2, 3, 4, 5, 6, 7, 8].map(mm => {
+      const d = this.monthData(c, mm), h2 = d.v > 0, busy = S.syncM === mm, pm = this.pendOf(c, mm);
+      const when = S.resync[c.id + ':' + mm] || (!h2 ? 'Todavía no' : mm === 7 ? 'Lunes 5 de octubre, 18:40' : '3 de ' + MES[mm + 1].toLowerCase());
+      return {month:MES[mm] + ' 2026', view:() => this.setState({period:mm, tab:'ventas', ...reset}), bg: mm === m ? '#f4f7fa' : '#ffffff',
+        vText: h2 ? num(Math.round(d.v / TICKET)) + ' comprobantes' : 'Sin descargar', cText: h2 ? num(Math.max(1, Math.round(d.c / 460))) + ' comprobantes' : 'Sin descargar',
+        vColor: h2 ? '#1c1b19' : '#7a4f00', vWeight: h2 ? 400 : 700, hasPend: pm > 0, pendText: num(pm) + ' por clasificar', when,
+        actLabel: busy ? 'Descargando…' : h2 ? 'Volver a descargar' : 'Descargar', op: S.syncM !== null && !busy ? 0.5 : 1,
+        btnBg: h2 ? '#ffffff' : '#1f4e79', btnFg: h2 ? '#1f4e79' : '#ffffff', btnBorder: h2 ? '#b9c8d8' : '#1f4e79', act:() => this.doSync(c, mm)};
+    }).reverse();
+    o.hasSyncPend = !S.synced[c.id];
+    o.syncPendLabel = S.syncM === 8 ? 'Descargando…' : 'Descargar Setiembre 2026';
+    o.syncPendGo = () => this.doSync(c, 8);
+    return o;
+  }
+
+  results() {
+    const {query, filter, presented} = this.state;
+    const q = norm(query.trim());
+    return COMPANIES.map(c => ({c, s:summary(c, presented)}))
+      .filter(({c, s}) => (!q || norm(c.name).includes(q) || c.ruc.includes(q)) && (filter === 'todas' || (filter === 'vencidos' && s.overdue) || (filter === 'pend' && c.pend > 0)))
+      .sort((a, b) => a.s.sortKey - b.s.sortKey);
+  }
+
+  renderVals() {
+    const S = this.state;
+    COMPANIES.forEach(x => { x.pend = [0, 1, 2, 3, 4, 5, 6, 7, 8].reduce((a, mm) => a + this.pendOf(x, mm), 0); });
+    const c = COMPANIES.find(x => x.id === S.companyId);
+    const sizeKey = S.size || this.props.textSize || 'Normal';
+    const size = SIZES.find(s => s.k === sizeKey) || SIZES[0];
+    const sum = summary(c, S.presented);
+    const titles = {inicio:'Inicio', empresas:'Mis empresas (' + COMPANIES.length + ')'};
+    NAV.forEach(([k, l]) => { if (!titles[k]) titles[k] = l; });
+
+    const obligationsList = sum.obl.map(o => {
+      const done = o.state === 'done';
+      const t = tone(o.days, done);
+      const primary = o.state === 'ready';
+      const map = {
+        blocked: {txt:'Faltan clasificar ' + num(c.pend) + ' ventas', col:'#a3261d', label:'Clasificar', act:() => this.goClas()},
+        ready: {txt:'Listo para presentar', col:'#1e6b3a', label:'Presentar', act:() => { this.setState(s => ({presented:{...s.presented, [c.id + ':' + o.key]:true}})); this.showToast(o.name + ' presentado (simulado)'); }},
+        waiting: {txt:'Primero presenta ventas y compras', col:'#5a5750'},
+        done: {txt:'Presentado ' + o.when, col:'#1e6b3a', label:'Ver constancia', act:() => this.showToast('Abriendo constancia de ' + o.name)},
+      }[o.state];
+      return {name:o.name, period:o.period, dueLabel:shortDate(o.due), statusText:map.txt, statusColor:map.col,
+        chipText: done ? 'Presentado' : daysText(o.days), chipBg:t.bg, chipFg:t.fg,
+        hasAction:!!map.label, actionLabel:map.label, act:map.act,
+        btnBg: primary ? '#1f4e79' : '#ffffff', btnFg: primary ? '#ffffff' : '#1f4e79', btnBorder: primary ? '#1f4e79' : '#b9c8d8'};
+    });
+
+    let next;
+    if (sum.next) {
+      const t = tone(sum.next.days, false);
+      const d = sum.next.days;
+      next = {title: d < 0 ? 'Tienes una declaración vencida' : 'Próximo: ' + shortDate(sum.next.due),
+        sub: sum.open.length + (sum.open.length === 1 ? ' obligación pendiente' : ' obligaciones pendientes'),
+        big: String(Math.abs(d)), word: d < 0 ? 'días de atraso' : d === 1 ? 'día' : 'días', bg:t.bg, fg:t.fg};
+    } else next = {title:'Todo presentado', sub:'No quedan obligaciones de Setiembre 2026', big:'0', word:'pendientes', bg:'#e5f2e8', fg:'#1e6b3a'};
+
+    const md = this.monthData(c, S.period);
+    const hasMonth = md.v > 0 || md.c > 0;
+    const igv = (md.v - md.c) * 18 / 118;
+    const stats = [
+      {label:'Ventas', value:fmt(md.v), note:'Comprobantes emitidos', color:'#1c1b19'},
+      {label:'Compras', value:fmt(md.c), note:'Comprobantes recibidos', color:'#1c1b19'},
+      igv >= 0 ? {label:'IGV por pagar', value:fmt(igv), note:'Se paga con el PDT 621', color:'#7a4f00'}
+               : {label:'Saldo a favor de IGV', value:fmt(-igv), note:'Se usa el próximo mes', color:'#1e6b3a'},
+      {label:'Resultado estimado', value:fmt((md.v - md.c) / 1.18), note:'Ventas menos compras, sin IGV', color:(md.v - md.c) >= 0 ? '#1e6b3a' : '#a3261d'},
+    ];
+
+    const months = MES.map((_, m) => this.monthData(c, m));
+    const max = Math.max(1, ...months.map(x => Math.max(x.v, x.c)));
+    const bars = months.map((x, m) => ({label:MES_C[m], hv:Math.max(x.v ? 3 : 1, x.v / max * 100) + '%', hc:Math.max(x.c ? 3 : 1, x.c / max * 100) + '%',
+      bg: m === S.period ? '#e6eef6' : 'transparent', fg: m === S.period ? '#1f4e79' : '#5a5750', weight: m === S.period ? 700 : 400,
+      pick:() => m <= 8 && this.setState({period:m})}));
+
+    const res = this.results();
+    const hi = Math.min(S.hi, Math.max(0, res.length - 1));
+    const results = res.map(({c:x, s}, i) => ({name:x.name, ruc:x.ruc, currentTag: x.id === c.id ? '· actual' : '',
+      chipText:s.chipText, chipBg:s.chipBg, chipFg:s.chipFg, pendLabel: x.pend ? num(x.pend) + ' por clasificar' : '',
+      bg: i === hi ? '#eef3f8' : '#ffffff', select:() => this.pickCompany(x.id), hover:() => this.setState({hi:i})}));
+    const all = COMPANIES.map(x => ({x, s:summary(x, S.presented)}));
+    const filters = [['todas','Todas (' + all.length + ')'],['vencidos','Con vencidos (' + all.filter(a => a.s.overdue).length + ')'],['pend','Por clasificar (' + all.filter(a => a.x.pend).length + ')']]
+      .map(([k, l]) => ({label:l, set:() => this.setState({filter:k, hi:0}), bg: S.filter === k ? '#1f4e79' : '#ffffff', fg: S.filter === k ? '#ffffff' : '#1c1b19', border: S.filter === k ? '#1f4e79' : '#d6d1c6'}));
+
+    const cq = norm(S.carteraQ.trim());
+    const cartera = all.filter(({x}) => !cq || norm(x.name).includes(cq) || x.ruc.includes(cq)).sort((a, b) => a.s.sortKey - b.s.sortKey).map(({x, s}) => ({
+      name:x.name, ruc:x.ruc, reg:x.reg, dueDate: s.next ? shortDate(s.next.due) : '—', chipText:s.chipText, chipBg:s.chipBg, chipFg:s.chipFg,
+      openLabel: s.open.length ? s.open.length + ' de ' + s.obl.length : 'Ninguna', pendLabel: x.pend ? num(x.pend) : 'Ninguno', pendColor: x.pend ? '#7a4f00' : '#5a5750', certLabel: x.cert ? 'Activo' : 'Falta subir', certColor: x.cert ? '#1e6b3a' : '#a3261d',
+      rowBg: x.id === c.id ? '#f4f7fa' : '#ffffff', openText: x.id === c.id ? 'Ir a inicio' : 'Abrir', open:() => this.pickCompany(x.id)}));
+    const nOver = all.filter(a => a.s.overdue).length;
+    const nWeek = all.filter(a => a.s.next && a.s.next.days >= 0 && a.s.next.days <= 10).length;
+
+    return {
+      zoom: size.z, company:{...c, digit:c.ruc.slice(-1)}, pageTitle:titles[S.view],
+      navItems: NAV.map(([k, l]) => ({label:l, go:() => this.setState({view:k}), bg: S.view === k ? '#e6eef6' : 'transparent', fg: S.view === k ? '#1f4e79' : '#1c1b19', weight: S.view === k ? 700 : 500})),
+      empresasBg: S.view === 'empresas' ? '#e6eef6' : '#ffffff',
+      carteraAlert: nOver ? nOver + (nOver === 1 ? ' empresa con declaración vencida' : ' empresas con vencidos') : 'Todo al día',
+      goEmpresas:() => this.setState({view:'empresas', switcherOpen:false}), goInicio:() => this.setState({view:'inicio'}),
+      openSwitcher:this.openSwitcher, closeSwitcher:() => this.setState({switcherOpen:false}), stop:e => e.stopPropagation(),
+      periodLabel: MES[S.period] + ' 2026', prevOpacity: S.period > 0 ? 1 : 0.35, nextOpacity: S.period < 8 ? 1 : 0.35,
+      prevPeriod:() => this.setState(s => ({period:Math.max(0, s.period - 1), shown:15, sel:{}})), nextPeriod:() => this.setState(s => ({period:Math.min(8, s.period + 1), shown:15, sel:{}})),
+      sizes: SIZES.map(s => ({label:'Letra ' + s.k.toLowerCase(), px:s.px, set:() => this.setState({size:s.k}), bg: s.k === size.k ? '#1f4e79' : '#ffffff', fg: s.k === size.k ? '#ffffff' : '#1c1b19'})),
+      isInicio: S.view === 'inicio', isEmpresas: S.view === 'empresas', isOther: !['inicio', 'empresas', 'comprobantes'].includes(S.view), isComp: S.view === 'comprobantes',
+      next, obligations:obligationsList,
+      hasPend: c.pend > 0, noPend: c.pend === 0, pendCount:num(c.pend), goClasificar:() => this.goClas(),
+      lastSync: S.synced[c.id] ? 'Hoy a las ' + new Date().toTimeString().slice(0, 5) : 'Lunes 5 de octubre, 18:40',
+      hasMonth, noMonth:!hasMonth, stats, syncLabel: S.syncing ? 'Sincronizando…' : 'Sincronizar con SUNAT', syncOpacity: S.syncing ? 0.7 : 1,
+      sync:() => { if (S.syncing || S.period !== 8) return; this.setState({syncing:true}); setTimeout(() => { this.setState(s => ({syncing:false, synced:{...s.synced, [c.id]:true}, resync:{...s.resync, [c.id + ':8']:'Hoy a las ' + nowHM()}})); this.showToast('Setiembre 2026 sincronizado'); }, 1400); },
+      showChart: this.props.showChart ?? true, bars,
+      yearV: fmt(months.reduce((a, x) => a + x.v, 0)), yearC: fmt(months.reduce((a, x) => a + x.c, 0)),
+      cobrar: fmt(477068.20 * c.f), cobrarN: num(15844 * c.f), pagar: fmt(476529.28 * c.f), pagarN: num(958 * c.f),
+      switcherOpen:S.switcherOpen, query:S.query, searchRef:this.searchRef, results, noResults: res.length === 0, filters,
+      setQuery:e => this.setState({query:e.target.value, hi:0}),
+      onKey:e => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); this.setState({hi:Math.min(hi + 1, res.length - 1)}); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); this.setState({hi:Math.max(hi - 1, 0)}); }
+        else if (e.key === 'Enter' && res[hi]) this.pickCompany(res[hi].c.id);
+      },
+      carteraQ:S.carteraQ, setCarteraQ:e => this.setState({carteraQ:e.target.value}), cartera,
+      carteraStats:[
+        
+        {value:String(nOver), label:'con declaraciones vencidas', color: nOver ? '#a3261d' : '#1e6b3a'},
+        {value:String(nWeek), label:'vencen en los próximos 10 días', color:'#7a4f00'},
+        {value:num(COMPANIES.reduce((a, x) => a + x.pend, 0)), label:'comprobantes por clasificar', color:'#7a4f00'},
+        {value:String(COMPANIES.filter(x => !x.cert).length), label:'sin certificado digital', color:'#a3261d'},
+      ],
+      hasToast:!!S.toast, toast:S.toast,
+      ...this.compVals(c),
+    };
+  }
+}
+</script>
+</body>
+</html>

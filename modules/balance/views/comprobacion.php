@@ -52,7 +52,8 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
                     <th colspan="2" style="padding:6px 12px;text-align:center;color:var(--gc-label-2);font-weight:700;border-right:1px solid var(--gc-line);">Sumas del Mayor</th>
                     <th colspan="2" style="padding:6px 12px;text-align:center;color:var(--gc-label-2);font-weight:700;border-right:1px solid var(--gc-line);">Saldos</th>
                     <th colspan="2" style="padding:6px 12px;text-align:center;color:var(--gc-label-2);font-weight:700;border-right:1px solid var(--gc-line);">Inventario</th>
-                    <th colspan="2" style="padding:6px 12px;text-align:center;color:var(--gc-label-2);font-weight:700;">Resultados</th>
+                    <th colspan="2" style="padding:6px 12px;text-align:center;color:var(--gc-label-2);font-weight:700;border-right:1px solid var(--gc-line);">Resultado por naturaleza</th>
+                    <th colspan="2" style="padding:6px 12px;text-align:center;color:var(--gc-label-2);font-weight:700;">Resultado por función</th>
                 </tr>
                 <tr style="background:var(--gc-bg);border-bottom:2px solid var(--gc-line);">
                     <th style="padding:6px 12px;text-align:right;color:var(--gc-muted);font-weight:700;">Debe</th>
@@ -61,6 +62,8 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
                     <th style="padding:6px 12px;text-align:right;color:var(--gc-muted);font-weight:700;border-right:1px solid var(--gc-line);">Acreedor</th>
                     <th style="padding:6px 12px;text-align:right;color:var(--gc-muted);font-weight:700;">Activo</th>
                     <th style="padding:6px 12px;text-align:right;color:var(--gc-muted);font-weight:700;border-right:1px solid var(--gc-line);">Pasivo</th>
+                    <th style="padding:6px 12px;text-align:right;color:var(--gc-muted);font-weight:700;">Pérdidas</th>
+                    <th style="padding:6px 12px;text-align:right;color:var(--gc-muted);font-weight:700;border-right:1px solid var(--gc-line);">Ganancias</th>
                     <th style="padding:6px 12px;text-align:right;color:var(--gc-muted);font-weight:700;">Pérdidas</th>
                     <th style="padding:6px 12px;text-align:right;color:var(--gc-muted);font-weight:700;">Ganancias</th>
                 </tr>
@@ -78,8 +81,10 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
                     <td style="padding:6px 12px;text-align:right;font-family:monospace;border-right:1px solid var(--gc-surface-2);"><?= $fmt($f['acreedor']) ?></td>
                     <td style="padding:6px 12px;text-align:right;font-family:monospace;color:var(--gc-pos);"><?= $fmt($f['activo']) ?></td>
                     <td style="padding:6px 12px;text-align:right;font-family:monospace;color:var(--gc-warn);border-right:1px solid var(--gc-surface-2);"><?= $fmt($f['pasivo']) ?></td>
-                    <td style="padding:6px 12px;text-align:right;font-family:monospace;color:var(--gc-neg);"><?= $fmt($f['perdidas']) ?></td>
-                    <td style="padding:6px 12px;text-align:right;font-family:monospace;color:var(--gc-brand);"><?= $fmt($f['ganancias']) ?></td>
+                    <td style="padding:6px 12px;text-align:right;font-family:monospace;color:var(--gc-neg);"><?= $fmt($f['nat_perdidas']) ?></td>
+                    <td style="padding:6px 12px;text-align:right;font-family:monospace;color:var(--gc-brand);border-right:1px solid var(--gc-surface-2);"><?= $fmt($f['nat_ganancias']) ?></td>
+                    <td style="padding:6px 12px;text-align:right;font-family:monospace;color:var(--gc-neg);"><?= $fmt($f['fun_perdidas']) ?></td>
+                    <td style="padding:6px 12px;text-align:right;font-family:monospace;color:var(--gc-brand);"><?= $fmt($f['fun_ganancias']) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -92,11 +97,16 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
                     <td style="padding:8px 12px;text-align:right;font-family:monospace;border-right:1px solid var(--gc-line);"><?= $fmt($balance['totales']['acreedor']) ?></td>
                     <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-pos);"><?= $fmt($balance['totales']['activo']) ?></td>
                     <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-warn);border-right:1px solid var(--gc-line);"><?= $fmt($balance['totales']['pasivo']) ?></td>
-                    <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-neg);"><?= $fmt($balance['totales']['perdidas']) ?></td>
-                    <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-brand);"><?= $fmt($balance['totales']['ganancias']) ?></td>
+                    <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-neg);"><?= $fmt($balance['totales']['nat_perdidas']) ?></td>
+                    <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-brand);border-right:1px solid var(--gc-line);"><?= $fmt($balance['totales']['nat_ganancias']) ?></td>
+                    <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-neg);"><?= $fmt($balance['totales']['fun_perdidas']) ?></td>
+                    <td style="padding:8px 12px;text-align:right;font-family:monospace;color:var(--gc-brand);"><?= $fmt($balance['totales']['fun_ganancias']) ?></td>
                 </tr>
                 <?php
-                    $cr = BalanceService::cierreResultado($balance['totales']);
+                    $cr  = BalanceService::cierreResultado($balance['totales']);
+                    $nat = BalanceService::cierrePar((float)$balance['totales']['nat_perdidas'], (float)$balance['totales']['nat_ganancias']);
+                    $fun = BalanceService::cierrePar((float)$balance['totales']['fun_perdidas'], (float)$balance['totales']['fun_ganancias']);
+                    $resultadosCoinciden = abs(($nat['tipo'] === 'perdida' ? -1 : 1) * $nat['monto'] - ($fun['tipo'] === 'perdida' ? -1 : 1) * $fun['monto']) < 0.02;
                     $etq = $cr['tipo'] === 'perdida' ? 'Pérdida del ejercicio' : 'Utilidad del ejercicio';
                     $celda = fn($v, $col, $borde = false) => '<td style="padding:8px 12px;text-align:right;font-family:monospace;color:' . $col . ';' . ($borde ? 'border-right:1px solid var(--gc-line);' : '') . '">' . $fmt($v) . '</td>';
                 ?>
@@ -108,16 +118,20 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
                     <td colspan="4" style="border-right:1px solid var(--gc-line);"></td>
                     <?= $celda($cr['ajuste']['activo'], 'var(--gc-pos)') ?>
                     <?= $celda($cr['ajuste']['pasivo'], 'var(--gc-warn)', true) ?>
-                    <?= $celda($cr['ajuste']['perdidas'], 'var(--gc-neg)') ?>
-                    <?= $celda($cr['ajuste']['ganancias'], 'var(--gc-brand)') ?>
+                    <?= $celda($nat['ajuste_perdidas'], 'var(--gc-neg)') ?>
+                    <?= $celda($nat['ajuste_ganancias'], 'var(--gc-brand)', true) ?>
+                    <?= $celda($fun['ajuste_perdidas'], 'var(--gc-neg)') ?>
+                    <?= $celda($fun['ajuste_ganancias'], 'var(--gc-brand)') ?>
                 </tr>
                 <tr style="border-top:2px solid var(--gc-line);font-weight:700;background:var(--gc-bg);">
                     <td style="padding:8px 12px;color:var(--gc-label);border-right:1px solid var(--gc-line);">Sumas iguales</td>
                     <td colspan="4" style="border-right:1px solid var(--gc-line);"></td>
                     <?= $celda($cr['iguales']['activo'], 'var(--gc-pos)') ?>
                     <?= $celda($cr['iguales']['pasivo'], 'var(--gc-warn)', true) ?>
-                    <?= $celda($cr['iguales']['perdidas'], 'var(--gc-neg)') ?>
-                    <?= $celda($cr['iguales']['ganancias'], 'var(--gc-brand)') ?>
+                    <?= $celda($nat['iguales_perdidas'], 'var(--gc-neg)') ?>
+                    <?= $celda($nat['iguales_ganancias'], 'var(--gc-brand)', true) ?>
+                    <?= $celda($fun['iguales_perdidas'], 'var(--gc-neg)') ?>
+                    <?= $celda($fun['iguales_ganancias'], 'var(--gc-brand)') ?>
                 </tr>
             </tfoot>
         </table>
@@ -129,9 +143,12 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
             El resultado del período es <strong>cero</strong>: Ganancias = Pérdidas.
         <?php else: ?>
             Resultado del ejercicio: <strong style="color:<?= $cr['tipo'] === 'utilidad' ? 'var(--gc-pos)' : 'var(--gc-neg)' ?>;"><?= $cr['tipo'] === 'utilidad' ? 'UTILIDAD' : 'PÉRDIDA' ?> de S/ <?= number_format($cr['monto'], 2) ?></strong>
-            = Ganancias (S/ <?= number_format($balance['totales']['ganancias'], 2) ?>) − Pérdidas (S/ <?= number_format($balance['totales']['perdidas'], 2) ?>).
+            = Ganancias (S/ <?= number_format($balance['totales']['nat_ganancias'], 2) ?>) − Pérdidas (S/ <?= number_format($balance['totales']['nat_perdidas'], 2) ?>) por naturaleza<?= $resultadosCoinciden ? ', e igual por función.' : '.' ?>
         <?php endif; ?>
         <span style="color:var(--gc-muted);">Es el resultado antes de Impuesto a la Renta y Reserva Legal.</span>
+        <?php if (!$resultadosCoinciden): ?>
+        <div style="margin-top:6px;color:var(--gc-neg);font-weight:600;">⚠ El resultado por función (S/ <?= number_format(($fun['tipo'] === 'perdida' ? -1 : 1) * $fun['monto'], 2) ?>) no coincide con el de naturaleza: hay un gasto o costo que no llegó a su destino. Regenera los asientos del Libro Diario.</div>
+        <?php endif; ?>
         <?php if (!$cr['coincide']): ?>
         <div style="margin-top:6px;color:var(--gc-neg);font-weight:600;">⚠ Activo − Pasivo no coincide con Ganancias − Pérdidas: el Debe y el Haber no están cuadrando.</div>
         <?php endif; ?>

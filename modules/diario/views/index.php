@@ -12,6 +12,8 @@ $fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '';
     </div>
     <?php unset($_SESSION[$key]); endforeach; ?>
 
+    <?php $libroClave = 'diario'; require ROOT . '/views/layout/regimen_badge.php'; ?>
+
     <!-- Barra de acciones: el período se cambia desde la barra superior -->
     <div class="no-print" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
         <div>

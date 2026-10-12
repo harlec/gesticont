@@ -24,6 +24,7 @@ if ($dentroDeEmpresa) {
         ['label' => 'Empresa', 'hijos' => [
             [$base, 'Resumen'],
             [$base . '/editar', 'Editar datos'],
+            [$base . '/regimen', 'Régimen tributario'],
             [$base . '/certificado', 'Certificado / Credenciales SUNAT'],
         ]],
         ['label' => 'Comprobantes', 'hijos' => [
@@ -46,6 +47,8 @@ if ($dentroDeEmpresa) {
             [$base . '/resultados', 'Estado de Resultados'],
             [$base . '/cambios-patrimonio', 'Cambios en el Patrimonio'],
             [$base . '/flujo-efectivo', 'Flujo de Efectivo'],
+            [$base . '/cuentas-por-pagar', 'Cuentas por pagar'],
+            [$base . '/cuentas-por-cobrar', 'Cuentas por cobrar'],
             [$base . '/cierre', 'Cierre de Período'],
         ]],
         ['label' => '← Todas mis empresas', 'href' => '/empresas'],

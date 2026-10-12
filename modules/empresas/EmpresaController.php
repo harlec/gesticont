@@ -67,6 +67,10 @@ class EmpresaController {
             'activo'       => 1,
         ]);
 
+        // Historial del régimen: la empresa nace con el régimen elegido, vigente desde enero del año.
+        require_once ROOT . '/services/RegimenService.php';
+        RegimenService::inicializar($db, (int)$id, (string)($_POST['regimen'] ?? 'mype'), Auth::id());
+
         // Quien crea la empresa queda como su administrador — si no se
         // hiciera esto, un contador (no-superadmin) perdería el acceso a
         // la empresa que acaba de dar de alta, porque el resto del sistema
@@ -153,9 +157,9 @@ class EmpresaController {
         $enumOrNull = fn($v) => in_array($v, ['productos', 'servicios', 'ambos'], true) ? $v : null;
 
         $model = new class extends Model { protected string $table = 'empresas'; };
+        // El régimen NO se edita aquí: se cambia en su propia pantalla, con vigencia, para no perder el historial.
         $model->update($id, [
             'razon_social' => trim($_POST['razon_social'] ?? ''),
-            'regimen'      => $_POST['regimen'] ?? 'mype',
             'email'        => trim($_POST['email'] ?? ''),
             'telefono'     => trim($_POST['telefono'] ?? ''),
             'vende_tipo'                   => $enumOrNull($_POST['vende_tipo'] ?? null),

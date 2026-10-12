@@ -37,6 +37,14 @@ class App {
         $router->post('/empresas/{id}/sync/plan',    'sync/SyncController@plan');
         $router->post('/empresas/{id}/sync/paso',    'sync/SyncController@paso');
         $router->get('/empresas/{id}/sync/diagnostico','sync/SyncController@diagnostico');
+        // Cuentas por pagar / por cobrar (saldo pendiente por proveedor o cliente)
+        $router->get('/empresas/{id}/cuentas-por-pagar',      'cuentas/CuentasController@porPagar');
+        $router->get('/empresas/{id}/cuentas-por-pagar/pdf',  'cuentas/CuentasController@porPagarPdf');
+        $router->get('/empresas/{id}/cuentas-por-cobrar',     'cuentas/CuentasController@porCobrar');
+        $router->get('/empresas/{id}/cuentas-por-cobrar/pdf', 'cuentas/CuentasController@porCobrarPdf');
+        // Régimen tributario con historial y vigencia
+        $router->get('/empresas/{id}/regimen',         'regimen/RegimenController@index');
+        $router->post('/empresas/{id}/regimen/cambiar','regimen/RegimenController@cambiar');
         // Depuración de data anterior al período mínimo (solo superadmin)
         $router->get('/empresas/{id}/depurar',       'depurar/DepurarController@index');
         $router->post('/empresas/{id}/depurar/paso', 'depurar/DepurarController@paso');

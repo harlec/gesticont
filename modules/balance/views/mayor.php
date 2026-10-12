@@ -6,6 +6,7 @@ $fmtFecha = fn($f) => date('d/m/Y', strtotime($f));
 <div class="gc-content gc-w-content">
 <div style="max-width:960px;margin:0 auto;">
 
+    <?php $libroClave = 'mayor'; require ROOT . '/views/layout/regimen_badge.php'; ?>
     <div class="no-print" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
         <div>
             <div style="font-size:18px;font-weight:700;color:var(--gc-ink);">Libro Mayor</div>

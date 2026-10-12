@@ -16,12 +16,10 @@
             </div>
             <div>
                 <label style="display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Régimen tributario</label>
-                <select name="regimen" style="width:100%;padding:10px 14px;border:1.5px solid var(--gc-line);border-radius:8px;font-size:14px;outline:none;font-family:inherit;background:var(--gc-surface);">
-                    <option value="mype" <?= $empresa['regimen']==='mype'?'selected':'' ?>>MYPE Tributario</option>
-                    <option value="general" <?= $empresa['regimen']==='general'?'selected':'' ?>>Régimen General</option>
-                    <option value="especial" <?= $empresa['regimen']==='especial'?'selected':'' ?>>Régimen Especial</option>
-                    <option value="rus" <?= $empresa['regimen']==='rus'?'selected':'' ?>>Nuevo RUS</option>
-                </select>
+                <div style="padding:10px 14px;border:1.5px solid var(--gc-line);border-radius:8px;font-size:14px;background:var(--gc-bg);color:var(--gc-ink);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <span><?= htmlspecialchars(['mype'=>'MYPE Tributario','general'=>'Régimen General','especial'=>'RER (Régimen Especial de Renta)','rus'=>'Nuevo RUS'][$empresa['regimen']] ?? $empresa['regimen']) ?></span>
+                    <a href="/empresas/<?= $empresa['id'] ?>/regimen" style="font-size:12px;font-weight:600;color:var(--gc-brand);text-decoration:underline;white-space:nowrap;">Cambiar con vigencia</a>
+                </div>
             </div>
             <div>
                 <label style="display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Correo electrónico</label>

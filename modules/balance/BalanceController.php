@@ -43,36 +43,43 @@ class BalanceController
         }
         $pdf->espacio(2);
 
-        $cols = ['Cuenta', 'Debe', 'Haber', 'Deudor', 'Acreedor', 'Activo', 'Pasivo', 'Perdidas', 'Ganancias'];
-        $anchos = [0.22, 0.0975, 0.0975, 0.0975, 0.0975, 0.0975, 0.0975, 0.0975, 0.0975];
-        $align = ['L', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'];
+        // 11 columnas: Sumas, Saldos, Inventario, y el Resultado en sus dos presentaciones
+        // (por naturaleza y por función), como la hoja de trabajo del contador.
+        $cols = ['Cuenta', 'Debe', 'Haber', 'Deudor', 'Acreedor', 'Activo', 'Pasivo', 'Nat. Perd.', 'Nat. Gan.', 'Fun. Perd.', 'Fun. Gan.'];
+        $w = 0.78 / 10;
+        $anchos = [0.22, $w, $w, $w, $w, $w, $w, $w, $w, $w, $w];
+        $align = ['L', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'];
         $filas = [];
         foreach ($balance['filas'] as $f) {
             $filas[] = [
-                $f['codigo'] . ' ' . mb_strimwidth($f['nombre'], 0, 26, '...'),
+                $f['codigo'] . ' ' . mb_strimwidth($f['nombre'], 0, 24, '...'),
                 $fmt($f['debe']), $fmt($f['haber']), $fmt($f['deudor']), $fmt($f['acreedor']),
-                $fmt($f['activo']), $fmt($f['pasivo']), $fmt($f['perdidas']), $fmt($f['ganancias']),
+                $fmt($f['activo']), $fmt($f['pasivo']),
+                $fmt($f['nat_perdidas']), $fmt($f['nat_ganancias']), $fmt($f['fun_perdidas']), $fmt($f['fun_ganancias']),
             ];
         }
         $pdf->tabla($cols, $anchos, $filas, $align);
 
-        $t  = $balance['totales'];
-        $cr = BalanceService::cierreResultado($t);
-        $vacio = ['', '', '', ''];
-        $pdf->filaTabla(array_merge(['TOTALES'], array_map($fmt, [$t['debe'], $t['haber'], $t['deudor'], $t['acreedor'], $t['activo'], $t['pasivo'], $t['perdidas'], $t['ganancias']])), $anchos, $align, true, true);
-        $pdf->filaTabla(array_merge([$cr['tipo'] === 'perdida' ? 'Perdida del ejercicio' : 'Utilidad del ejercicio'], $vacio,
-            array_map($fmt, [$cr['ajuste']['activo'], $cr['ajuste']['pasivo'], $cr['ajuste']['perdidas'], $cr['ajuste']['ganancias']])), $anchos, $align, true);
-        $pdf->filaTabla(array_merge(['SUMAS IGUALES'], $vacio,
-            array_map($fmt, [$cr['iguales']['activo'], $cr['iguales']['pasivo'], $cr['iguales']['perdidas'], $cr['iguales']['ganancias']])), $anchos, $align, true, true);
+        $t   = $balance['totales'];
+        $cr  = BalanceService::cierreResultado($t);
+        $nat = BalanceService::cierrePar((float)$t['nat_perdidas'], (float)$t['nat_ganancias']);
+        $fun = BalanceService::cierrePar((float)$t['fun_perdidas'], (float)$t['fun_ganancias']);
+        $v4  = ['', '', '', ''];
+        $pdf->filaTabla(array_merge(['TOTALES'], array_map($fmt, [$t['debe'], $t['haber'], $t['deudor'], $t['acreedor'], $t['activo'], $t['pasivo'], $t['nat_perdidas'], $t['nat_ganancias'], $t['fun_perdidas'], $t['fun_ganancias']])), $anchos, $align, true, true);
+        $pdf->filaTabla(array_merge([$nat['tipo'] === 'perdida' ? 'Perdida del ejercicio' : 'Utilidad del ejercicio'], $v4,
+            array_map($fmt, [$cr['ajuste']['activo'], $cr['ajuste']['pasivo'], $nat['ajuste_perdidas'], $nat['ajuste_ganancias'], $fun['ajuste_perdidas'], $fun['ajuste_ganancias']])), $anchos, $align, true);
+        $pdf->filaTabla(array_merge(['SUMAS IGUALES'], $v4,
+            array_map($fmt, [$cr['iguales']['activo'], $cr['iguales']['pasivo'], $nat['iguales_perdidas'], $nat['iguales_ganancias'], $fun['iguales_perdidas'], $fun['iguales_ganancias']])), $anchos, $align, true, true);
 
         $pdf->espacio(3);
+        $coincide = abs(($nat['tipo'] === 'perdida' ? -1 : 1) * $nat['monto'] - ($fun['tipo'] === 'perdida' ? -1 : 1) * $fun['monto']) < 0.02;
         $pdf->alerta(
-            $cr['tipo'] === 'nulo'
+            $nat['tipo'] === 'nulo'
                 ? 'Resultado del periodo: cero (Ganancias = Perdidas).'
-                : 'Resultado del ejercicio: ' . ($cr['tipo'] === 'utilidad' ? 'UTILIDAD' : 'PERDIDA') . ' de S/ ' . number_format($cr['monto'], 2)
-                    . ' = Ganancias S/ ' . number_format($t['ganancias'], 2) . ' - Perdidas S/ ' . number_format($t['perdidas'], 2)
+                : 'Resultado del ejercicio: ' . ($nat['tipo'] === 'utilidad' ? 'UTILIDAD' : 'PERDIDA') . ' de S/ ' . number_format($nat['monto'], 2)
+                    . ($coincide ? ' (igual por naturaleza y por funcion)' : ' por naturaleza, y S/ ' . number_format($fun['monto'], 2) . ' por funcion: NO coinciden, revisar')
                     . '. Antes de Impuesto a la Renta y Reserva Legal.',
-            $cr['coincide'] ? ($cr['tipo'] === 'perdida' ? 'neg' : 'pos') : 'neg'
+            ($coincide && $cr['coincide']) ? ($nat['tipo'] === 'perdida' ? 'neg' : 'pos') : 'neg'
         );
 
         $pdf->salir('balance-comprobacion');

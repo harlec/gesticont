@@ -43,7 +43,7 @@ $fila = function (string $label, float $val, bool $bold = false, bool $resta = f
 
     <?php if ($resultado['costo_ventas'] == 0): ?>
     <div style="background:var(--gc-warn-soft);color:var(--gc-warn);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        ℹ El Costo de Ventas aparece en S/ 0.00 — todavía no existe el módulo de Inventario Final/Kardex (spec 2.6), así que la Utilidad Bruta por ahora coincide con los Ingresos.
+        ℹ El Costo de Ventas está en S/ 0.00, así que la Utilidad Bruta coincide con los Ingresos. Durante el año las compras quedan en existencias; al cierre se reconoce el costo con el inventario final real: en <a href="/empresas/<?= $empresa['id'] ?>/asientos" style="color:var(--gc-warn);text-decoration:underline;">Asientos manuales</a> registra <strong>Debe 691 / Haber 201</strong> por (existencias en libros − inventario final). Costo de ventas = inventario inicial + compras − inventario final.
     </div>
     <?php endif; ?>
 

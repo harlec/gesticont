@@ -27,7 +27,7 @@ try {
     $dbError = $ex->getMessage();
 }
 
-$regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'Régimen Especial','rus'=>'Nuevo RUS'];
+$regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'RER (Régimen Especial de Renta)','rus'=>'Nuevo RUS'];
 ?>
 
 <?php if (isset($dbError)): ?>

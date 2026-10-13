@@ -16,6 +16,14 @@ class MayorController
         $periodo = Periodo::resolver($empresaId);
         $cuentas = $this->_cuentas($empresaId, $periodo);
 
+        // Tipo de cada cuenta (el "destino" en los estados: Balance o Resultados) y cuenta elegida en la lista
+        $tiposCuenta = [];
+        foreach (Model::db()->query("SELECT codigo, tipo FROM cuentas_contables WHERE empresa_id IS NULL")->fetchAll(PDO::FETCH_ASSOC) as $r) $tiposCuenta[$r['codigo']] = $r['tipo'];
+        $selCodigo = (string)($_GET['cuenta'] ?? '');
+        $sel = null;
+        foreach ($cuentas as $c) if ($c['codigo'] === $selCodigo) { $sel = $c; break; }
+        $sel ??= $cuentas[0] ?? null;
+
         $pageTitle = 'Libro Mayor — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/balance/views/mayor.php';

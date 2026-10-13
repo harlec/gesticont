@@ -95,6 +95,23 @@ class DashboardEmpresaService
         $stmtCAct->execute([$empresaId, $periodoActivo]);
         $comprasActivo = (float)$stmtCAct->fetchColumn();
 
+        // ── Detalle del mes de trabajo (tarjetas de "Resumen del mes") ──────
+        $stmtMes = $pdo->prepare("
+            SELECT 'v' AS t, COUNT(*) AS n, COALESCE(SUM(total - igv),0) AS neto, COALESCE(SUM(igv),0) AS igv, COALESCE(SUM(total),0) AS total
+              FROM registro_ventas  WHERE empresa_id = ? AND periodo = ? AND estado_sunat = '1'
+            UNION ALL
+            SELECT 'c', COUNT(*), COALESCE(SUM(total - igv),0), COALESCE(SUM(igv),0), COALESCE(SUM(total),0)
+              FROM registro_compras WHERE empresa_id = ? AND periodo = ? AND estado_sunat = '1'
+        ");
+        $stmtMes->execute([$empresaId, $periodoActivo, $empresaId, $periodoActivo]);
+        $mes = array_column($stmtMes->fetchAll(PDO::FETCH_ASSOC), null, 't');
+        $igvMes = round((float)$mes['v']['igv'] - (float)$mes['c']['igv'], 2);   // positivo = por pagar; negativo = saldo a favor
+
+        $stmtSync = $pdo->prepare("SELECT GREATEST(COALESCE((SELECT MAX(sync_at) FROM registro_ventas WHERE empresa_id = ?),'0000-00-00'), COALESCE((SELECT MAX(sync_at) FROM registro_compras WHERE empresa_id = ?),'0000-00-00'))");
+        $stmtSync->execute([$empresaId, $empresaId]);
+        $ultimaSync = $stmtSync->fetchColumn();
+        if (!$ultimaSync || strpos($ultimaSync, '0000') === 0) $ultimaSync = null;
+
         // ── Alertas propias de esta empresa ───────────────────────────────
         $stmtAl = $pdo->prepare("SELECT titulo, fecha_vence, nivel FROM alertas WHERE empresa_id = ? AND resuelta = 0 ORDER BY fecha_vence ASC LIMIT 4");
         $stmtAl->execute([$empresaId]);
@@ -118,6 +135,12 @@ class DashboardEmpresaService
             'compras_activo'     => round($comprasActivo, 2),
             'resultado_activo'   => round($ventasActivo - $comprasActivo, 2),
             'alertas'            => $alertas,
+            'mes_n_ventas'       => (int)$mes['v']['n'],     'mes_n_compras' => (int)$mes['c']['n'],
+            'mes_ventas_neto'    => round((float)$mes['v']['neto'], 2),   'mes_compras_neto' => round((float)$mes['c']['neto'], 2),
+            'mes_ventas_total'   => round((float)$mes['v']['total'], 2),  'mes_compras_total' => round((float)$mes['c']['total'], 2),
+            'mes_igv'            => $igvMes,
+            'mes_resultado'      => round((float)$mes['v']['neto'] - (float)$mes['c']['neto'], 2),
+            'ultima_sync'        => $ultimaSync,
         ];
     }
 }

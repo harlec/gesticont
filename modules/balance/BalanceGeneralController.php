@@ -13,7 +13,7 @@ class BalanceGeneralController
         [$empresa, $periodo, $resultado] = $this->_datos($empresaId);
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
-        $pageTitle = 'Balance General — ' . $empresa['razon_social'];
+        $pageTitle = 'Balance general — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/balance/views/general.php';
         $content = ob_get_clean();
@@ -34,37 +34,37 @@ class BalanceGeneralController
             $pdf->salir('balance-general');
         }
 
-        $descuadreEsperado = round($resultado['impuesto_renta_pendiente'] - $resultado['pendiente_inventariable'], 2);
-        $diferenciaSinExplicar = round($resultado['descuadre'] - $descuadreEsperado, 2);
+        $S = fn($v) => 'S/ ' . number_format(abs((float)$v), 2);
         if (abs($resultado['descuadre']) > 0.01) {
-            $tipo = abs($diferenciaSinExplicar) > 0.01 ? 'neg' : 'warn';
-            $texto = 'Activo distinto de Pasivo + Patrimonio: diferencia ' . $fmt($resultado['descuadre']) . '. '
-                . 'Compras pendientes de reclasificar (sin Kardex): ' . $fmt($resultado['pendiente_inventariable']) . '. '
-                . 'Impuesto a la Renta sin provisionar: ' . $fmt($resultado['impuesto_renta_pendiente']) . '.';
-            if (abs($diferenciaSinExplicar) > 0.01) {
-                $texto .= ' Diferencia sin explicar: ' . $fmt($diferenciaSinExplicar) . ' — revisar el Libro Diario.';
-            }
-            $pdf->alerta($texto, $tipo);
+            $pdf->alerta('El balance no cuadra: Activo ' . $S($resultado['total_activo']) . ' contra Pasivo + Patrimonio ' . $S($resultado['total_pasivo_patrimonio']) . ' (diferencia ' . $S($resultado['descuadre']) . '). Revisar el Libro Diario.', 'neg');
         } else {
-            $pdf->alerta('Activo = Pasivo + Patrimonio = ' . $fmt($resultado['total_activo']), 'pos');
+            $pdf->alerta('Activo = Pasivo + Patrimonio = ' . $S($resultado['total_activo']), 'pos');
+        }
+        if (!$resultado['ir_registrado'] && $resultado['impuesto_renta_estimado'] > 0) {
+            $pdf->alerta('El impuesto a la renta (estimado ' . $S($resultado['impuesto_renta_estimado']) . ') aun no esta registrado: el resultado es ANTES de impuestos.', 'warn');
         }
         $pdf->espacio(2);
 
+        $lista = function (string $titulo, array $items, float $total) use ($pdf, $S) {
+            $pdf->fila($titulo, $S($total), true, true);
+            foreach ($items as $it) $pdf->fila((($it['resta'] ?? false) ? '(-) ' : '') . $it['nombre'], $S($it['monto']), false, false, 'Cuenta ' . $it['codigo']);
+        };
+        $d = $resultado['detalle'];
         $pdf->seccion('ACTIVO', PdfReport::BRAND_SOFT, [30, 58, 138]);
-        $pdf->fila('Activo Corriente', $fmt($resultado['activo_corriente']));
-        $pdf->fila('Activo No Corriente', $fmt($resultado['activo_no_corriente']));
-        $pdf->fila('TOTAL ACTIVO', $fmt($resultado['total_activo']), true, true);
+        $lista('Activo corriente', $d['activo_corriente'], $resultado['activo_corriente']);
+        $lista('Activo no corriente', $d['activo_no_corriente'], $resultado['activo_no_corriente']);
+        $pdf->fila('TOTAL ACTIVO', $S($resultado['total_activo']), true, true);
         $pdf->espacio();
 
         $pdf->seccion('PASIVO Y PATRIMONIO', PdfReport::WARN_SOFT, [146, 64, 14]);
-        $pdf->fila('Pasivo Corriente', $fmt($resultado['pasivo_corriente']));
-        $pdf->fila('Pasivo No Corriente', $fmt($resultado['pasivo_no_corriente']));
-        $pdf->fila('Total Pasivo', $fmt($resultado['total_pasivo']), true, true);
-        $pdf->fila('Capital Social', $fmt($resultado['capital_social']));
-        $pdf->fila('Resultados Acumulados', $fmt($resultado['resultados_acumulados']));
-        $pdf->fila('Resultado del Ejercicio', $fmt($resultado['resultado_ejercicio']));
-        $pdf->fila('Total Patrimonio', $fmt($resultado['patrimonio']), true, true);
-        $pdf->fila('TOTAL PASIVO Y PATRIMONIO', $fmt($resultado['total_pasivo_patrimonio']), true, true);
+        $lista('Pasivo corriente', $d['pasivo_corriente'], $resultado['pasivo_corriente']);
+        $lista('Pasivo no corriente', $d['pasivo_no_corriente'], $resultado['pasivo_no_corriente']);
+        $pdf->fila('Total pasivo', $S($resultado['total_pasivo']), true, true);
+        $pdf->fila('Patrimonio', $S($resultado['patrimonio']), true, true);
+        $pdf->fila('Capital social', $S($resultado['capital_social']));
+        $pdf->fila('Resultados acumulados', $S($resultado['resultados_acumulados']));
+        $pdf->fila('Resultado del ejercicio (' . ($resultado['ir_registrado'] ? 'despues' : 'antes') . ' de impuestos)', ($resultado['resultado_ejercicio'] < 0 ? '(-) ' : '') . $S($resultado['resultado_ejercicio']));
+        $pdf->fila('TOTAL PASIVO Y PATRIMONIO', $S($resultado['total_pasivo_patrimonio']), true, true);
 
         $pdf->salir('balance-general');
     }

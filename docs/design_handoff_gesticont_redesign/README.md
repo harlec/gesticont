@@ -146,7 +146,39 @@ Pestañas (54px, subrayado azul de 3px en la activa, con contadores): **Ventas �
 - Nota: "SUNAT publica la propuesta de cada mes desde el día 1 del mes siguiente. Volver a descargar no borra lo que ya clasificaste." (Reemplaza las leyendas crípticas √V/√C, ★, ~.)
 
 ### Otras secciones
-Caja, Contabilidad, Planillas, Honorarios, Apertura y Datos de la empresa **no se rediseñaron**. Aplicarles el mismo layout, tokens y reglas de accesibilidad.
+Caja, Planillas, Honorarios, Apertura y Datos de la empresa **no se rediseñaron**. Aplicarles el mismo layout, tokens y reglas de accesibilidad.
+
+### 5. Contabilidad
+Reemplaza el menú desplegable por una **barra de subsecciones visible** (tarjeta blanca) con 4 grupos rotulados (14px, mayúsculas, secundario): **Libros** (Libro Diario · Libro Mayor · Asientos manuales) · **Estados financieros** (Balance de comprobación · Balance general · Estado de resultados · Cambios en el patrimonio · Flujo de efectivo) · **Saldos** (Cuentas por cobrar · Cuentas por pagar) · **Cierre** (Cierre del año). Botones de 44px; el activo va relleno de azul. Cada botón muestra un chip ámbar "Revisar" si esa pantalla tiene un problema (en Cierre: "N pendientes" o "Cerrado").
+
+Estructura común de cada subsección: título 24/700 + descripción (incluye el rango, p. ej. "Acumulado de enero a setiembre 2026") + acciones a la derecha (Descargar PDF/Excel) → **avisos** (verde ok / ámbar advertencia / azul info, cada uno con botón de acción que lleva a la corrección) → contenido. Todas usan el **período global**: se eliminan los selectores "Acumulado hasta / Al cierre de" de cada pantalla.
+
+**Regla de presentación de montos:** las cifras se muestran en positivo y el signo va en la etiqueta ("(−) Costo de ventas"). Importe cero = "—" en gris. Saldos negativos de CxC/CxP = "S/ X a favor" en verde (nunca "S/ -625.66").
+
+**5a. Libro Diario** (mes del período): chips Todos / Automáticos / Manuales. Tabla: N° · Fecha · Glosa y cuentas · Debe · Haber. Cabecera de asiento en `#faf9f6` con chip "Automático" (gris) o "Manual" (azul); las líneas del Haber se sangran 36px. Pie "Total del mes". Aviso verde si cuadra. "Generar / Regenerar" pasa a ser **"Volver a generar"** (secundario) y confirma que no toca los asientos manuales. Aviso info del tramo de ingresos sin definir (reemplaza el chip "General · Tramo de ingresos por definir").
+
+**5b. Libro Mayor:** dos columnas. Izquierda (≤400px): buscador + lista de cuentas con movimiento (código mono, nombre, "Saldo X D/A"); la seleccionada lleva borde izquierdo azul de 4px. Reemplaza la grilla de chips con solo números. Derecha: cabecera con código, nombre, chip de destino (Balance · Activo, etc.), cifras Debe/Haber/Saldo; tabla Fecha · Glosa · Debe · Haber · Saldo acumulado (D/A); pie "Saldo al <fecha>".
+
+**5c. Asientos manuales:** paso "1. Elige una plantilla" (tarjetas): Provisión de CTS (629/415 + destino 94/791), Gratificación (6214/4114 + destino), Vacaciones (6215/4115 + destino), Depreciación (681/395 + destino), Costo de ventas (691/201, pide **inventario final** y calcula saldo 201 − inventario), Impuesto a la Renta (881/4017, estimado 29.5%), En blanco. Paso "2. Completa el asiento": Fecha, Glosa, líneas (cuenta + Debe + Haber + Quitar; escribir en un lado borra el otro), "+ Agregar línea", totales. Barra inferior con estado en vivo: "Falta S/ X en el Haber para que cuadre" (rojo) / "El asiento cuadra" (verde). Validaciones: glosa, fecha dd/mm/2026, cuenta en cada línea con importe, ≥2 líneas, Debe = Haber. Lista "Asientos manuales de 2026" con Quitar. Si el año está cerrado no se muestra el formulario. **Los asientos manuales afectan Diario, Mayor y todos los estados.**
+
+**5d. Balance de comprobación:** ver la pantalla en el prototipo: resultado del ejercicio destacado, activo vs. pasivo+patrimonio, 4 verificaciones (Diario cuadra, saldos cuadran, balance general cuadra, 9 = 79), cuentas agrupadas por elemento (1–9) que se pueden contraer, buscador, vista Completo / Solo saldos, panel lateral con el detalle mensual de cada cuenta y botón al Mayor.
+
+**5e. Balance general:** tarjeta con la ecuación **Activo = Pasivo + Patrimonio** y chip "Cuadra" / "No cuadra: S/ X". Dos columnas con el detalle de cuentas (nombre + "Cuenta N"): Activo corriente (clases 1–2 y cuentas 4 con saldo deudor), Activo no corriente (clase 3; **la 39 resta como "(−) Depreciación acumulada"**), Pasivo corriente (clase 4 acreedora), Patrimonio (clase 5 + Resultado del ejercicio, rotulado "antes/después de impuestos"). Avisos: falta provisionar el IR (→ plantilla IR); depreciación acumulada mayor que el costo del activo (→ Mayor 395).
+
+**5f. Estado de resultados** (por función): Ventas netas (70) · (−) Costo de ventas (69) · Utilidad bruta · (−) Gastos de administración (94) · (−) Gastos de venta (95) · [(−) Costos de producción (92) solo si hay importe] · Utilidad operativa · (+) Ingresos financieros (77) · (−) Gastos financieros (97) · Utilidad antes de impuestos · (−) IR (registrado en 881, o "estimado 29.5%, aún no registrado") · **Utilidad neta** (verde/rojo) · Reserva legal 10% ("se registra al cerrar el año"). Avisos: costo de ventas en 0 (→ plantilla costo de ventas); IR estimado (→ plantilla IR). **Nota:** el PCGE usa la 97 para gastos financieros; la pantalla actual muestra "Cuenta 96".
+
+**5g. Cambios en el patrimonio:** columnas Capital · Resultados acumulados · Resultado del ejercicio · Total. Filas: Saldo al 1 de enero · Resultado del ejercicio · Reserva legal y dividendos (al cierre) · Saldo al <fecha> (en negrita).
+
+**5h. Flujo de efectivo** (método directo): franja de 5 cajas Saldo inicial + Operación + Inversión + Financiamiento = **Saldo final** (la última en azul). Luego las tres actividades con sus líneas y subtotales, aumento neto, saldo inicial y final. Aviso verde si el saldo final = cuentas 10, si no ámbar con botón al Mayor 101.
+
+**5i. Cuentas por cobrar / por pagar:** 5 tarjetas clicables que filtran: Total · 0–30 · 31–60 · 61–90 · Más de 90 días. Aviso de **conciliación**: saldo de la cuenta (121/421) vs. suma de comprobantes con saldo; si difiere, mostrar la diferencia, la causa probable (saldo de apertura o asiento manual sin comprobante) y un botón al Mayor. Tabla agrupada por cliente/proveedor (RUC mono + nombre + saldo del grupo); filas: tipo en palabras (Factura / Nota de crédito) + serie · Fecha · Días (rojo si >90 y hay saldo) · Total · Pagado/Cobrado · Saldo. Botón "Ir a Cobros y pagos".
+
+**5j. Cierre del año:** lista de pasos con estado: ventas clasificadas · compras clasificadas · costo de ventas registrado · IR provisionado · libros cuadran (cada uno con su botón de corrección) + aviso informativo "El año aún no termina". El botón "Cerrar el año 2026" (rojo `#a3261d`) solo se activa sin pendientes; si no, dice "Faltan N pasos para poder cerrar". Confirmación en modal: lista de consecuencias + checkbox obligatorio "Entiendo que después no podré modificar los asientos de 2026" + "Sí, cerrar 2026". Cerrado: tarjeta verde + "Reabrir el año".
+
+### ⚠ Errores contables detectados en el sistema actual (corregir)
+1. **El Balance General no cuadra.** En ACSA a setiembre 2026: Total activo 1,692,987.97 vs. Pasivo + Patrimonio 1,550,639.04 → diferencia **142,348.93 = IR estimado**. El "Resultado del ejercicio" ya resta el IR del Estado de resultados, pero el IR no está registrado como pasivo (4017). Corrección: el Balance general debe tomar el resultado **de los libros**. Si el IR no está provisionado, mostrar el resultado antes de impuestos y avisar, con opción de registrar 881/4017.
+2. **La depreciación acumulada (395) está en Pasivo corriente.** Debe presentarse en el Activo no corriente restando del costo. Además, 395 (209,483.00) es mayor que 333 (180,173.00); avisar al usuario.
+3. **Cuentas por pagar muestra totales negativos** ("S/ -625.66") sin explicar. Mostrar "a favor" y la conciliación con la 421.
 
 ---
 
@@ -164,6 +196,8 @@ Caja, Contabilidad, Planillas, Honorarios, Apertura y Datos de la empresa **no s
 - Por empresa (backend): obligaciones y su estado; comprobantes de ventas/compras por mes; clasificación (cuenta) por comprobante; cobros/pagos por comprobante; reglas por RUC y cuenta general (ventas y compras); estado de descarga SIRE por mes; certificado digital.
 - Derivados: pendientes por clasificar por mes/empresa, próximo vencimiento y semáforo, estado de cada obligación (bloqueada si hay ventas sin clasificar; PDT 621 en espera hasta presentar RVIE y RCE).
 - UI local: búsqueda/filtros, paginación, selección múltiple, modal de cobro, subvista de reglas.
+- Contabilidad: subsección activa; cuenta seleccionada en el Mayor; borrador del asiento manual; filtro de antigüedad CxC/CxP. Backend: asientos manuales por empresa (fecha, glosa, líneas), estado de cierre del año, tramo de ingresos.
+- Lógica de referencia en el prototipo: `ledger()` (saldos por cuenta incluyendo los asientos manuales) y `contVals()` (todos los estados y verificaciones).
 
 ## Assets
 Sin imágenes ni iconos. Solo Google Fonts:

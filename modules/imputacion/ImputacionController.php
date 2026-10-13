@@ -15,47 +15,48 @@ class ImputacionController
 
         $pdo = Model::db();
 
-        $periodo    = Periodo::resolver($empresaId);
-        $tipoFiltro = $_GET['tipo']    ?? 'todos'; // todos | ventas | compras
+        $periodo = Periodo::resolver($empresaId);
 
-        $pendientes = [];
+        // Pendientes del período, de ventas y de compras (el segmento de arriba muestra ambos conteos)
+        $stmtV = $pdo->prepare("
+            SELECT id, 'venta' AS origen, tipo_comp, serie, correlativo, fecha_emision,
+                   cliente_nombre AS contraparte_nombre, cliente_num_doc AS contraparte_doc,
+                   (total - igv) AS monto_neto, total
+            FROM registro_ventas
+            WHERE empresa_id = ? AND periodo = ? AND estado_imputacion = 'pendiente' AND estado_sunat = '1'
+        ");
+        $stmtV->execute([$empresaId, $periodo]);
+        $pendVentas = $stmtV->fetchAll(PDO::FETCH_ASSOC);
 
-        if ($tipoFiltro !== 'compras') {
-            $stmtV = $pdo->prepare("
-                SELECT id, 'venta' AS origen, tipo_comp, serie, correlativo, fecha_emision,
-                       cliente_nombre AS contraparte_nombre, cliente_num_doc AS contraparte_doc,
-                       (total - igv) AS monto_neto, total
-                FROM registro_ventas
-                WHERE empresa_id = ? AND periodo = ? AND estado_imputacion = 'pendiente' AND estado_sunat = '1'
-            ");
-            $stmtV->execute([$empresaId, $periodo]);
-            $pendientes = array_merge($pendientes, $stmtV->fetchAll(PDO::FETCH_ASSOC));
-        }
+        $stmtC = $pdo->prepare("
+            SELECT id, 'compra' AS origen, tipo_comp, serie, correlativo, fecha_emision,
+                   proveedor_nombre AS contraparte_nombre, proveedor_ruc AS contraparte_doc,
+                   (total - igv) AS monto_neto, total
+            FROM registro_compras
+            WHERE empresa_id = ? AND periodo = ? AND estado_imputacion = 'pendiente' AND estado_sunat = '1'
+        ");
+        $stmtC->execute([$empresaId, $periodo]);
+        $pendCompras = $stmtC->fetchAll(PDO::FETCH_ASSOC);
 
-        if ($tipoFiltro !== 'ventas') {
-            $stmtC = $pdo->prepare("
-                SELECT id, 'compra' AS origen, tipo_comp, serie, correlativo, fecha_emision,
-                       proveedor_nombre AS contraparte_nombre, proveedor_ruc AS contraparte_doc,
-                       (total - igv) AS monto_neto, total
-                FROM registro_compras
-                WHERE empresa_id = ? AND periodo = ? AND estado_imputacion = 'pendiente' AND estado_sunat = '1'
-            ");
-            $stmtC->execute([$empresaId, $periodo]);
-            $pendientes = array_merge($pendientes, $stmtC->fetchAll(PDO::FETCH_ASSOC));
-        }
-
+        // Se muestra una lista a la vez; por defecto la que tenga pendientes (ventas primero)
+        $tipoFiltro = $_GET['tipo'] ?? '';
+        if (!in_array($tipoFiltro, ['ventas', 'compras'], true)) $tipoFiltro = (count($pendVentas) || !count($pendCompras)) ? 'ventas' : 'compras';
+        $pendientes = $tipoFiltro === 'ventas' ? $pendVentas : $pendCompras;
         usort($pendientes, fn($a, $b) => $a['fecha_emision'] <=> $b['fecha_emision']);
 
-        // Periodos con algo pendiente, para el selector — evita mandar al
-        // contador a un mes que ya no tiene nada que clasificar.
+        // Otros meses que aún tienen pendientes de este tipo (botones para saltar a ellos)
+        $tabla = $tipoFiltro === 'ventas' ? 'registro_ventas' : 'registro_compras';
         $stmtPeriodos = $pdo->prepare("
-            SELECT periodo FROM registro_ventas  WHERE empresa_id = ? AND estado_imputacion = 'pendiente'
-            UNION
-            SELECT periodo FROM registro_compras WHERE empresa_id = ? AND estado_imputacion = 'pendiente'
-            ORDER BY periodo DESC
+            SELECT periodo, COUNT(*) AS n FROM {$tabla}
+            WHERE empresa_id = ? AND estado_imputacion = 'pendiente' AND estado_sunat = '1' AND periodo >= ? AND periodo <> ?
+            GROUP BY periodo ORDER BY periodo DESC
         ");
-        $stmtPeriodos->execute([$empresaId, $empresaId]);
-        $periodosConPendientes = $stmtPeriodos->fetchAll(PDO::FETCH_COLUMN);
+        $stmtPeriodos->execute([$empresaId, Periodo::minimo(), $periodo]);
+        $otrosMeses = $stmtPeriodos->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtRg = $pdo->prepare("SELECT COUNT(*) FROM reglas_imputacion WHERE empresa_id = ?");
+        $stmtRg->execute([$empresaId]);
+        $cantReglas = (int)$stmtRg->fetchColumn();
 
         // Se incluye siempre el código de la cuenta PCGE en el nombre visible
         // ("601 - Mercadería") para que el contador sepa a qué cuenta va cada
@@ -103,7 +104,7 @@ class ImputacionController
         // sugerencia individual de arriba, que solo mira el último uso.
         $propuestas = ReglaImputacionService::construirPropuestas($empresaId, $empresa, $pendientes);
 
-        $pageTitle = 'Clasificación de comprobantes — ' . $empresa['razon_social'];
+        $pageTitle = 'Clasificar — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/imputacion/views/index.php';
         $content = ob_get_clean();

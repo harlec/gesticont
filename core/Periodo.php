@@ -54,6 +54,24 @@ class Periodo
         return max(self::minimo(), date('Ym', strtotime('first day of -1 month')));
     }
 
+    /** Mes anterior de un período YYYYMM ('202601' → '202512'). */
+    public static function anterior(string $p): string
+    {
+        return date('Ym', strtotime(substr($p, 0, 4) . '-' . substr($p, 4, 2) . '-01 -1 month'));
+    }
+
+    /** Mes siguiente de un período YYYYMM. */
+    public static function siguiente(string $p): string
+    {
+        return date('Ym', strtotime(substr($p, 0, 4) . '-' . substr($p, 4, 2) . '-01 +1 month'));
+    }
+
+    /** Último mes ya terminado y permitido (el que se trabaja por defecto). */
+    public static function ultimoCerrado(): string
+    {
+        return max(self::minimo(), date('Ym', strtotime('first day of -1 month')));
+    }
+
     /** Para pantallas a nivel de año (Apertura, Cierre) — respeta un
      *  ?anio= explícito si viene, si no deriva del período activo. */
     public static function anio(int $empresaId): int

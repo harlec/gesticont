@@ -1,75 +1,54 @@
 <?php
-$periodos = [];
-$periodos = Periodo::opciones(12, 1);
-$fmt = fn($v) => number_format((float)$v, 2);
+/** Estado de flujo de efectivo (rediseño). Variables: $empresa, $periodo, $resultado. */
+$id = (int)$empresa['id'];
+$contActiva = 'flujo-efectivo'; require ROOT . '/views/layout/contabilidad_subtabs.php';
+$contTitulo = 'Flujo de efectivo';
+$contDesc = 'Acumulado de enero a ' . Periodo::etiqueta($periodo, true);
+$contAcciones = '<a class="gc-btn" href="/empresas/' . $id . '/flujo-efectivo/pdf?periodo=' . $periodo . '" target="_blank" rel="noopener">Descargar PDF</a>';
+require ROOT . '/views/layout/contabilidad_head.php';
+$S = fn($v) => abs((float)$v) < 0.005 ? '<span style="color:var(--gc-muted);">—</span>' : ((float)$v < 0 ? '(−) ' : '') . 'S/ ' . number_format(abs((float)$v), 2);
+$linea = fn(string $etq, $v, bool $fuerte = false) => '<div class="gc-row between" style="padding:' . ($fuerte ? '14px' : '10px') . ' 24px;flex-wrap:nowrap;border-top:1px solid var(--gc-surface-2);' . ($fuerte ? 'background:var(--gc-bg);font-weight:700;' : '') . '"><div>' . htmlspecialchars($etq) . '</div><div class="num" style="white-space:nowrap;">' . $S($v) . '</div></div>';
+$seccion = fn(string $t) => '<div style="padding:12px 24px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gc-brand);background:var(--gc-brand-soft);">' . $t . '</div>';
 ?>
+<?php if (!$resultado): ?>
+<div class="gc-card"><div class="gc-empty"><b>Aún no hay datos para este período</b>Genera los asientos del <a href="/empresas/<?= $id ?>/diario">Libro Diario</a> primero.</div></div>
+<?php else: $r = $resultado; $cuadra = abs($r['descuadre']) <= 0.01; ?>
 
-<div class="gc-content gc-w-content">
-
-    <?php
-        $tituloReporte = 'Estado de Flujo de Efectivo';
-        $subtituloReporte = 'Acumulado hasta ' . Periodo::etiqueta($periodo);
-        $pdfUrl = '/empresas/' . $empresa['id'] . '/flujo-efectivo/pdf?periodo=' . $periodo;
-        require ROOT . '/views/layout/print_header.php';
-    ?>
-
-    <div class="no-print" style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Acumulado hasta:</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <?php foreach ($periodos as $p): $activo = $p === $periodo; $label = Periodo::etiqueta($p); ?>
-            <a href="/empresas/<?= $empresa['id'] ?>/flujo-efectivo?periodo=<?= $p ?>" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;"><?= $label ?></a>
-            <?php endforeach; ?>
+<section class="gc-card pad">
+    <div class="gc-row" style="gap:10px;align-items:stretch;">
+        <?php foreach ([['Saldo inicial', $r['saldo_inicial'], '+'], ['Operación', $r['flujo_operacion'], '+'], ['Inversión', $r['flujo_inversion'], '+'], ['Financiamiento', $r['flujo_financiamiento'], '='], ['Saldo final', $r['saldo_final_calculado'], '']] as [$t, $v, $op]): ?>
+        <div style="flex:1;min-width:130px;border:1px solid var(--gc-line);border-radius:12px;padding:12px 14px;<?= $t === 'Saldo final' ? 'background:var(--gc-brand-soft);border-color:var(--gc-brand-line);' : '' ?>">
+            <div class="gc-sub" style="font-size:13px;"><?= $t ?></div>
+            <div class="num" style="font-size:20px;font-weight:700;"><?= $S($v) ?></div>
         </div>
+        <?php if ($op !== ''): ?><div style="align-self:center;font-size:22px;color:var(--gc-muted);"><?= $op ?></div><?php endif; ?>
+        <?php endforeach; ?>
     </div>
+</section>
 
-    <?php if ($resultado): ?>
+<?php if ($cuadra): ?>
+<div class="gc-alert ok"><span class="msg">El saldo final coincide con las cuentas de caja y bancos (cuenta 10): S/ <?= number_format($r['saldo_final_calculado'], 2) ?>.</span></div>
+<?php else: ?>
+<div class="gc-alert warn"><span class="msg">El saldo final calculado (S/ <?= number_format($r['saldo_final_calculado'], 2) ?>) no coincide con caja y bancos del balance (S/ <?= number_format($r['saldo_real_caja'], 2) ?>). Diferencia: S/ <?= number_format(abs($r['descuadre']), 2) ?>. Revisa movimientos de caja sin cuenta asignada.</span>
+    <a class="gc-btn" href="/empresas/<?= $id ?>/mayor?cuenta=101">Ver el Mayor de la 101</a></div>
+<?php endif; ?>
 
-    <?php if (abs($resultado['descuadre']) > 0.01):
-        $falertTipo = 'neg';
-        $falertId = 'falert-flujo-efectivo';
-        $falertResumen = 'Saldo Final no coincide con Caja — diferencia S/ ' . $fmt($resultado['descuadre']);
-        ob_start(); ?>
-        El Saldo Final calculado (S/ <?= $fmt($resultado['saldo_final_calculado']) ?>) no coincide con el saldo real de Caja y Bancos en el Balance (S/ <?= $fmt($resultado['saldo_real_caja']) ?>).
-        Regenera los asientos del <a href="/empresas/<?= $empresa['id'] ?>/diario" style="color:var(--gc-neg);text-decoration:underline;">Libro Diario</a> o revisa movimientos de Caja sin cuenta asignada.
-        <?php
-        $falertDetalleHtml = ob_get_clean();
-        require ROOT . '/views/layout/floating_alert.php';
-    else: ?>
-    <div style="background:var(--gc-pos-soft-2);color:var(--gc-pos);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        ✓ Saldo Final de Efectivo = saldo real de Caja y Bancos = S/ <?= $fmt($resultado['saldo_final_calculado']) ?>
-    </div>
-    <?php endif; ?>
-
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <tbody>
-                <tr style="background:var(--gc-bg);"><td colspan="2" style="padding:8px 20px;font-weight:700;color:var(--gc-brand);">ACTIVIDAD DE OPERACIÓN</td></tr>
-                <tr style="border-top:1px solid var(--gc-surface-2);"><td style="padding:8px 20px;color:var(--gc-label);">Cobranza a Clientes</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['cobranza_clientes']) ?></td></tr>
-                <tr><td style="padding:8px 20px;color:var(--gc-label);">(−) Pago a Proveedores</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['pago_proveedores']) ?></td></tr>
-                <tr><td style="padding:8px 20px;color:var(--gc-label);">(−) Pago a Trabajadores</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['pago_trabajadores']) ?></td></tr>
-                <tr><td style="padding:8px 20px;color:var(--gc-label);">Otros cobros/pagos operativos (tributos, ESSALUD, ONP, AFP, etc.)</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['otros_operacion']) ?></td></tr>
-                <tr style="border-top:1px solid var(--gc-line);font-weight:700;"><td style="padding:8px 20px;">Flujo de Operación</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['flujo_operacion']) ?></td></tr>
-
-                <tr style="background:var(--gc-bg);"><td colspan="2" style="padding:8px 20px;font-weight:700;color:var(--gc-brand);">ACTIVIDAD DE INVERSIÓN</td></tr>
-                <tr style="border-top:1px solid var(--gc-surface-2);"><td style="padding:8px 20px;color:var(--gc-label);">(−) Compra de Inmueble, Maquinaria y Equipo</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['compra_activo_fijo']) ?></td></tr>
-                <tr style="border-top:1px solid var(--gc-line);font-weight:700;"><td style="padding:8px 20px;">Flujo de Inversión</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['flujo_inversion']) ?></td></tr>
-
-                <tr style="background:var(--gc-bg);"><td colspan="2" style="padding:8px 20px;font-weight:700;color:var(--gc-brand);">ACTIVIDAD DE FINANCIAMIENTO</td></tr>
-                <tr style="border-top:1px solid var(--gc-surface-2);"><td style="padding:8px 20px;color:var(--gc-label);">Préstamos Recibidos</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['prestamos_recibidos']) ?></td></tr>
-                <tr><td style="padding:8px 20px;color:var(--gc-label);">(−) Amortización de Obligaciones</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['amortizacion']) ?></td></tr>
-                <tr style="border-top:1px solid var(--gc-line);font-weight:700;"><td style="padding:8px 20px;">Flujo de Financiamiento</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['flujo_financiamiento']) ?></td></tr>
-
-                <tr style="border-top:2px solid var(--gc-line);font-weight:700;background:var(--gc-bg);"><td style="padding:10px 20px;">Aumento/Disminución Neta de Efectivo</td><td style="padding:10px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['aumento_neto']) ?></td></tr>
-                <tr><td style="padding:8px 20px;color:var(--gc-label);">Saldo Inicial de Efectivo</td><td style="padding:8px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['saldo_inicial']) ?></td></tr>
-                <tr style="border-top:2px solid var(--gc-line);font-weight:700;background:var(--gc-bg);"><td style="padding:10px 20px;">Saldo Final de Efectivo</td><td style="padding:10px 20px;text-align:right;font-family:monospace;">S/ <?= $fmt($resultado['saldo_final_calculado']) ?></td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <?php else: ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
-        <div style="font-size:40px;margin-bottom:16px;">💵</div>
-        <div style="font-size:16px;font-weight:600;color:var(--gc-label);margin-bottom:8px;">Sin datos para este período</div>
-    </div>
-    <?php endif; ?>
-</div>
+<section class="gc-card clip">
+    <?= $seccion('Actividades de operación') ?>
+    <?= $linea('Cobranza a clientes', $r['cobranza_clientes']) ?>
+    <?= $linea('(−) Pago a proveedores', abs($r['pago_proveedores'])) ?>
+    <?= $linea('(−) Pago a trabajadores', abs($r['pago_trabajadores'])) ?>
+    <?= $linea('Otros cobros y pagos operativos (tributos, ESSALUD, ONP, AFP)', $r['otros_operacion']) ?>
+    <?= $linea('Flujo de operación', $r['flujo_operacion'], true) ?>
+    <?= $seccion('Actividades de inversión') ?>
+    <?= $linea('(−) Compra de inmuebles, maquinaria y equipo', abs($r['compra_activo_fijo'])) ?>
+    <?= $linea('Flujo de inversión', $r['flujo_inversion'], true) ?>
+    <?= $seccion('Actividades de financiamiento') ?>
+    <?= $linea('Préstamos recibidos', $r['prestamos_recibidos']) ?>
+    <?= $linea('(−) Amortización de obligaciones', abs($r['amortizacion'])) ?>
+    <?= $linea('Flujo de financiamiento', $r['flujo_financiamiento'], true) ?>
+    <?= $linea('Aumento o disminución neta de efectivo', $r['aumento_neto'], true) ?>
+    <?= $linea('Saldo inicial de efectivo', $r['saldo_inicial']) ?>
+    <?= $linea('Saldo final de efectivo', $r['saldo_final_calculado'], true) ?>
+</section>
+<?php endif; ?>

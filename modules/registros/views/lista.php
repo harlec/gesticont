@@ -1,180 +1,73 @@
 <?php
-$esVentas  = $tipo === 'ventas';
-$titulo    = $esVentas ? '📄 Registro de Ventas' : '🧾 Registro de Compras';
-$urlBase   = "/empresas/{$empresa['id']}/" . ($esVentas ? 'ventas' : 'compras');
-$urlOtro   = "/empresas/{$empresa['id']}/" . ($esVentas ? 'compras' : 'ventas');
-$tipoLabel = ['01'=>'FAC','03'=>'BOL','07'=>'NC ','08'=>'ND ','00'=>'OTR'];
+/** Ventas / Compras del período. Variables: $tipo, $empresa, $periodo, $registros, $resumen, $q, $f, $mostrar, $totalFiltrado. */
+$esV = $tipo === 'ventas'; $id = (int)$empresa['id'];
+$urlBase = "/empresas/{$id}/" . $tipo;
+$mes = Periodo::etiqueta($periodo, true);
+$S = fn($v) => number_format((float)$v, 2);
+$etqTipo = ['01' => 'FAC', '03' => 'BOL', '07' => 'NC', '08' => 'ND', '00' => 'OTR'];
+$qs = fn(array $extra) => '?' . http_build_query(array_filter(array_merge(['q' => $q, 'f' => $f === 'todos' ? '' : $f], $extra), fn($v) => $v !== '' && $v !== null));
+$chips = ['todos' => ['Todos', (int)$resumen['todos']], 'boletas' => ['Boletas', (int)$resumen['boletas']], 'facturas' => ['Facturas', (int)$resumen['facturas']], 'anulados' => ['Anulados', (int)$resumen['anulados']]];
+$subtabActiva = $tipo; require ROOT . '/views/layout/comprobantes_subtabs.php';
 ?>
+<?php if ((int)$resumen['todos'] === 0): ?>
+<div class="gc-card"><div class="gc-empty"><b>Aún no hay comprobantes de <?= $mes ?></b>Descarga las <?= $esV ? 'ventas' : 'compras' ?> de ese mes desde SUNAT.<br><br><a href="/empresas/<?= $id ?>/sync" class="gc-btn gc-btn-primary gc-btn-lg">Sincronizar con SUNAT</a></div></div>
+<?php else: ?>
+<div class="gc-kpis">
+    <div class="gc-kpi"><span class="k">Comprobantes</span><span class="v"><?= number_format($resumen['cant']) ?></span><span class="s">Sin contar anulados</span></div>
+    <div class="gc-kpi"><span class="k">Base imponible</span><span class="v">S/ <?= $S($resumen['base']) ?></span></div>
+    <div class="gc-kpi"><span class="k">IGV</span><span class="v">S/ <?= $S($resumen['igv']) ?></span></div>
+    <div class="gc-kpi"><span class="k">Total</span><span class="v">S/ <?= $S($resumen['total']) ?></span></div>
+</div>
 
-<div class="gc-content gc-w-content">
-    <?php $subtabActiva = $esVentas ? 'ventas' : 'compras'; require ROOT . '/views/layout/comprobantes_subtabs.php'; ?>
-
-    <!-- Selector de período -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Período:</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <?php foreach ($periodos as $p):
-                $activo = $p === $periodo;
-                $label  = Periodo::etiqueta($p);
-            ?>
-            <a href="<?= $urlBase ?>?periodo=<?= $p ?>"
-               style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                      background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;
-                      color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
-                <?= $label ?>
-            </a>
+<section class="gc-card clip">
+    <div class="head">
+        <form method="GET" action="<?= $urlBase ?>" class="gc-row" style="flex:1 1 360px;gap:8px;margin:0;flex-wrap:nowrap;">
+            <?php if ($f !== 'todos'): ?><input type="hidden" name="f" value="<?= htmlspecialchars($f) ?>"><?php endif; ?>
+            <input class="gc-input" type="search" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Buscar por número, <?= $esV ? 'cliente' : 'proveedor' ?> o RUC" style="max-width:420px;">
+            <button class="gc-btn" type="submit">Buscar</button>
+            <?php if ($q !== ''): ?><a class="gc-btn" href="<?= $urlBase . $qs(['q' => '']) ?>">Quitar búsqueda</a><?php endif; ?>
+        </form>
+        <div class="gc-row" style="gap:8px;">
+            <?php foreach ($chips as $k => [$lbl, $n]): ?>
+            <a class="gc-chipbtn <?= $f === $k ? 'is-active' : '' ?>" href="<?= $urlBase . $qs(['f' => $k === 'todos' ? '' : $k, 'n' => '']) ?>"><?= $lbl ?> (<?= number_format($n) ?>)</a>
             <?php endforeach; ?>
-            <?php if (empty($periodos)): ?>
-            <span style="font-size:13px;color:var(--gc-muted);">Sin datos — sincroniza primero</span>
-            <?php endif; ?>
+            <a class="gc-btn" href="<?= $urlBase ?>/excel<?= $qs([]) ?>">Descargar Excel</a>
         </div>
     </div>
-
-    <?php if (!empty($registros)): ?>
-
-    <!-- Cards resumen -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
-        <?php
-        $cards = [
-            ['Comprobantes', number_format($resumen['cant']), 'var(--gc-brand)', 'var(--gc-brand-soft)'],
-            ['Base imponible', 'S/ ' . number_format((float)$resumen['base'], 2), 'var(--gc-pos)', 'var(--gc-pos-soft-2)'],
-            ['IGV', 'S/ ' . number_format((float)$resumen['igv'], 2), 'var(--gc-warn)', 'var(--gc-warn-soft)'],
-            ['Total', 'S/ ' . number_format((float)$resumen['total'], 2), 'var(--gc-ink)', 'var(--gc-bg)'],
-        ];
-        foreach ($cards as [$label, $valor, $color, $bg]):
-        ?>
-        <div style="background:<?= $bg ?>;border-radius:12px;padding:16px 18px;border:1px solid var(--gc-line);">
-            <div style="font-size:11px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;"><?= $label ?></div>
-            <div style="font-size:20px;font-weight:700;color:<?= $color ?>;"><?= $valor ?></div>
-        </div>
-        <?php endforeach; ?>
-    </div>
-
-    <!-- Tabla -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;">
-        <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-                <tr style="background:var(--gc-bg);border-bottom:2px solid var(--gc-line);">
-                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">#</th>
-                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Tipo</th>
-                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Serie-Número</th>
-                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Fecha</th>
-                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;"><?= $esVentas ? 'Cliente' : 'Proveedor' ?></th>
-                    <?php if (!$esVentas): ?>
-                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">RUC</th>
-                    <?php endif; ?>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Base</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">IGV</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Total</th>
-                    <th style="padding:10px 16px;text-align:center;color:var(--gc-label-2);font-weight:700;white-space:nowrap;">Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php
-            $num = ($page - 1) * $perPage + 1;
-            foreach ($registros as $r):
-                $tipo_label = $tipoLabel[$r['tipo_comp']] ?? $r['tipo_comp'];
-                $esNC  = in_array($r['tipo_comp'], ['07','08']);
-                $color = $esNC ? 'var(--gc-neg)' : 'var(--gc-ink)';
-                $nombre = $esVentas
-                    ? ($r['cliente_nombre'] ?? '-')
-                    : ($r['proveedor_nombre'] ?? '-');
-                $rucProv = $esVentas ? null : ($r['proveedor_ruc'] ?? '');
-                $estado = $r['estado_sunat'] === '1' ? ['var(--gc-pos-soft)','var(--gc-pos)','Activo'] : ['var(--gc-neg-soft)','var(--gc-neg)','Anulado'];
-            ?>
-            <tr style="border-top:1px solid var(--gc-surface-2);color:<?= $color ?>;"
-                onmouseover="this.style.background='var(--gc-bg)'"
-                onmouseout="this.style.background='var(--gc-surface)'">
-                <td style="padding:9px 16px;color:var(--gc-muted);"><?= $num++ ?></td>
-                <td style="padding:9px 16px;">
-                    <span style="background:var(--gc-surface-2);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:var(--gc-label);font-family:monospace;">
-                        <?= $tipo_label ?>
-                    </span>
-                </td>
-                <td style="padding:9px 16px;font-family:monospace;font-weight:600;">
-                    <?= htmlspecialchars($r['serie']) ?>-<?= htmlspecialchars($r['correlativo']) ?>
-                </td>
-                <td style="padding:9px 16px;white-space:nowrap;"><?= $r['fecha_emision'] ?></td>
-                <td style="padding:9px 16px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-                    title="<?= htmlspecialchars($nombre) ?>">
-                    <?= htmlspecialchars(substr($nombre, 0, 40)) ?>
-                </td>
-                <?php if (!$esVentas): ?>
-                <td style="padding:9px 16px;font-family:monospace;color:var(--gc-label-2);"><?= $rucProv ?></td>
-                <?php endif; ?>
-                <td style="padding:9px 16px;text-align:right;font-family:monospace;">
-                    <?= $r['base_imponible'] != 0 ? 'S/ ' . number_format((float)$r['base_imponible'], 2) : '—' ?>
-                </td>
-                <td style="padding:9px 16px;text-align:right;font-family:monospace;">
-                    <?= $r['igv'] != 0 ? 'S/ ' . number_format((float)$r['igv'], 2) : '—' ?>
-                </td>
-                <td style="padding:9px 16px;text-align:right;font-family:monospace;font-weight:700;">
-                    S/ <?= number_format((float)$r['total'], 2) ?>
-                </td>
-                <td style="padding:9px 16px;text-align:center;">
-                    <span style="background:<?= $estado[0] ?>;color:<?= $estado[1] ?>;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">
-                        <?= $estado[2] ?>
-                    </span>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-            </tbody>
-            <!-- Totales -->
-            <tfoot>
-                <tr style="background:var(--gc-bg);border-top:2px solid var(--gc-line);font-weight:700;">
-                    <td colspan="<?= $esVentas ? 6 : 7 ?>" style="padding:10px 16px;color:var(--gc-label);">
-                        Total <?= $resumen['cant'] ?> comprobantes
-                    </td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;color:var(--gc-pos);">
-                        S/ <?= number_format((float)$resumen['base'], 2) ?>
-                    </td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;color:var(--gc-warn);">
-                        S/ <?= number_format((float)$resumen['igv'], 2) ?>
-                    </td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;color:var(--gc-brand);font-size:15px;">
-                        S/ <?= number_format((float)$resumen['total'], 2) ?>
-                    </td>
-                    <td></td>
-                </tr>
-            </tfoot>
-        </table>
-        </div>
-
-        <!-- Paginación -->
-        <?php if ($totalPages > 1): ?>
-        <div style="padding:14px 16px;border-top:1px solid var(--gc-line);display:flex;justify-content:center;gap:8px;">
-            <?php for ($p = 1; $p <= $totalPages; $p++):
-                $activo = $p === $page;
-            ?>
-            <a href="<?= $urlBase ?>?periodo=<?= $periodo ?>&page=<?= $p ?>"
-               style="padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                      background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;
-                      color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
-                <?= $p ?>
-            </a>
-            <?php endfor; ?>
-        </div>
-        <?php endif; ?>
-    </div>
-
+    <?php if (!$registros): ?>
+    <div class="gc-empty"><b>No hay comprobantes con ese filtro</b>Prueba con otra búsqueda o quita los filtros.</div>
     <?php else: ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
-        <div style="font-size:40px;margin-bottom:16px;"><?= $esVentas ? '📄' : '🧾' ?></div>
-        <div style="font-size:16px;font-weight:600;color:var(--gc-label);margin-bottom:8px;">
-            Sin <?= $esVentas ? 'ventas' : 'compras' ?> para este período
-        </div>
-        <div style="font-size:13px;margin-bottom:20px;">
-            <?php if (empty($periodos)): ?>
-            Aún no se han sincronizado datos desde el SIRE.
-            <?php else: ?>
-            No hay datos para <?= Periodo::etiqueta($periodo, true) ?>.
-            <?php endif; ?>
-        </div>
-        <a href="/empresas/<?= $empresa['id'] ?>/sync"
-           style="background:var(--gc-brand);color:var(--gc-on-brand);padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">
-            🔄 Sincronizar SIRE
-        </a>
+    <div class="gc-table-wrap">
+    <table class="gc-table" style="min-width:1000px;">
+        <thead><tr>
+            <th>Fecha</th><th>Comprobante</th><th><?= $esV ? 'Cliente' : 'Proveedor' ?></th>
+            <th class="r">Base</th><th class="r">IGV</th><th class="r">Total</th><th>Cuenta</th>
+        </tr></thead>
+        <tbody>
+        <?php foreach ($registros as $r):
+            $anulado = $r['estado_sunat'] !== '1';
+            $doc = $esV ? ($r['cliente_num_doc'] ?? '') : ($r['proveedor_ruc'] ?? '');
+            $nom = $esV ? ($r['cliente_nombre'] ?? '') : ($r['proveedor_nombre'] ?? '');
+        ?>
+        <tr style="<?= $anulado ? 'opacity:.6;' : '' ?>">
+            <td class="num" style="white-space:nowrap;"><?= date('d/m/Y', strtotime($r['fecha_emision'])) ?></td>
+            <td style="white-space:nowrap;"><span style="font-size:13px;font-weight:700;color:var(--gc-label-2);"><?= $etqTipo[$r['tipo_comp']] ?? $r['tipo_comp'] ?></span> <span class="mono" style="font-size:15px;"><?= htmlspecialchars($r['serie'] . '-' . $r['correlativo']) ?></span></td>
+            <td><?= htmlspecialchars($nom !== '' && $nom !== '-' ? $nom : '—') ?><div class="mono gc-sub" style="font-size:14px;"><?= $doc !== '' ? htmlspecialchars($doc) : 'Sin documento' ?></div></td>
+            <td class="r"><?= $S($r['base_imponible']) ?></td><td class="r"><?= $S($r['igv']) ?></td><td class="r" style="font-weight:700;"><?= $S($r['total']) ?></td>
+            <td>
+                <?php if ($anulado): ?><span class="gc-chip neg">Anulado</span>
+                <?php elseif ($r['estado_imputacion'] === 'pendiente'): ?><span class="gc-chip warn">Sin clasificar</span>
+                <?php else: ?><span class="mono" style="font-size:15px;"><?= htmlspecialchars((string)($r['cuentas'] ?? '—')) ?></span><?php endif; ?>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    </div>
+    <div class="gc-row between" style="padding:16px 24px;border-top:1px solid var(--gc-line);">
+        <span class="gc-sub">Mostrando <?= number_format(count($registros)) ?> de <?= number_format($totalFiltrado) ?></span>
+        <?php if (count($registros) < $totalFiltrado): ?><a class="gc-btn" href="<?= $urlBase . $qs(['n' => $mostrar + 15]) ?>">Mostrar 15 más</a><?php endif; ?>
     </div>
     <?php endif; ?>
-</div>
+</section>
+<?php endif; ?>

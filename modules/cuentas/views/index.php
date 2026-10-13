@@ -1,93 +1,82 @@
 <?php
-$fmt = fn($v) => number_format((float)$v, 2);
-$corteTxt = date('d/m/Y', strtotime($r['corte']));
+/** Cuentas por cobrar / por pagar (rediseño). Variables: $empresa, $periodo, $r, $esVenta, $titulo, $tercero, $rutaBase, $origen. */
+$id = (int)$empresa['id'];
+$contActiva = $esVenta ? 'cuentas-por-cobrar' : 'cuentas-por-pagar'; require ROOT . '/views/layout/contabilidad_subtabs.php';
+$contTitulo = $titulo;
+$contDesc = 'Saldo pendiente al ' . date('d/m/Y', strtotime($r['corte'])) . ' · ' . count($r['terceros']) . ' ' . strtolower($tercero) . (count($r['terceros']) === 1 ? '' : 's');
+$contAcciones = '<a class="gc-btn" href="/empresas/' . $id . '/cobranzas?origen=' . $origen . '">Ir a Cobros y pagos</a>'
+              . '<a class="gc-btn" href="' . $rutaBase . '/pdf?periodo=' . $periodo . '" target="_blank" rel="noopener">Descargar PDF</a>';
+require ROOT . '/views/layout/contabilidad_head.php';
+// Positivo = normal; negativo = nota de crédito/anticipo que sobra: "a favor".
+$M = function ($v) use ($esVenta) {
+    $v = (float)$v;
+    if ($v < -0.004) return '<span style="color:var(--gc-pos);">S/ ' . number_format(abs($v), 2) . ' a favor</span>';
+    return 'S/ ' . number_format($v, 2);
+};
+$tramoDe = function (int $d): string { foreach (CuentasPendientesService::TRAMOS as $n => [$a, $b]) if ($d >= $a && $d <= $b) return $n; return 'Más de 90'; };
 ?>
-<div class="gc-content gc-w-content">
-<div style="max-width:960px;margin:0 auto;">
+<section class="gc-kpis" id="cx-tarjetas">
+    <button type="button" class="gc-kpi is-active" data-tramo="" style="text-align:left;cursor:pointer;">
+        <div class="k">Total pendiente</div><div class="v num"><?= $M($r['total']) ?></div></button>
+    <?php foreach ($r['tramos'] as $nom => $v): $rojo = $nom === 'Más de 90' && $v > 0.004; ?>
+    <button type="button" class="gc-kpi" data-tramo="<?= htmlspecialchars($nom) ?>" style="text-align:left;cursor:pointer;">
+        <div class="k"><?= $nom ?><?= $nom === 'Más de 90' ? '' : '' ?> días</div><div class="v num" style="<?= $rojo ? 'color:var(--gc-neg);' : '' ?>"><?= $M($v) ?></div></button>
+    <?php endforeach; ?>
+</section>
 
-    <div class="no-print" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-        <div>
-            <div style="font-size:18px;font-weight:700;color:var(--gc-ink);"><?= $titulo ?></div>
-            <div style="font-size:13px;color:var(--gc-muted);">Saldo pendiente al <?= $corteTxt ?> · <?= count($r['terceros']) ?> <?= strtolower($tercero) ?>(es)</div>
-        </div>
-        <a href="<?= $rutaBase ?>/pdf?periodo=<?= $periodo ?>" target="_blank" rel="noopener"
-           style="background:var(--gc-surface-2);color:var(--gc-label);padding:9px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">📄 Descargar PDF</a>
-    </div>
+<?php if ($r['libro'] !== null): $ok = abs($r['sin_detalle']) < 0.02; ?>
+<?php if ($ok): ?>
+<div class="gc-alert ok"><span class="msg">Cuadra con el Mayor: la cuenta <?= $r['cuenta'] ?> tiene S/ <?= number_format($r['libro'], 2) ?>, igual al detalle por comprobante.</span></div>
+<?php else: ?>
+<div class="gc-alert warn"><span class="msg">La cuenta <?= $r['cuenta'] ?> del Mayor tiene S/ <?= number_format($r['libro'], 2) ?> y el detalle por comprobante suma S/ <?= number_format($r['total'], 2) ?>. Diferencia de <b>S/ <?= number_format(abs($r['sin_detalle']), 2) ?></b> sin comprobante detrás (saldo de apertura u otros asientos).</span>
+    <a class="gc-btn" href="/empresas/<?= $id ?>/mayor?cuenta=<?= urlencode($r['cuenta']) ?>">Ver el Mayor de la <?= $r['cuenta'] ?></a></div>
+<?php endif; endif; ?>
 
-    <!-- Resumen y antigüedad -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;">
-        <div style="background:var(--gc-surface);border:1px solid var(--gc-line);border-radius:10px;padding:12px 14px;">
-            <div style="font-size:11px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;">Total pendiente</div>
-            <div style="font-size:20px;font-weight:700;color:var(--gc-ink);font-family:monospace;">S/ <?= $fmt($r['total']) ?></div>
-        </div>
-        <?php foreach ($r['tramos'] as $nom => $v): ?>
-        <div style="background:var(--gc-surface);border:1px solid var(--gc-line);border-radius:10px;padding:12px 14px;">
-            <div style="font-size:11px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;"><?= $nom ?> días</div>
-            <div style="font-size:16px;font-weight:700;color:<?= $nom === 'Más de 90' && $v > 0 ? 'var(--gc-neg)' : 'var(--gc-ink)' ?>;font-family:monospace;">S/ <?= $fmt($v) ?></div>
-        </div>
+<?php if (empty($r['terceros'])): ?>
+<div class="gc-card"><div class="gc-empty"><b>Sin saldos pendientes</b>No hay comprobantes con saldo a esta fecha.</div></div>
+<?php else: ?>
+<section class="gc-card clip" style="overflow-x:auto;">
+<table class="gc-table" style="min-width:760px;" id="cx-tabla">
+    <thead><tr><th><?= $tercero ?> / Documento</th><th>Fecha</th><th class="r">Días</th><th class="r">Total</th><th class="r"><?= $esVenta ? 'Cobrado' : 'Pagado' ?></th><th class="r">Saldo</th></tr></thead>
+    <?php foreach ($r['terceros'] as $t): ?>
+    <tbody class="cx-tercero">
+        <tr style="background:var(--gc-brand-soft);">
+            <td colspan="5"><span class="mono" style="color:var(--gc-brand);font-weight:700;"><?= htmlspecialchars($t['doc']) ?></span> <b style="margin-left:6px;"><?= htmlspecialchars($t['nombre']) ?></b></td>
+            <td class="r num" style="font-weight:700;"><?= $M($t['saldo']) ?></td>
+        </tr>
+        <?php foreach ($t['docs'] as $d): $esNc = $d['tipo'] === '07'; ?>
+        <tr class="cx-doc" data-tramo="<?= htmlspecialchars($tramoDe((int)$d['dias'])) ?>">
+            <td style="padding-left:28px;"><span class="gc-chip <?= $esNc ? 'info' : '' ?>" style="margin-right:8px;"><?= $esNc ? 'Nota de crédito' : 'Factura' ?></span><span class="mono"><?= htmlspecialchars($d['numero']) ?></span></td>
+            <td class="mono" style="white-space:nowrap;"><?= date('d/m/Y', strtotime($d['fecha'])) ?></td>
+            <td class="r num" style="<?= $d['dias'] > 90 ? 'color:var(--gc-neg);font-weight:700;' : '' ?>"><?= $d['dias'] ?></td>
+            <td class="r num"><?= number_format((float)$d['total'], 2) ?></td>
+            <td class="r num" style="color:var(--gc-pos);"><?= $d['pagado'] > 0 ? number_format((float)$d['pagado'], 2) : '—' ?></td>
+            <td class="r num" style="font-weight:600;"><?= $M($d['saldo']) ?></td>
+        </tr>
         <?php endforeach; ?>
-    </div>
-
-    <?php if ($r['libro'] !== null): $ok = abs($r['sin_detalle']) < 0.02; ?>
-    <div style="background:<?= $ok ? 'var(--gc-pos-soft-2)' : 'var(--gc-warn-soft)' ?>;color:<?= $ok ? 'var(--gc-pos)' : 'var(--gc-warn)' ?>;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;font-weight:600;">
-        <?php if ($ok): ?>✓ Cuadra con el Mayor: la cuenta <?= $r['cuenta'] ?> tiene S/ <?= $fmt($r['libro']) ?>, igual al detalle.
-        <?php else: ?>La cuenta <?= $r['cuenta'] ?> del Mayor tiene S/ <?= $fmt($r['libro']) ?>; el detalle por comprobante suma S/ <?= $fmt($r['total']) ?>.
-            Diferencia de <strong>S/ <?= $fmt($r['sin_detalle']) ?></strong> sin comprobante detrás (saldo de apertura u otros asientos).<?php endif; ?>
-    </div>
-    <?php endif; ?>
-
-    <?php if (empty($r['terceros'])): ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:50px;text-align:center;color:var(--gc-muted);">
-        <div style="font-size:36px;margin-bottom:10px;">✅</div>
-        Sin saldos pendientes a esta fecha.
-    </div>
-    <?php else: ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
-            <thead>
-                <tr style="background:var(--gc-bg);border-bottom:1px solid var(--gc-line);color:var(--gc-muted);">
-                    <th style="padding:8px 14px;text-align:left;"><?= $tercero ?> / Documento</th>
-                    <th style="padding:8px 14px;text-align:left;width:96px;">Fecha</th>
-                    <th style="padding:8px 14px;text-align:right;width:60px;">Días</th>
-                    <th style="padding:8px 14px;text-align:right;width:110px;">Total</th>
-                    <th style="padding:8px 14px;text-align:right;width:110px;"><?= $esVenta ? 'Cobrado' : 'Pagado' ?></th>
-                    <th style="padding:8px 14px;text-align:right;width:110px;">Saldo</th>
-                </tr>
-            </thead>
-            <?php foreach ($r['terceros'] as $t): ?>
-            <tbody style="border-top:1px solid var(--gc-line);">
-                <tr style="background:var(--gc-brand-soft);">
-                    <td colspan="5" style="padding:7px 14px;">
-                        <span style="font-family:monospace;color:var(--gc-brand);font-weight:700;"><?= htmlspecialchars($t['doc']) ?></span>
-                        <span style="font-weight:600;color:var(--gc-ink);margin-left:6px;"><?= htmlspecialchars($t['nombre']) ?></span>
-                    </td>
-                    <td style="padding:7px 14px;text-align:right;font-family:monospace;font-weight:700;"><?= $fmt($t['saldo']) ?></td>
-                </tr>
-                <?php foreach ($t['docs'] as $d): ?>
-                <tr>
-                    <td style="padding:5px 14px 5px 28px;font-family:monospace;color:var(--gc-label);"><?= $d['tipo'] === '07' ? '↩ NC ' : '' ?><?= htmlspecialchars($d['numero']) ?></td>
-                    <td style="padding:5px 14px;font-family:monospace;color:var(--gc-label);white-space:nowrap;"><?= date('d/m/Y', strtotime($d['fecha'])) ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;color:<?= $d['dias'] > 90 ? 'var(--gc-neg)' : 'var(--gc-label)' ?>;"><?= $d['dias'] ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;"><?= $fmt($d['total']) ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;color:var(--gc-pos);"><?= $d['pagado'] > 0 ? $fmt($d['pagado']) : '—' ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;font-weight:600;"><?= $fmt($d['saldo']) ?></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-            <?php endforeach; ?>
-            <tfoot>
-                <tr style="border-top:2px solid var(--gc-line);background:var(--gc-bg);font-weight:700;">
-                    <td colspan="5" style="padding:9px 14px;">Total de comprobantes con saldo</td>
-                    <td style="padding:9px 14px;text-align:right;font-family:monospace;"><?= $fmt($r['total']) ?></td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-    <?php endif; ?>
-
-    <div style="font-size:12px;color:var(--gc-muted);margin-top:10px;">
-        Solo comprobantes clasificados. Saldo = total − lo <?= $esVenta ? 'cobrado' : 'pagado' ?> hasta el cierre del período. Las notas de crédito (↩) restan del saldo.
-        Para registrar un <?= $esVenta ? 'cobro' : 'pago' ?> parcial usa <a href="/empresas/<?= $empresa['id'] ?>/cobranzas?origen=<?= $origen ?>" style="color:var(--gc-brand);text-decoration:underline;">Cobros y pagos</a>.
-    </div>
-</div>
-</div>
+    </tbody>
+    <?php endforeach; ?>
+    <tfoot><tr style="background:var(--gc-bg);font-weight:700;"><td colspan="5">Total de comprobantes con saldo</td><td class="r num"><?= $M($r['total']) ?></td></tr></tfoot>
+</table>
+</section>
+<div class="gc-sub">Solo comprobantes clasificados. Saldo = total − lo <?= $esVenta ? 'cobrado' : 'pagado' ?> hasta el cierre del período. Las notas de crédito restan del saldo. Toca una tarjeta para ver solo esa antigüedad.</div>
+<script>
+(function () {
+    var tarjetas = document.querySelectorAll('#cx-tarjetas .gc-kpi');
+    tarjetas.forEach(function (b) {
+        b.addEventListener('click', function () {
+            var t = b.getAttribute('data-tramo');
+            tarjetas.forEach(function (x) { x.classList.toggle('is-active', x === b); });
+            document.querySelectorAll('#cx-tabla .cx-tercero').forEach(function (g) {
+                var visibles = 0;
+                g.querySelectorAll('.cx-doc').forEach(function (r) {
+                    var ok = !t || r.getAttribute('data-tramo') === t;
+                    r.style.display = ok ? '' : 'none'; if (ok) visibles++;
+                });
+                g.style.display = visibles ? '' : 'none';
+            });
+        });
+    });
+})();
+</script>
+<?php endif; ?>

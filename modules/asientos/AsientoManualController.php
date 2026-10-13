@@ -42,6 +42,27 @@ class AsientoManualController
             }
         }
 
+        // Datos para las plantillas que proponen un monto: existencias en libros (costo de ventas) y estimación del impuesto a la renta
+        require_once ROOT . '/services/BalanceService.php';
+        require_once ROOT . '/services/EstadoResultadosService.php';
+        $periodo = Periodo::resolver($empresaId);
+        $fechaPeriodo = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
+        $plantillaDatos = ['existencias' => 0.0, 'ir_estimado' => 0.0, 'tasa_ir' => 29.5, 'ir_registrado' => false, 'utilidad_antes' => 0.0];
+        $stPer = $pdo->prepare("SELECT id FROM periodos_contables WHERE empresa_id = ? AND anio = ?");
+        $stPer->execute([$empresaId, (int)substr($periodo, 0, 4)]);
+        if ($pid = (int)$stPer->fetchColumn()) {
+            $bal = BalanceService::comprobacion($empresaId, $pid, $fechaPeriodo);
+            foreach ($bal['filas'] as $f) if ($f['codigo'] === '201') $plantillaDatos['existencias'] = round($f['activo'], 2);
+            $stPar = $pdo->prepare("SELECT * FROM parametros_contables WHERE empresa_id = ? AND periodo_id = ?");
+            $stPar->execute([$empresaId, $pid]);
+            if ($par = $stPar->fetch(PDO::FETCH_ASSOC)) {
+                $er = EstadoResultadosService::generar($empresaId, $pid, $fechaPeriodo, $par);
+                $plantillaDatos['tasa_ir'] = (float)$par['tasa_ir']; $plantillaDatos['utilidad_antes'] = $er['utilidad_antes_impuestos'];
+                $plantillaDatos['ir_registrado'] = $er['ir_registrado'];
+                $plantillaDatos['ir_estimado'] = $er['ir_registrado'] ? 0.0 : $er['impuesto_renta'];
+            }
+        }
+
         $pageTitle = 'Asientos manuales — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/asientos/views/index.php';
@@ -72,8 +93,16 @@ class AsientoManualController
             $_SESSION['asiento_borrador'] = ['fecha' => $fecha, 'glosa' => $glosa, 'lineas' => $lineas, 'id' => $id];
             header("Location: /empresas/{$empresaId}/asientos?anio={$anio}" . ($id ? "&editar={$id}" : '')); exit;
         }
+        // Los gastos por naturaleza (62 a 68) pasan a 94/95 al volver a generar el Diario; el costo de ventas (69) y el impuesto (88) no.
+        $ids = array_filter(array_map('intval', array_column($lineas, 'cuenta_id')));
+        $pasaPorDestino = false;
+        if ($ids) {
+            $st = Model::db()->prepare('SELECT codigo FROM cuentas_contables WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')');
+            $st->execute(array_values($ids));
+            foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $cod) if (preg_match('/^6[2-8]/', $cod)) $pasaPorDestino = true;
+        }
         $_SESSION['asiento_ok'] = ($id ? 'Asiento actualizado.' : 'Asiento N.° ' . $r['correlativo'] . ' registrado.')
-            . ' Si usaste cuentas de gasto (6x), regenera los asientos de ese mes en el Libro Diario para que el gasto pase por destino (94/95).';
+            . ($pasaPorDestino ? ' Vuelve a generar el Libro Diario de ese mes para que el gasto pase a administración o ventas (94/95).' : '');
         header("Location: /empresas/{$empresaId}/asientos?anio={$anio}"); exit;
     }
 

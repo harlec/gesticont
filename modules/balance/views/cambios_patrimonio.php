@@ -1,79 +1,40 @@
 <?php
-$periodos = [];
-$periodos = Periodo::opciones(12, 1);
-$fmt = fn($v) => number_format((float)$v, 2);
+/** Estado de cambios en el patrimonio (rediseño). Variables: $empresa, $periodo, $resultado. */
+$id = (int)$empresa['id'];
+$contActiva = 'cambios-patrimonio'; require ROOT . '/views/layout/contabilidad_subtabs.php';
+$contTitulo = 'Cambios en el patrimonio';
+$contDesc = 'Acumulado de enero a ' . Periodo::etiqueta($periodo, true);
+$contAcciones = '<a class="gc-btn" href="/empresas/' . $id . '/cambios-patrimonio/pdf?periodo=' . $periodo . '" target="_blank" rel="noopener">Descargar PDF</a>';
+require ROOT . '/views/layout/contabilidad_head.php';
+$S = fn($v) => abs((float)$v) < 0.005 ? '<span style="color:var(--gc-muted);">—</span>' : ((float)$v < 0 ? '(−) ' : '') . 'S/ ' . number_format(abs((float)$v), 2);
 ?>
-
-<div class="gc-content gc-w-content">
-
-    <?php
-        $tituloReporte = 'Estado de Cambios en el Patrimonio';
-        $subtituloReporte = 'Acumulado hasta ' . Periodo::etiqueta($periodo);
-        $pdfUrl = '/empresas/' . $empresa['id'] . '/cambios-patrimonio/pdf?periodo=' . $periodo;
-        require ROOT . '/views/layout/print_header.php';
-    ?>
-
-    <div class="no-print" style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Acumulado hasta:</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <?php foreach ($periodos as $p): $activo = $p === $periodo; $label = Periodo::etiqueta($p); ?>
-            <a href="/empresas/<?= $empresa['id'] ?>/cambios-patrimonio?periodo=<?= $p ?>" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;"><?= $label ?></a>
-            <?php endforeach; ?>
-        </div>
-    </div>
-
-    <?php if ($resultado): ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-                <tr style="background:var(--gc-bg);border-bottom:2px solid var(--gc-line);">
-                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;"></th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">Capital</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">Reservas Legales</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">Resultados Acumulados</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr style="border-top:1px solid var(--gc-surface-2);">
-                    <td style="padding:8px 16px;color:var(--gc-label);">Saldo Inicial</td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($resultado['capital_inicial']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($resultado['reservas_inicial']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($resultado['resultados_inicial']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;font-weight:700;"><?= $fmt($resultado['total_inicial']) ?></td>
-                </tr>
-                <tr style="border-top:1px solid var(--gc-surface-2);">
-                    <td style="padding:8px 16px;color:var(--gc-label);">(+) Utilidad Neta del Ejercicio</td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;">—</td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;">—</td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($resultado['utilidad_neta']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;font-weight:700;"><?= $fmt($resultado['utilidad_neta']) ?></td>
-                </tr>
-                <tr style="border-top:1px solid var(--gc-surface-2);">
-                    <td style="padding:8px 16px;color:var(--gc-label);">(→) Traslado a Reserva Legal</td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;">—</td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;">+<?= $fmt($resultado['reserva_legal']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;">−<?= $fmt($resultado['reserva_legal']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;font-weight:700;">0.00</td>
-                </tr>
-                <tr style="border-top:2px solid var(--gc-line);font-weight:700;background:var(--gc-bg);">
-                    <td style="padding:10px 16px;">Saldo Final</td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;"><?= $fmt($resultado['capital_final']) ?></td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;"><?= $fmt($resultado['reservas_final']) ?></td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;"><?= $fmt($resultado['resultados_final']) ?></td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;"><?= $fmt($resultado['total_final']) ?></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    <div style="font-size:11px;color:var(--gc-muted);margin-top:10px;">
-        No hay módulo de aportes/retiros de capital todavía — el Capital se mantiene fijo entre el saldo inicial y el final.
-    </div>
-    <?php else: ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
-        <div style="font-size:40px;margin-bottom:16px;">📈</div>
-        <div style="font-size:16px;font-weight:600;color:var(--gc-label);margin-bottom:8px;">Sin datos para este período</div>
-        <div style="font-size:13px;">Genera los asientos del <a href="/empresas/<?= $empresa['id'] ?>/diario" style="color:var(--gc-brand);text-decoration:underline;">Libro Diario</a> primero.</div>
-    </div>
-    <?php endif; ?>
-</div>
+<?php if (!$resultado): ?>
+<div class="gc-card"><div class="gc-empty"><b>Aún no hay datos para este período</b>Genera los asientos del <a href="/empresas/<?= $id ?>/diario">Libro Diario</a> primero.</div></div>
+<?php else: $r = $resultado;
+    // Columnas: Capital · Reserva legal · Resultados acumulados · Resultado del ejercicio · Total
+    $filas = [
+        ['Saldo al 1 de enero',                       [$r['capital_inicial'], $r['reservas_inicial'], $r['resultados_inicial'], 0], false],
+        ['Resultado del ejercicio',                   [0, 0, 0, $r['utilidad_neta']], false],
+        ['Reserva legal y dividendos (al cierre)',    [0, $r['reserva_legal'], -$r['reserva_legal'], 0], false],
+        ['Saldo al ' . date('j', strtotime(date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01')))) . ' de ' . Periodo::etiqueta($periodo, true), [$r['capital_final'], $r['reservas_final'], $r['resultados_final'], $r['utilidad_neta'] - $r['utilidad_neta']], true],
+    ];
+    // En el saldo final el resultado del ejercicio ya está repartido (reserva + acumulados), salvo que aún no se cierre el año.
+    $cab = ['Capital', 'Reserva legal', 'Resultados acumulados', 'Resultado del ejercicio', 'Total'];
+?>
+<section class="gc-card clip" style="overflow-x:auto;">
+<table class="gc-table" style="min-width:820px;">
+    <thead><tr><th></th><?php foreach ($cab as $c): ?><th class="r"><?= $c ?></th><?php endforeach; ?></tr></thead>
+    <tbody>
+    <?php foreach ($filas as [$etq, $cols, $fuerte]):
+        $tot = $fuerte ? $r['total_final'] : array_sum($cols); ?>
+        <tr style="<?= $fuerte ? 'background:var(--gc-bg);font-weight:700;' : '' ?>">
+            <td><?= htmlspecialchars($etq) ?></td>
+            <?php foreach ($cols as $v): ?><td class="r num"><?= $S($v) ?></td><?php endforeach; ?>
+            <td class="r num" style="font-weight:700;"><?= $S($tot) ?></td>
+        </tr>
+    <?php endforeach; ?>
+    </tbody>
+</table>
+</section>
+<div class="gc-sub">El capital se mantiene fijo: todavía no hay un módulo de aportes ni retiros de capital. La reserva legal se calcula con el porcentaje de los parámetros contables.</div>
+<?php endif; ?>

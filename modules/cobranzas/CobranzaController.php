@@ -20,7 +20,8 @@ class CobranzaController
         $pdo     = Model::db();
         $origen  = $this->_origen($_GET['origen'] ?? 'venta');
         $periodo = Periodo::resolver($empresaId);
-        $estado  = in_array($_GET['estado'] ?? '', ['credito', 'parcial', 'pagado'], true) ? $_GET['estado'] : 'todos';
+        // Filtro: por defecto lo que tiene saldo (a crédito o parcial); también cobrados/pagados o todos
+        $estado  = in_array($_GET['estado'] ?? '', ['saldo', 'pagado', 'todos'], true) ? $_GET['estado'] : 'saldo';
         $c       = CobroPagoService::config($origen);
 
         $contraparte = $origen === 'venta' ? 'd.cliente_nombre' : 'd.proveedor_nombre';
@@ -59,21 +60,13 @@ class CobranzaController
             $resumen['total'] += $total; $resumen['pagado'] += $pagado; $resumen['saldo'] += max($saldo, 0);
             $resumen[$d['estado'] === 'pagado' ? 'pagado_n' : $d['estado']]++;
 
-            if ($estado === 'todos' || $estado === $d['estado']) $docs[] = $d;
+            if ($estado === 'todos' || ($estado === 'saldo' && $d['estado'] !== 'pagado') || ($estado === 'pagado' && $d['estado'] === 'pagado')) $docs[] = $d;
         }
 
         // Esta pantalla solo lista lo ya clasificado: se cuenta lo pendiente del período para avisarlo.
         $stmtPend = $pdo->prepare("SELECT COUNT(*) FROM {$c['tabla']} WHERE empresa_id = ? AND periodo = ? AND estado_imputacion = 'pendiente' AND estado_sunat = '1'");
         $stmtPend->execute([$empresaId, $periodo]);
         $sinClasificar = (int)$stmtPend->fetchColumn();
-
-        // Períodos con comprobantes clasificados, para el selector.
-        $stmtP = $pdo->prepare("
-            SELECT DISTINCT periodo FROM {$c['tabla']}
-            WHERE empresa_id = ? AND estado_imputacion = 'imputado' AND estado_sunat = '1' ORDER BY periodo DESC
-        ");
-        $stmtP->execute([$empresaId]);
-        $periodos = $stmtP->fetchAll(PDO::FETCH_COLUMN);
 
         $pageTitle = 'Cobros y pagos — ' . $empresa['razon_social'];
         ob_start();
@@ -91,7 +84,8 @@ class CobranzaController
             $empresaId, $origen, (int)($_POST['documento_id'] ?? 0),
             (float)str_replace(',', '', (string)($_POST['monto'] ?? 0)),
             !empty($_POST['fecha']) ? $_POST['fecha'] : null,
-            Auth::id()
+            Auth::id(),
+            ($_POST['medio'] ?? '') !== '' ? (string)$_POST['medio'] : null
         );
         $this->_volver($empresaId, $r['ok'] ? 'Registrado.' : null, $r['ok'] ? null : $r['error']);
     }
@@ -133,7 +127,7 @@ class CobranzaController
         $qs = http_build_query([
             'origen'  => $this->_origen($_POST['origen'] ?? 'venta'),
             'periodo' => preg_match('/^\d{6}$/', $_POST['periodo'] ?? '') ? $_POST['periodo'] : Periodo::resolver($empresaId),
-            'estado'  => $_POST['estado'] ?? 'todos',
+            'estado'  => $_POST['estado'] ?? 'saldo',
         ]);
         header("Location: /empresas/{$empresaId}/cobranzas?{$qs}"); exit;
     }

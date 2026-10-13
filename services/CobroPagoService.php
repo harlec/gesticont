@@ -45,7 +45,21 @@ class CobroPagoService
      *
      * @return array{ok:bool,error?:string,saldo?:float}
      */
-    public static function registrar(int $empresaId, string $origen, int $docId, float $monto, ?string $fecha, int $usuarioId): array
+    public const MEDIOS = ['efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'yape_plin' => 'Yape / Plin', 'tarjeta' => 'Tarjeta'];
+
+    /** ¿Existe la columna caja_movimientos.medio_pago (migración fase1m)? */
+    private static function tieneMedioPago(PDO $pdo): bool
+    {
+        static $r = null;
+        if ($r === null) {
+            $s = $pdo->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'caja_movimientos' AND column_name = 'medio_pago'");
+            $s->execute();
+            $r = (bool)$s->fetchColumn();
+        }
+        return $r;
+    }
+
+    public static function registrar(int $empresaId, string $origen, int $docId, float $monto, ?string $fecha, int $usuarioId, ?string $medio = null): array
     {
         if (!in_array($origen, ['venta', 'compra'], true) || $docId <= 0) return ['ok' => false, 'error' => 'Datos incompletos.'];
         $monto = round($monto, 2);
@@ -78,10 +92,18 @@ class CobroPagoService
         $parcial = $monto < $total - self::TOLERANCIA;
         $descripcion = $c['etiqueta'] . ($parcial ? ' parcial ' : ' ') . "{$doc['serie']}-{$doc['correlativo']}";
 
-        $pdo->prepare("
-            INSERT INTO caja_movimientos (empresa_id, tipo, cuenta_id, {$c['col']}, descripcion, monto, fecha, registrado_por)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ")->execute([$empresaId, $c['tipoMov'], $cuentaId, $docId, $descripcion, $monto, $fecha, $usuarioId]);
+        if ($medio !== null && !isset(self::MEDIOS[$medio])) $medio = null;
+        if ($medio !== null && self::tieneMedioPago($pdo)) {
+            $pdo->prepare("
+                INSERT INTO caja_movimientos (empresa_id, tipo, cuenta_id, {$c['col']}, descripcion, medio_pago, monto, fecha, registrado_por)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ")->execute([$empresaId, $c['tipoMov'], $cuentaId, $docId, $descripcion, $medio, $monto, $fecha, $usuarioId]);
+        } else {
+            $pdo->prepare("
+                INSERT INTO caja_movimientos (empresa_id, tipo, cuenta_id, {$c['col']}, descripcion, monto, fecha, registrado_por)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ")->execute([$empresaId, $c['tipoMov'], $cuentaId, $docId, $descripcion, $monto, $fecha, $usuarioId]);
+        }
 
         self::sincronizar($empresaId, $origen, $docId);
         return ['ok' => true, 'saldo' => round($saldo - $monto, 2)];

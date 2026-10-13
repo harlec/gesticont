@@ -32,15 +32,19 @@ class EstadoResultadosService
         $gastosAdmin       = $sum(['94'], 'perdidas');
         $gastosVenta       = $sum(['95'], 'perdidas');
         $gastosFinancieros = $sum(['96'], 'perdidas');
-        $utilidadOperativa = round($utilidadBruta - $costoProduccion - $gastosAdmin - $gastosVenta - $gastosFinancieros, 2);
+        // La utilidad operativa NO incluye lo financiero: primero el negocio, después ingresos y gastos financieros.
+        $utilidadOperativa = round($utilidadBruta - $costoProduccion - $gastosAdmin - $gastosVenta, 2);
 
         $ingresosFinancieros   = $sum(['779'], 'ganancias');
-        $utilidadAntesImpuestos = round($utilidadOperativa + $ingresosFinancieros, 2);
+        $utilidadAntesImpuestos = round($utilidadOperativa + $ingresosFinancieros - $gastosFinancieros, 2);
 
         // El IR y la Reserva Legal solo se calculan sobre utilidad positiva —
         // con pérdida no corresponde ninguno de los dos.
         $tasaIr        = (float)$parametros['tasa_ir'];
-        $impuestoRenta = $utilidadAntesImpuestos > 0 ? round($utilidadAntesImpuestos * $tasaIr / 100, 2) : 0.0;
+        // Si el impuesto ya está registrado en los libros (881), se usa ese; si no, se estima con la tasa.
+        $ir881 = $sum(['881'], 'perdidas');
+        $irRegistrado = $ir881 > 0;
+        $impuestoRenta = $irRegistrado ? $ir881 : ($utilidadAntesImpuestos > 0 ? round($utilidadAntesImpuestos * $tasaIr / 100, 2) : 0.0);
         $utilidadEjercicio = round($utilidadAntesImpuestos - $impuestoRenta, 2);
 
         $pctReserva   = (float)$parametros['pct_reserva_legal'];
@@ -60,6 +64,7 @@ class EstadoResultadosService
             'utilidad_antes_impuestos'  => $utilidadAntesImpuestos,
             'tasa_ir'                   => $tasaIr,
             'impuesto_renta'            => $impuestoRenta,
+            'ir_registrado'             => $irRegistrado,
             'utilidad_ejercicio'        => $utilidadEjercicio,
             'pct_reserva_legal'         => $pctReserva,
             'reserva_legal'             => $reservaLegal,

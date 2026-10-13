@@ -13,7 +13,7 @@ class EstadoResultadosController
         [$empresa, $periodo, $resultado] = $this->_datos($empresaId);
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
-        $pageTitle = 'Estado de Resultados - ' . $empresa['razon_social'];
+        $pageTitle = 'Estado de resultados — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/balance/views/resultados.php';
         $content = ob_get_clean();
@@ -35,35 +35,31 @@ class EstadoResultadosController
         }
 
         if ($resultado['costo_ventas'] == 0) {
-            $pdf->alerta('El Costo de Ventas aparece en S/ 0.00 - todavía no existe el módulo de Inventario Final/Kardex, así que la Utilidad Bruta por ahora coincide con los Ingresos.', 'warn');
+            $pdf->alerta('El costo de ventas esta en S/ 0.00: la utilidad bruta coincide con las ventas. Se reconoce al cierre con el inventario final (Debe 691 / Haber 201).', 'warn');
             $pdf->espacio(2);
         }
 
         $linea = fn($label, $val, $bold = false, $resta = false, $sub = null) =>
             $pdf->fila(($resta ? '(-) ' : '') . $label, $fmt($val), $bold, $bold, $sub);
 
-        $linea('Ingresos por Ventas', $resultado['ingresos_ventas'], false, false, 'Cuentas 701-704');
-        $linea('Costo de Ventas', $resultado['costo_ventas'], false, true, 'Cuenta 691');
-        $linea('Utilidad Bruta', $resultado['utilidad_bruta'], true);
+        $linea('Ventas netas', $resultado['ingresos_ventas'], false, false, 'Cuenta 70');
+        $linea('Costo de ventas', $resultado['costo_ventas'], false, true, 'Cuenta 69');
+        $linea('Utilidad bruta', $resultado['utilidad_bruta'], true);
         $pdf->espacio(1);
-
-        $linea('Costo de Producción', $resultado['costo_produccion'], false, true, 'Cuenta 92');
-        $linea('Gastos de Administración', $resultado['gastos_admin'], false, true, 'Cuenta 94');
-        $linea('Gastos de Venta', $resultado['gastos_venta'], false, true, 'Cuenta 95');
-        $linea('Gastos Financieros', $resultado['gastos_financieros'], false, true, 'Cuenta 96');
-        $linea('Utilidad Operativa', $resultado['utilidad_operativa'], true);
+        $linea('Gastos de administracion', $resultado['gastos_admin'], false, true, 'Cuenta 94');
+        $linea('Gastos de venta', $resultado['gastos_venta'], false, true, 'Cuenta 95');
+        if ($resultado['costo_produccion'] != 0) $linea('Costos de produccion', $resultado['costo_produccion'], false, true, 'Cuenta 92');
+        $linea('Utilidad operativa', $resultado['utilidad_operativa'], true);
         $pdf->espacio(1);
-
-        $linea('Ingresos Financieros', $resultado['ingresos_financieros'], false, false, 'Cuenta 779');
-        $linea('Utilidad Antes de Impuestos', $resultado['utilidad_antes_impuestos'], true);
+        $linea('Ingresos financieros', $resultado['ingresos_financieros'], false, false, 'Cuenta 77');
+        $linea('Gastos financieros', $resultado['gastos_financieros'], false, true, 'Cuenta 96');
+        $linea('Utilidad antes de impuestos', $resultado['utilidad_antes_impuestos'], true);
         $pdf->espacio(1);
-
-        $linea('Impuesto a la Renta (' . number_format($resultado['tasa_ir'], 2) . '%)', $resultado['impuesto_renta'], false, true);
-        $linea('Utilidad del Ejercicio', $resultado['utilidad_ejercicio'], true);
+        $linea('Impuesto a la renta' . ($resultado['ir_registrado'] ? ' (registrado en 881)' : ' (estimado ' . number_format($resultado['tasa_ir'], 2) . '%, aun no registrado)'), $resultado['impuesto_renta'], false, true);
+        $linea('Utilidad neta', $resultado['utilidad_ejercicio'], true);
         $pdf->espacio(1);
-
-        $linea('Reserva Legal (' . number_format($resultado['pct_reserva_legal'], 2) . '%)', $resultado['reserva_legal'], false, true);
-        $linea('Utilidad Antes de Repartición', $resultado['utilidad_antes_reparticion'], true);
+        $linea('Reserva legal ' . number_format($resultado['pct_reserva_legal'], 0) . '% (se registra al cerrar el ano)', $resultado['reserva_legal'], false, true);
+        $linea('Utilidad antes de reparticion', $resultado['utilidad_antes_reparticion'], true);
 
         $pdf->salir('estado-resultados');
     }

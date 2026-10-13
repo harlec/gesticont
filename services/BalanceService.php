@@ -78,6 +78,9 @@ class BalanceService
     {
         $nat = in_array($tipo, ['gasto', 'ingreso'], true) ? [$deudor, $acreedor] : [0.0, 0.0];
 
+        // El impuesto a la renta (88x) se resta DESPUÉS de la utilidad: aparece igual en las dos presentaciones.
+        if (str_starts_with($codigo, '88')) return [$deudor, $acreedor, $deudor, $acreedor];
+
         if ($tipo === 'destino')                                        $fun = str_starts_with($codigo, '79') ? [0.0, 0.0] : [$deudor, $acreedor];
         elseif ($tipo === 'gasto' && str_starts_with($codigo, '69'))    $fun = [$deudor, $acreedor];
         elseif ($tipo === 'ingreso')                                    $fun = [$deudor, $acreedor];

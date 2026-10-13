@@ -4,37 +4,12 @@ require_once ROOT . '/core/Model.php';
 require_once ROOT . '/core/Periodo.php';
 require_once ROOT . '/services/DashboardEmpresaService.php';
 class EmpresaController {
+    /** Mis empresas: pantalla de entrada. Lo urgente (vencimientos, por clasificar, certificado) primero. */
     public function index(): void {
         Auth::require();
-        $db = Model::db();
-
-        if (Auth::isSuperadmin()) {
-            $stmt = $db->prepare("
-                SELECT e.*, ec.cert_hasta, ec.estado as cert_estado,
-                       DATEDIFF(ec.cert_hasta, CURDATE()) as dias_cert
-                FROM empresas e
-                LEFT JOIN empresa_certificados ec ON ec.empresa_id = e.id AND ec.estado = 'activo'
-                WHERE e.activo = 1
-                ORDER BY e.razon_social
-            ");
-            $stmt->execute();
-        } else {
-            // Cada usuario (contador o su operador/asistente) solo ve las
-            // empresas donde tiene una fila en empresa_usuarios — nunca
-            // el listado completo del sistema.
-            $stmt = $db->prepare("
-                SELECT e.*, ec.cert_hasta, ec.estado as cert_estado,
-                       DATEDIFF(ec.cert_hasta, CURDATE()) as dias_cert
-                FROM empresas e
-                INNER JOIN empresa_usuarios eu ON eu.empresa_id = e.id
-                LEFT JOIN empresa_certificados ec ON ec.empresa_id = e.id AND ec.estado = 'activo'
-                WHERE e.activo = 1 AND eu.usuario_id = ? AND eu.activo = 1
-                ORDER BY e.razon_social
-            ");
-            $stmt->execute([Auth::id()]);
-        }
-        $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+        require_once ROOT . '/services/CarteraService.php';
+        $cartera = CarteraService::resumen(Model::db(), Auth::isSuperadmin(), Auth::id());
+        $tot = CarteraService::totales($cartera);
         $pageTitle = 'Mis empresas';
         ob_start();
         require_once ROOT . '/modules/empresas/views/index.php';
@@ -113,7 +88,13 @@ class EmpresaController {
         $stmtCert->execute([$id]);
         $cert = $stmtCert->fetch(PDO::FETCH_ASSOC);
 
-        $pageTitle = $empresa['razon_social'];
+        // Vencimientos SUNAT del período de trabajo (ver VencimientosService) y régimen vigente
+        require_once ROOT . '/services/VencimientosService.php';
+        require_once ROOT . '/services/RegimenService.php';
+        $obligaciones = VencimientosService::obligaciones(Model::db(), $empresa, $periodoActivo);
+        $regimenVigente = RegimenService::vigente(Model::db(), $empresa, $periodoActivo);
+
+        $pageTitle = 'Inicio — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/empresas/views/detalle.php';
         $content = ob_get_clean();

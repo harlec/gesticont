@@ -1,188 +1,166 @@
 <?php
-$regimenes = ['general'=>'Régimen General','mype'=>'MYPE Tributario','especial'=>'RER (Régimen Especial de Renta)','rus'=>'Nuevo RUS'];
-$fmt = fn($v) => number_format((float)$v, 2);
-$mesesCorto = ['01'=>'Ene','02'=>'Feb','03'=>'Mar','04'=>'Abr','05'=>'May','06'=>'Jun','07'=>'Jul','08'=>'Ago','09'=>'Set','10'=>'Oct','11'=>'Nov','12'=>'Dic'];
-
-// ── Gráfico Ventas vs Compras (SVG a mano — no amerita cargar una
-// librería entera para 12 barras dobles) ────────────────────────────────
-$maxValor = 0;
-foreach ($dash['meses'] as $m) $maxValor = max($maxValor, $m['ventas'], $m['compras']);
-$chartW = 900; $chartH = 190; $padL = 10; $padR = 10; $padB = 26;
-$colW = ($chartW - $padL - $padR) / 12;
-$barW = min(16, $colW * 0.32);
-function barY(float $valor, float $max, int $chartH, int $padB): array {
-    if ($max <= 0) return [$chartH - $padB, 0];
-    $h = ($valor / $max) * ($chartH - $padB - 14);
-    return [$chartH - $padB - $h, $h];
-}
+/**
+ * Inicio de la empresa (rediseño). Variables: $empresa, $dash (DashboardEmpresaService), $cert, $periodoActivo,
+ * $obligaciones (VencimientosService), $regimenVigente.
+ */
+$id = (int)$empresa['id'];
+$S = fn($v) => 'S/ ' . number_format((float)$v, 2);
+$fecha = fn(?string $f) => $f ? date('d/m/Y', strtotime($f)) : null;
+$mesTxt = Periodo::etiqueta($periodoActivo, true);
+$grupo = VencimientosService::grupoDeRuc($empresa['ruc']);
+$sinPresentar = array_values(array_filter($obligaciones, fn($o) => $o['estado'] !== 'presentado'));
+$vencida = array_values(array_filter($sinPresentar, fn($o) => $o['dias'] !== null && $o['dias'] < 0));
+$prox = VencimientosService::proxima($obligaciones);
+$esRus = $regimenVigente['regimen'] === 'rus';
+if ($vencida)            { $titulo = 'Tienes una declaración vencida'; }
+elseif ($prox)           { $titulo = 'Próximo: ' . $fecha($prox['fecha']); }
+elseif ($obligaciones)   { $titulo = 'Todo presentado'; }
+else                     { $titulo = $esRus ? 'Sin declaraciones mensuales' : 'Sin obligaciones'; }
+$tonoBloque = $prox ? VencimientosService::tono($prox['dias'], $prox['estado']) : 'ok';
+$colorEstado = ['presentado' => 'var(--gc-pos)', 'listo' => 'var(--gc-pos)', 'bloqueado' => 'var(--gc-neg)', 'datos' => 'var(--gc-warn)', 'espera' => 'var(--gc-label-2)'];
+$certTxt = !$cert ? ['neg', 'Falta subir'] : (($cert['cert_hasta'] ?? null) && $cert['cert_hasta'] < date('Y-m-d') ? ['neg', 'Vencido'] : ['ok', 'Activo' . (($cert['cert_hasta'] ?? null) ? ' hasta ' . $fecha($cert['cert_hasta']) : '')]);
+$hayDatosMes = ($dash['mes_n_ventas'] + $dash['mes_n_compras']) > 0;
 ?>
+<?php foreach (['obl_ok' => 'ok', 'obl_error' => 'neg'] as $k => $t): if (empty($_SESSION[$k])) continue; ?>
+<div class="gc-alert <?= $t ?>" role="status"><span class="msg"><?= htmlspecialchars($_SESSION[$k]) ?></span></div>
+<?php unset($_SESSION[$k]); endforeach; ?>
 
-<!-- Encabezado empresa + botones -->
-<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
-    <div style="width:52px;height:52px;background:var(--gc-brand);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:22px;font-weight:700;color:var(--gc-on-brand);flex-shrink:0;">
-        <?= strtoupper(substr($empresa['razon_social'], 0, 1)) ?>
+<div class="gc-row" style="align-items:stretch;gap:24px;">
+
+  <!-- Vencimientos SUNAT -->
+  <section class="gc-card clip" style="flex:2 1 620px;min-width:0;">
+    <div class="head" style="padding:24px 28px;">
+      <div class="gc-stack" style="gap:4px;">
+        <span class="gc-sub" style="font-weight:600;">Vencimientos SUNAT</span>
+        <span style="font-size:26px;font-weight:700;line-height:1.2;"><?= htmlspecialchars($titulo) ?></span>
+        <span class="gc-sub"><?= $sinPresentar ? count($sinPresentar) . ' obligación' . (count($sinPresentar) === 1 ? '' : 'es') . ' pendiente' . (count($sinPresentar) === 1 ? '' : 's') : ($obligaciones ? 'No tienes nada pendiente en ' . $mesTxt : '') ?></span>
+      </div>
+      <?php if ($prox): $d = $prox['dias']; ?>
+      <div class="gc-chip <?= $tonoBloque ?>" style="flex-direction:column;gap:0;border-radius:14px;padding:12px 22px;text-align:center;">
+        <span style="font-size:42px;font-weight:700;line-height:1;"><?= $d === null ? '—' : abs($d) ?></span>
+        <span style="font-size:15px;font-weight:600;"><?= $d === null ? 'sin fecha' : ($d < 0 ? 'días de atraso' : ($d === 0 ? 'vence hoy' : ($d === 1 ? 'día' : 'días'))) ?></span>
+      </div>
+      <?php endif; ?>
     </div>
-    <div style="flex:1;min-width:200px;">
-        <div style="font-size:20px;font-weight:700;color:var(--gc-ink);"><?= htmlspecialchars($empresa['razon_social']) ?></div>
-        <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;">
-            RUC: <?= htmlspecialchars($empresa['ruc']) ?> &middot; <?= $regimenes[$empresa['regimen']] ?? $empresa['regimen'] ?>
+
+    <?php if ($esRus): ?>
+      <div class="body"><span class="gc-sub">El Nuevo RUS no presenta el IGV-Renta mensual: paga una cuota mensual. Si cambió de régimen, actualízalo en <a href="/empresas/<?= $id ?>/regimen">Régimen tributario</a>.</span></div>
+    <?php elseif (!$obligaciones): ?>
+      <div class="body"><span class="gc-sub">No hay obligaciones para este mes.</span></div>
+    <?php else: foreach ($obligaciones as $o):
+        $tono = VencimientosService::tono($o['dias'], $o['estado']); ?>
+      <div style="padding:18px 28px;border-top:1px solid var(--gc-surface-2);display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div class="gc-grow" style="min-width:260px;">
+          <div style="font-size:18px;font-weight:700;"><?= htmlspecialchars($o['nombre']) ?></div>
+          <div class="gc-sub" style="font-size:15px;">Período <?= htmlspecialchars($o['periodo_txt']) ?> · <?= $o['fecha'] ? 'vence el ' . $fecha($o['fecha']) : 'fecha por cargar' ?></div>
+          <div style="font-size:16px;margin-top:4px;color:<?= $colorEstado[$o['estado']] ?? 'var(--gc-ink)' ?>;font-weight:600;"><span style="font-size:12px;">●</span> <?= htmlspecialchars($o['texto']) ?></div>
         </div>
+        <span class="gc-chip <?= $tono ?>"><?= htmlspecialchars(VencimientosService::textoDias($o['dias'], $o['estado'])) ?></span>
+        <div style="min-width:170px;text-align:right;">
+          <?php if ($o['estado'] === 'presentado'): ?>
+            <form method="POST" action="/empresas/<?= $id ?>/obligaciones/marcar" style="margin:0;">
+              <input type="hidden" name="tipo" value="<?= $o['tipo'] ?>"><input type="hidden" name="periodo" value="<?= $o['periodo'] ?>"><input type="hidden" name="presentado" value="0">
+              <button class="gc-btn" type="submit" title="Quitar la marca de presentado">Deshacer</button>
+            </form>
+          <?php elseif ($o['accion'] && $o['accion']['tipo'] === 'ir'): ?>
+            <a href="<?= htmlspecialchars($o['accion']['url']) ?>" class="gc-btn <?= $o['estado'] === 'bloqueado' ? 'gc-btn-soft' : '' ?>"><?= htmlspecialchars($o['accion']['etiqueta']) ?></a>
+          <?php elseif ($o['accion'] && $o['accion']['tipo'] === 'marcar'): ?>
+            <form method="POST" action="/empresas/<?= $id ?>/obligaciones/marcar" style="margin:0;" onsubmit="return confirm('¿Ya presentaste esta declaración ante SUNAT? GestiCont solo lo registra como presentado.');">
+              <input type="hidden" name="tipo" value="<?= $o['tipo'] ?>"><input type="hidden" name="periodo" value="<?= $o['periodo'] ?>"><input type="hidden" name="presentado" value="1">
+              <button class="gc-btn gc-btn-primary" type="submit"><?= htmlspecialchars($o['accion']['etiqueta']) ?></button>
+            </form>
+          <?php endif; ?>
+        </div>
+      </div>
+    <?php endforeach; endif; ?>
+    <div style="padding:14px 28px;border-top:1px solid var(--gc-line);background:var(--gc-bg);font-size:15px;color:var(--gc-label-2);">
+      Fechas según el cronograma SUNAT para RUC terminado en <?= (int)substr($empresa['ruc'], -1) ?>. Los buenos contribuyentes y los principales contribuyentes tienen otras fechas.
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a href="/empresas/<?= $empresa['id'] ?>/editar"
-           style="background:var(--gc-surface-2);color:var(--gc-label);padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
-            ✏️ Editar
-        </a>
-    </div>
+  </section>
+
+  <!-- Columna derecha -->
+  <div class="gc-stack" style="flex:1 1 320px;min-width:0;gap:24px;">
+    <section class="gc-card pad">
+      <div class="gc-sub" style="font-weight:600;">Por clasificar</div>
+      <?php if ($dash['pendientes'] > 0): ?>
+        <div style="font-size:44px;font-weight:700;line-height:1.1;color:var(--gc-warn);margin:6px 0;"><?= number_format($dash['pendientes']) ?></div>
+        <div class="gc-sub" style="margin-bottom:16px;"><?= number_format($dash['pendientes_ventas']) ?> ventas y <?= number_format($dash['pendientes_compras']) ?> compras esperan una cuenta. Sin clasificar no se pueden presentar los registros.</div>
+        <a href="/empresas/<?= $id ?>/imputacion" class="gc-btn gc-btn-primary gc-btn-lg" style="width:100%;">Clasificar ahora</a>
+      <?php else: ?>
+        <div style="font-size:26px;font-weight:700;color:var(--gc-pos);margin:6px 0;">Todo clasificado</div>
+        <div class="gc-sub">No hay comprobantes esperando una cuenta.</div>
+      <?php endif; ?>
+    </section>
+    <section class="gc-card pad">
+      <div class="gc-sub" style="font-weight:600;margin-bottom:10px;">Estado de la empresa</div>
+      <div class="gc-stack" style="gap:12px;font-size:16px;">
+        <div class="gc-row between"><span>Balance</span>
+          <?php if ($dash['balance_cuadra'] === null): ?><span class="gc-chip neutral">Sin asientos</span>
+          <?php elseif ($dash['balance_cuadra']): ?><span class="gc-chip ok">Cuadra</span>
+          <?php else: ?><a href="/empresas/<?= $id ?>/balance" class="gc-chip neg">No cuadra</a><?php endif; ?></div>
+        <div class="gc-row between"><span>Certificado digital</span><a href="/empresas/<?= $id ?>/certificado" class="gc-chip <?= $certTxt[0] ?>"><?= htmlspecialchars($certTxt[1]) ?></a></div>
+        <div class="gc-row between"><span>Última sincronización</span><span style="font-weight:600;"><?= $dash['ultima_sync'] ? date('d/m/Y', strtotime($dash['ultima_sync'])) : 'Nunca' ?></span></div>
+        <div class="gc-row between"><span>Régimen</span><a href="/empresas/<?= $id ?>/regimen" style="font-weight:600;"><?= htmlspecialchars(RegimenService::CORTOS[$regimenVigente['regimen']] ?? $regimenVigente['regimen']) ?></a></div>
+      </div>
+    </section>
+  </div>
 </div>
 
-<!-- KPIs del año -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;">
+<!-- Resumen del mes -->
+<section class="gc-stack" style="gap:14px;">
+  <h2 class="gc-h2">Resumen de <?= $mesTxt ?></h2>
+  <?php if (!$hayDatosMes): ?>
+    <div class="gc-card"><div class="gc-empty"><b>Aún no hay comprobantes de <?= $mesTxt ?></b>Descarga las ventas y compras de ese mes desde SUNAT.<br><br><a href="/empresas/<?= $id ?>/sync" class="gc-btn gc-btn-primary">Sincronizar con SUNAT</a></div></div>
+  <?php else: $favor = $dash['mes_igv'] < 0; ?>
+  <div class="gc-kpis">
+    <a class="gc-kpi" href="/empresas/<?= $id ?>/ventas"><span class="k">Ventas</span><span class="v"><?= $S($dash['mes_ventas_total']) ?></span><span class="s"><?= number_format($dash['mes_n_ventas']) ?> comprobantes</span></a>
+    <a class="gc-kpi" href="/empresas/<?= $id ?>/compras"><span class="k">Compras</span><span class="v"><?= $S($dash['mes_compras_total']) ?></span><span class="s"><?= number_format($dash['mes_n_compras']) ?> comprobantes</span></a>
+    <div class="gc-kpi <?= $favor ? 'ok' : '' ?>"><span class="k"><?= $favor ? 'Saldo a favor de IGV' : 'IGV por pagar' ?></span><span class="v"><?= $S(abs($dash['mes_igv'])) ?></span><span class="s"><?= $favor ? 'Las compras superan a las ventas: queda a favor para el mes siguiente' : 'IGV de ventas menos IGV de compras' ?></span></div>
+    <div class="gc-kpi <?= $dash['mes_resultado'] < 0 ? 'neg' : '' ?>"><span class="k">Resultado estimado</span><span class="v"><?= $dash['mes_resultado'] < 0 ? '(−) ' : '' ?><?= $S(abs($dash['mes_resultado'])) ?></span><span class="s">Ventas menos compras, sin IGV</span></div>
+  </div>
+  <?php endif; ?>
+</section>
+
+<!-- Año + saldos pendientes -->
+<div class="gc-row" style="align-items:stretch;gap:24px;">
+  <section class="gc-card pad" style="flex:2 1 620px;min-width:0;">
+    <div class="gc-row between" style="margin-bottom:12px;">
+      <h2 class="gc-h2">Año <?= $dash['anio'] ?></h2>
+      <span class="gc-row" style="gap:16px;font-size:15px;color:var(--gc-label-2);">
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--gc-brand);vertical-align:-1px;"></span> Ventas</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--gc-series-compras);vertical-align:-1px;"></span> Compras</span>
+      </span>
+    </div>
     <?php
-    $kpis = [
-        ['Ventas',    $dash['ventas_anio'],   '↗', 'var(--gc-brand)', 'var(--gc-brand-soft)'],
-        ['Compras',   $dash['compras_anio'],  '↘', 'var(--gc-neg)',   'var(--gc-neg-soft)'],
-        ['Utilidad',  $dash['utilidad_anio'], '⚖',  'var(--gc-pos)',   'var(--gc-pos-soft)'],
-        ['IGV Neto',  $dash['igv_neto_anio'], '📄', 'var(--gc-warn)',  'var(--gc-warn-soft)'],
-    ];
-    foreach ($kpis as [$label, $valor, $icon, $fg, $bg]): ?>
-    <div style="background:var(--gc-surface);border-radius:14px;border:1px solid var(--gc-line);padding:18px 20px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-            <span style="font-size:12.5px;color:var(--gc-label-2);font-weight:600;"><?= $label ?></span>
-            <span style="width:30px;height:30px;border-radius:9px;background:<?= $bg ?>;color:<?= $fg ?>;display:flex;align-items:center;justify-content:center;font-size:14px;"><?= $icon ?></span>
-        </div>
-        <div style="font-size:24px;font-weight:700;color:var(--gc-ink);">
-            <?= $valor === null ? '—' : 'S/ ' . $fmt($valor) ?>
-        </div>
-        <div style="font-size:11.5px;color:var(--gc-muted);margin-top:4px;">Año <?= $dash['anio'] ?></div>
-    </div>
-    <?php endforeach; ?>
-</div>
+      $max = max(1, ...array_map(fn($m) => max($m['ventas'], $m['compras']), $dash['meses']));
+      $mesesCorto = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+      $W = 720; $H = 230; $top = 14; $bot = 34; $gw = $W / 12; $alto = $H - $top - $bot;
+      $urlPer = fn(string $p) => "/empresas/{$id}/periodo?periodo={$p}&volver=" . rawurlencode("/empresas/{$id}");
+    ?>
+    <svg viewBox="0 0 <?= $W ?> <?= $H ?>" width="100%" role="img" aria-label="Ventas y compras por mes de <?= $dash['anio'] ?>" style="display:block;">
+      <?php foreach ($dash['meses'] as $i => $m):
+        $per = $dash['anio'] . $m['mes']; $x = $i * $gw;
+        $permitido = Periodo::permitido($per) && $per <= Periodo::ultimoCerrado();
+        $hv = round($m['ventas'] / $max * $alto, 1); $hc = round($m['compras'] / $max * $alto, 1);
+        $actual = $per === $periodoActivo;
+      ?>
+      <?php if ($permitido): ?><a href="<?= htmlspecialchars($urlPer($per)) ?>"><?php endif; ?>
+        <rect x="<?= $x + 2 ?>" y="0" width="<?= $gw - 4 ?>" height="<?= $H ?>" rx="8" fill="<?= $actual ? 'var(--gc-brand-soft)' : 'transparent' ?>"><title><?= $mesesCorto[$i] . ' ' . $dash['anio'] . ': ventas ' . $S($m['ventas']) . ', compras ' . $S($m['compras']) ?></title></rect>
+        <rect x="<?= $x + $gw/2 - 18 ?>" y="<?= $top + $alto - $hv ?>" width="16" height="<?= $hv ?>" rx="3" fill="var(--gc-brand)"/>
+        <rect x="<?= $x + $gw/2 + 2 ?>" y="<?= $top + $alto - $hc ?>" width="16" height="<?= $hc ?>" rx="3" fill="var(--gc-series-compras)"/>
+        <text x="<?= $x + $gw/2 ?>" y="<?= $H - 10 ?>" text-anchor="middle" font-size="14" fill="<?= $permitido ? 'var(--gc-ink)' : 'var(--gc-muted)' ?>" font-weight="<?= $actual ? '700' : '400' ?>"><?= $mesesCorto[$i] ?></text>
+      <?php if ($permitido): ?></a><?php endif; ?>
+      <?php endforeach; ?>
+      <line x1="0" x2="<?= $W ?>" y1="<?= $top + $alto ?>" y2="<?= $top + $alto ?>" stroke="var(--gc-line)"/>
+    </svg>
+    <div class="gc-sub" style="font-size:15px;margin-top:6px;">Toca un mes para trabajar en él. Total del año: ventas <?= $S($dash['ventas_anio']) ?> · compras <?= $S($dash['compras_anio']) ?>.</div>
+  </section>
 
-<!-- Gráfico + pendientes -->
-<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;align-items:stretch;">
-
-    <div style="background:linear-gradient(160deg,var(--gc-brand),color-mix(in srgb,var(--gc-brand) 75%,black));border-radius:14px;padding:20px 22px;color:var(--gc-on-brand);display:flex;flex-direction:column;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
-            <div>
-                <div style="font-weight:700;font-size:15px;">Ventas vs Compras</div>
-                <div style="font-size:11.5px;color:rgba(255,255,255,0.65);">Año <?= $dash['anio'] ?></div>
-            </div>
-            <div style="display:flex;gap:14px;font-size:11.5px;">
-                <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--gc-accent-light);display:inline-block;"></span>Ventas</span>
-                <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:2px;background:#f9a8d4;display:inline-block;"></span>Compras</span>
-            </div>
-        </div>
-        <div style="flex:1;display:flex;align-items:center;">
-        <?php if ($maxValor > 0): ?>
-        <svg viewBox="0 0 <?= $chartW ?> <?= $chartH ?>" style="width:100%;height:auto;" preserveAspectRatio="none">
-            <?php for ($g = 1; $g <= 3; $g++):
-                $y = $chartH - $padB - ($g * (($chartH - $padB - 14) / 3));
-            ?>
-            <line x1="<?= $padL ?>" y1="<?= $y ?>" x2="<?= $chartW - $padR ?>" y2="<?= $y ?>" stroke="rgba(255,255,255,0.12)" stroke-dasharray="3,4"/>
-            <?php endfor; ?>
-            <?php foreach ($dash['meses'] as $i => $m):
-                $cx = $padL + $i * $colW + $colW / 2;
-                [$yV, $hV] = barY($m['ventas'], $maxValor, $chartH, $padB);
-                [$yC, $hC] = barY($m['compras'], $maxValor, $chartH, $padB);
-                $activo = $m['mes'] === substr($dash['periodo_activo'], 4, 2);
-            ?>
-            <rect x="<?= $cx - $barW - 2 ?>" y="<?= $yV ?>" width="<?= $barW ?>" height="<?= max($hV,1.5) ?>" rx="2.5" fill="var(--gc-accent-light)" opacity="<?= $hV>0?1:0.25 ?>"/>
-            <rect x="<?= $cx + 2 ?>" y="<?= $yC ?>" width="<?= $barW ?>" height="<?= max($hC,1.5) ?>" rx="2.5" fill="#f9a8d4" opacity="<?= $hC>0?1:0.25 ?>"/>
-            <text x="<?= $cx ?>" y="<?= $chartH - 8 ?>" text-anchor="middle" font-size="11" font-weight="<?= $activo ? '700' : '500' ?>" fill="<?= $activo ? '#ffffff' : 'rgba(255,255,255,0.55)' ?>"><?= $mesesCorto[$m['mes']] ?></text>
-            <?php endforeach; ?>
-        </svg>
-        <?php else: ?>
-        <div style="color:rgba(255,255,255,0.7);font-size:13px;text-align:center;width:100%;padding:30px 0;">Sin comprobantes sincronizados este año todavía.</div>
-        <?php endif; ?>
-        </div>
+  <section class="gc-card pad" style="flex:1 1 320px;min-width:0;">
+    <h2 class="gc-h2" style="margin-bottom:14px;">Saldos pendientes</h2>
+    <div class="gc-stack" style="gap:14px;">
+      <a href="/empresas/<?= $id ?>/cuentas-por-cobrar" class="gc-kpi" style="gap:2px;"><span class="k">Por cobrar</span><span class="v"><?= $S($dash['cxc_monto']) ?></span><span class="s"><?= number_format($dash['cxc_cant']) ?> comprobante<?= $dash['cxc_cant'] === 1 ? '' : 's' ?> con saldo</span></a>
+      <a href="/empresas/<?= $id ?>/cuentas-por-pagar" class="gc-kpi" style="gap:2px;"><span class="k">Por pagar</span><span class="v"><?= $S($dash['cxp_monto']) ?></span><span class="s"><?= number_format($dash['cxp_cant']) ?> comprobante<?= $dash['cxp_cant'] === 1 ? '' : 's' ?> con saldo</span></a>
     </div>
-
-    <div style="background:var(--gc-surface);border-radius:14px;border:1px solid var(--gc-line);overflow:hidden;display:flex;flex-direction:column;">
-        <div style="padding:14px 18px;border-bottom:1px solid var(--gc-line);display:flex;align-items:center;justify-content:space-between;">
-            <div style="font-weight:700;font-size:14px;color:var(--gc-ink);">Por clasificar</div>
-            <?php if ($dash['pendientes'] > 0): ?>
-            <span style="background:var(--gc-neg-soft);color:var(--gc-neg);padding:2px 9px;border-radius:20px;font-size:12px;font-weight:700;"><?= $dash['pendientes'] ?></span>
-            <?php else: ?>
-            <span style="background:var(--gc-pos-soft);color:var(--gc-pos);padding:2px 9px;border-radius:20px;font-size:12px;font-weight:700;">✓ al día</span>
-            <?php endif; ?>
-        </div>
-        <div style="padding:16px 18px;flex:1;display:flex;flex-direction:column;gap:10px;">
-            <?php if ($dash['pendientes'] > 0): ?>
-                <div style="font-size:13px;color:var(--gc-label);"><?= $dash['pendientes_ventas'] ?> venta(s) y <?= $dash['pendientes_compras'] ?> compra(s) sin cuenta asignada.</div>
-                <a href="/empresas/<?= $empresa['id'] ?>/imputacion" style="background:var(--gc-brand);color:var(--gc-on-brand);text-align:center;padding:9px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;">Clasificar ahora →</a>
-            <?php else: ?>
-                <div style="font-size:13px;color:var(--gc-label);">Todos los comprobantes sincronizados ya tienen cuenta asignada.</div>
-            <?php endif; ?>
-            <div style="border-top:1px solid var(--gc-surface-2);margin-top:2px;padding-top:12px;display:flex;flex-direction:column;gap:8px;">
-                <div style="display:flex;justify-content:space-between;font-size:12.5px;">
-                    <span style="color:var(--gc-label-2);">Por cobrar</span>
-                    <span style="font-weight:700;color:var(--gc-ink);"><?= $dash['cxc_cant'] ?> · S/ <?= $fmt($dash['cxc_monto']) ?></span>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:12.5px;">
-                    <span style="color:var(--gc-label-2);">Por pagar</span>
-                    <span style="font-weight:700;color:var(--gc-ink);"><?= $dash['cxp_cant'] ?> · S/ <?= $fmt($dash['cxp_monto']) ?></span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Período activo -->
-<div style="background:var(--gc-surface);border-radius:14px;border:1px solid var(--gc-line);padding:18px 20px;margin-bottom:16px;">
-    <div style="font-weight:700;font-size:14px;color:var(--gc-ink);margin-bottom:14px;">Período activo — <?= Periodo::etiqueta($dash['periodo_activo']) ?></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
-        <div style="display:flex;align-items:center;gap:12px;background:var(--gc-bg);border-radius:10px;padding:12px 14px;">
-            <span style="width:34px;height:34px;border-radius:9px;background:var(--gc-brand-soft);color:var(--gc-brand);display:flex;align-items:center;justify-content:center;">↗</span>
-            <div><div style="font-size:11.5px;color:var(--gc-label-2);">Ventas del mes</div><div style="font-size:15px;font-weight:700;color:var(--gc-ink);">S/ <?= $fmt($dash['ventas_activo']) ?></div></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;background:var(--gc-bg);border-radius:10px;padding:12px 14px;">
-            <span style="width:34px;height:34px;border-radius:9px;background:var(--gc-neg-soft);color:var(--gc-neg);display:flex;align-items:center;justify-content:center;">↘</span>
-            <div><div style="font-size:11.5px;color:var(--gc-label-2);">Compras del mes</div><div style="font-size:15px;font-weight:700;color:var(--gc-ink);">S/ <?= $fmt($dash['compras_activo']) ?></div></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;background:var(--gc-bg);border-radius:10px;padding:12px 14px;">
-            <span style="width:34px;height:34px;border-radius:9px;background:var(--gc-pos-soft);color:var(--gc-pos);display:flex;align-items:center;justify-content:center;">⚖</span>
-            <div><div style="font-size:11.5px;color:var(--gc-label-2);">Resultado del mes</div><div style="font-size:15px;font-weight:700;color:var(--gc-ink);">S/ <?= $fmt($dash['resultado_activo']) ?></div></div>
-        </div>
-    </div>
-</div>
-
-<!-- Balance / Alertas / Certificado -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
-    <div style="background:var(--gc-surface);border-radius:14px;border:1px solid var(--gc-line);padding:18px 20px;">
-        <div style="font-size:11px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Balance de comprobación</div>
-        <?php if ($dash['balance_cuadra'] === null): ?>
-            <div style="font-size:13px;color:var(--gc-muted);">Sin asientos generados aún.</div>
-        <?php elseif ($dash['balance_cuadra']): ?>
-            <div style="font-size:14px;font-weight:700;color:var(--gc-pos);">✓ Cuadra</div>
-        <?php else: ?>
-            <div style="font-size:14px;font-weight:700;color:var(--gc-neg);">⚠ No cuadra</div>
-        <?php endif; ?>
-        <a href="/empresas/<?= $empresa['id'] ?>/balance" style="font-size:12px;color:var(--gc-link);text-decoration:none;margin-top:6px;display:block;">Ver detalle →</a>
-    </div>
-
-    <div style="background:var(--gc-surface);border-radius:14px;border:1px solid var(--gc-line);padding:18px 20px;">
-        <div style="font-size:11px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Alertas</div>
-        <?php if (empty($dash['alertas'])): ?>
-            <div style="font-size:13px;color:var(--gc-pos);">✓ Sin alertas pendientes</div>
-        <?php else: ?>
-            <?php foreach ($dash['alertas'] as $al): ?>
-            <div style="font-size:12.5px;color:var(--gc-label);margin-bottom:5px;">
-                <?= $al['nivel'] === 'danger' ? '🔴' : ($al['nivel'] === 'warning' ? '🟡' : '🔵') ?>
-                <?= htmlspecialchars($al['titulo']) ?> — <?= date('d/m', strtotime($al['fecha_vence'])) ?>
-            </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
-    </div>
-
-    <div style="background:var(--gc-surface);border-radius:14px;border:1px solid var(--gc-line);padding:18px 20px;">
-        <div style="font-size:11px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Certificado digital</div>
-        <?php if ($cert): ?>
-            <div style="font-size:14px;font-weight:700;color:var(--gc-pos);">✓ Credenciales activas</div>
-            <div style="font-size:11.5px;color:var(--gc-muted);margin-top:3px;">Ambiente: <?= ucfirst($cert['ambiente'] ?? 'beta') ?><?= !empty($cert['api_client_id']) ? ' · API SIRE ✓' : '' ?></div>
-        <?php else: ?>
-            <div style="font-size:14px;font-weight:700;color:var(--gc-warn);">⚠ Sin credenciales SOL</div>
-        <?php endif; ?>
-        <a href="/empresas/<?= $empresa['id'] ?>/certificado" style="font-size:12px;color:var(--gc-link);text-decoration:none;margin-top:6px;display:block;">Gestionar →</a>
-    </div>
+  </section>
 </div>

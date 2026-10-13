@@ -82,10 +82,20 @@ class CierreService
             $utilidadAntesImpuestos = round($gananciasTotal - $perdidasTotal, 2);
 
             $tasaIr = (float)$parametros['tasa_ir'];
-            $impuestoRenta = $utilidadAntesImpuestos > 0 ? round($utilidadAntesImpuestos * $tasaIr / 100, 2) : 0.0;
+            // Si el impuesto ya se registró en 881 (plantilla de Asientos manuales), esa cuenta se cierra junto con las
+            // demás y su pasivo (4017) ya existe: la utilidad calculada arriba ya es NETA y no se provisiona otra vez.
+            $ir881 = 0.0;
+            foreach ($balance['filas'] as $f) if ($f['codigo'] === '881') $ir881 = (float)$f['perdidas'];
+            $irYaRegistrado = $ir881 > 0;
+            if ($irYaRegistrado) {
+                $impuestoRenta = $ir881;
+                $utilidadAntesImpuestos = round($utilidadAntesImpuestos + $ir881, 2);
+            } else {
+                $impuestoRenta = $utilidadAntesImpuestos > 0 ? round($utilidadAntesImpuestos * $tasaIr / 100, 2) : 0.0;
+            }
             $utilidadNeta = round($utilidadAntesImpuestos - $impuestoRenta, 2);
 
-            if ($impuestoRenta > 0) {
+            if ($impuestoRenta > 0 && !$irYaRegistrado) {
                 $lineas[] = ['cuenta_id' => self::cuentaIdPorCodigo($pdo, '4017'), 'debe' => 0, 'haber' => $impuestoRenta];
             }
             if ($utilidadNeta > 0) {
@@ -172,6 +182,36 @@ class CierreService
             'utilidad_neta' => $utilidadNeta,
             'anio_siguiente' => $anioSiguiente,
         ];
+    }
+
+    /**
+     * Reabre un año cerrado: borra su asiento de cierre y el registro del cierre, y lo deja abierto.
+     * No toca los saldos de apertura del año siguiente: se vuelven a calcular al cerrar otra vez.
+     * No se permite si el año siguiente ya está cerrado (su apertura se apoya en este año).
+     */
+    public static function reabrirPeriodo(int $empresaId, int $anio): array
+    {
+        $pdo = Model::db();
+        $stmt = $pdo->prepare("SELECT id, estado FROM periodos_contables WHERE empresa_id = ? AND anio = ?");
+        $stmt->execute([$empresaId, $anio]);
+        $per = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$per || $per['estado'] !== 'cerrado') return ['error' => "El año {$anio} no está cerrado."];
+
+        $stmt->execute([$empresaId, $anio + 1]);
+        $sig = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($sig && $sig['estado'] === 'cerrado') return ['error' => "No se puede reabrir {$anio}: el año " . ($anio + 1) . " ya está cerrado."];
+
+        Model::beginTransaction();
+        try {
+            $pdo->prepare("DELETE FROM asientos WHERE empresa_id = ? AND periodo_id = ? AND origen = 'cierre'")->execute([$empresaId, (int)$per['id']]);
+            $pdo->prepare("DELETE FROM cierres_periodo WHERE empresa_id = ? AND periodo_id = ?")->execute([$empresaId, (int)$per['id']]);
+            $pdo->prepare("UPDATE periodos_contables SET estado = 'abierto' WHERE id = ?")->execute([(int)$per['id']]);
+            Model::commit();
+        } catch (Exception $e) {
+            Model::rollback();
+            return ['error' => 'No se pudo reabrir: ' . $e->getMessage()];
+        }
+        return ['ok' => true];
     }
 
     private static function siguienteCorrelativo(PDO $pdo, int $empresaId): int

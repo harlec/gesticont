@@ -1,99 +1,79 @@
 <?php
-$fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '—';
-$fmtFecha = fn($f) => date('d/m/Y', strtotime($f));
+/** Libro Mayor (rediseño). Variables: $empresa, $periodo, $cuentas, $sel (cuenta elegida), $tiposCuenta. */
+$id = (int)$empresa['id']; $mes = Periodo::etiqueta($periodo, true);
+$S = fn($v) => number_format(abs((float)$v), 2);
+$saldoDA = fn(float $v) => $S($v) . ($v >= 0 ? ' D' : ' A');
+$destino = ['activo' => 'Balance · Activo', 'pasivo' => 'Balance · Pasivo', 'patrimonio' => 'Balance · Patrimonio', 'ingreso' => 'Resultados · Ingreso', 'gasto' => 'Resultados · Gasto', 'destino' => 'Resultados · Por función'];
+$contActiva = 'mayor'; require ROOT . '/views/layout/contabilidad_subtabs.php';
+$contTitulo = 'Libro Mayor';
+$contDesc = 'Acumulado de enero a ' . $mes . ' · ' . count($cuentas) . ' cuentas con movimiento';
+$contAcciones = $cuentas ? '<a class="gc-btn" href="/empresas/' . $id . '/mayor/pdf?periodo=' . $periodo . '" target="_blank" rel="noopener">Descargar PDF</a>' : '';
+require ROOT . '/views/layout/contabilidad_head.php';
 ?>
+<?php if (!$cuentas): ?>
+<div class="gc-card"><div class="gc-empty"><b>Sin movimientos acumulados hasta este período</b>Genera los asientos del <a href="/empresas/<?= $id ?>/diario">Libro Diario</a> primero.</div></div>
+<?php else: ?>
+<div class="gc-row" style="align-items:flex-start;gap:24px;flex-wrap:nowrap;">
 
-<div class="gc-content gc-w-content">
-<div style="max-width:960px;margin:0 auto;">
-
-    <?php $libroClave = 'mayor'; require ROOT . '/views/layout/regimen_badge.php'; ?>
-    <div class="no-print" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-        <div>
-            <div style="font-size:18px;font-weight:700;color:var(--gc-ink);">Libro Mayor</div>
-            <div style="font-size:13px;color:var(--gc-muted);">Acumulado hasta <?= Periodo::etiqueta($periodo, true) ?></div>
+    <aside class="gc-card" style="flex:0 0 380px;max-width:100%;min-width:0;position:sticky;top:96px;">
+        <div style="padding:14px;border-bottom:1px solid var(--gc-line);"><input id="my-q" class="gc-input" type="search" placeholder="Buscar cuenta por código o nombre" autocomplete="off"></div>
+        <div id="my-lista" style="max-height:calc(100vh - 260px);overflow-y:auto;">
+        <?php foreach ($cuentas as $c): $act = $sel && $c['codigo'] === $sel['codigo']; ?>
+        <a href="?cuenta=<?= urlencode($c['codigo']) ?>" data-q="<?= htmlspecialchars(mb_strtolower($c['codigo'] . ' ' . $c['nombre'])) ?>"
+           style="display:block;padding:12px 16px;border-bottom:1px solid var(--gc-surface-2);color:var(--gc-ink);border-left:4px solid <?= $act ? 'var(--gc-brand)' : 'transparent' ?>;background:<?= $act ? 'var(--gc-brand-soft)' : 'transparent' ?>;">
+            <div class="gc-row between" style="flex-wrap:nowrap;gap:10px;">
+                <span><b class="mono" style="font-size:15px;"><?= $c['codigo'] ?></b> <span style="font-size:15px;"><?= htmlspecialchars($c['nombre']) ?></span></span>
+            </div>
+            <div class="gc-sub" style="font-size:14px;">Saldo <?= $saldoDA($c['saldo']) ?></div>
+        </a>
+        <?php endforeach; ?>
+        <div id="my-vacio" class="gc-empty" style="display:none;padding:28px;">Sin resultados</div>
         </div>
-        <a href="/empresas/<?= $empresa['id'] ?>/mayor/pdf?periodo=<?= $periodo ?>" target="_blank" rel="noopener"
-           style="background:var(--gc-surface-2);color:var(--gc-label);padding:9px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">📄 Descargar PDF</a>
-    </div>
+    </aside>
 
-    <?php if (!empty($cuentas)): ?>
-
-    <!-- Índice de cuentas — con decenas de cuentas usadas, saltar
-         directo a una es más práctico que hacer scroll por todas. -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:14px 18px;margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
-            <?= count($cuentas) ?> cuentas con movimiento
+    <section class="gc-card clip" style="flex:1 1 560px;min-width:0;">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--gc-line);">
+            <div class="gc-row between" style="gap:12px;">
+                <div><span class="mono" style="font-size:22px;font-weight:700;color:var(--gc-brand);"><?= $sel['codigo'] ?></span> <span style="font-size:22px;font-weight:700;"><?= htmlspecialchars($sel['nombre']) ?></span></div>
+                <span class="gc-chip info"><?= $destino[$tiposCuenta[$sel['codigo']] ?? ''] ?? 'Cuenta' ?></span>
+            </div>
+            <div class="gc-row" style="gap:32px;margin-top:12px;">
+                <div><div class="gc-sub" style="font-size:15px;">Debe</div><b class="num" style="font-size:20px;">S/ <?= $S($sel['total_debe']) ?></b></div>
+                <div><div class="gc-sub" style="font-size:15px;">Haber</div><b class="num" style="font-size:20px;">S/ <?= $S($sel['total_haber']) ?></b></div>
+                <div><div class="gc-sub" style="font-size:15px;">Saldo</div><b class="num" style="font-size:20px;">S/ <?= $saldoDA($sel['saldo']) ?></b></div>
+            </div>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-            <?php foreach ($cuentas as $c): ?>
-            <a href="#cta-<?= $c['codigo'] ?>" style="font-family:monospace;font-size:12px;font-weight:700;background:var(--gc-surface-2);color:var(--gc-label);padding:3px 8px;border-radius:6px;text-decoration:none;">
-                <?= $c['codigo'] ?>
-            </a>
+        <div class="gc-table-wrap">
+        <table class="gc-table">
+            <thead><tr><th>Fecha</th><th>Glosa</th><th class="r">Debe</th><th class="r">Haber</th><th class="r">Saldo acumulado</th></tr></thead>
+            <tbody>
+            <?php $acum = 0.0;
+            if ($sel['saldo_apertura']):
+                $acum = $sel['saldo_apertura']['debe'] - $sel['saldo_apertura']['haber']; ?>
+                <tr style="color:var(--gc-label-2);font-style:italic;"><td></td><td>Saldo de apertura</td>
+                    <td class="r"><?= $sel['saldo_apertura']['debe'] != 0 ? $S($sel['saldo_apertura']['debe']) : '—' ?></td><td class="r"><?= $sel['saldo_apertura']['haber'] != 0 ? $S($sel['saldo_apertura']['haber']) : '—' ?></td><td class="r"><?= $saldoDA($acum) ?></td></tr>
+            <?php endif;
+            foreach ($sel['movimientos'] as $m): $acum += (float)$m['debe'] - (float)$m['haber']; ?>
+                <tr><td class="num" style="white-space:nowrap;"><?= date('d/m/Y', strtotime($m['fecha'])) ?></td><td><?= htmlspecialchars($m['glosa']) ?></td>
+                    <td class="r"><?= (float)$m['debe'] != 0 ? $S($m['debe']) : '<span style="color:var(--gc-muted);">—</span>' ?></td><td class="r"><?= (float)$m['haber'] != 0 ? $S($m['haber']) : '<span style="color:var(--gc-muted);">—</span>' ?></td>
+                    <td class="r" style="font-weight:600;"><?= $saldoDA($acum) ?></td></tr>
             <?php endforeach; ?>
-        </div>
-    </div>
-
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
-            <thead>
-                <tr style="background:var(--gc-bg);border-bottom:1px solid var(--gc-line);color:var(--gc-muted);">
-                    <th style="padding:8px 14px;text-align:left;width:96px;">Fecha</th>
-                    <th style="padding:8px 14px;text-align:left;">Glosa</th>
-                    <th style="padding:8px 14px;text-align:right;width:110px;">Debe</th>
-                    <th style="padding:8px 14px;text-align:right;width:110px;">Haber</th>
-                    <th style="padding:8px 14px;text-align:right;width:110px;">Saldo</th>
-                </tr>
-            </thead>
-            <?php foreach ($cuentas as $c):
-                $acum = $c['saldo_apertura'] ? $c['saldo_apertura']['debe'] - $c['saldo_apertura']['haber'] : 0;
-            ?>
-            <tbody id="cta-<?= $c['codigo'] ?>" style="border-top:1px solid var(--gc-line);scroll-margin-top:70px;">
-                <tr style="background:var(--gc-brand-soft);">
-                    <td colspan="5" style="padding:7px 14px;">
-                        <span style="font-family:monospace;font-weight:700;color:var(--gc-brand);"><?= $c['codigo'] ?></span>
-                        <span style="font-weight:600;color:var(--gc-ink);margin-left:6px;"><?= htmlspecialchars($c['nombre']) ?></span>
-                    </td>
-                </tr>
-                <?php if ($c['saldo_apertura']): ?>
-                <tr style="color:var(--gc-muted);font-style:italic;">
-                    <td></td>
-                    <td style="padding:5px 14px;">Saldo de apertura</td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;"><?= $fmt($c['saldo_apertura']['debe']) ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;"><?= $fmt($c['saldo_apertura']['haber']) ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;"><?= number_format($acum, 2) ?></td>
-                </tr>
-                <?php endif; ?>
-                <?php foreach ($c['movimientos'] as $m): $acum += $m['debe'] - $m['haber']; ?>
-                <tr>
-                    <td style="padding:5px 14px;white-space:nowrap;font-family:monospace;color:var(--gc-label);"><?= $fmtFecha($m['fecha']) ?></td>
-                    <td style="padding:5px 14px;"><?= htmlspecialchars($m['glosa']) ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;"><?= $fmt($m['debe']) ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;"><?= $fmt($m['haber']) ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;font-weight:600;"><?= number_format($acum, 2) ?></td>
-                </tr>
-                <?php endforeach; ?>
-                <tr style="font-weight:700;border-top:1px solid var(--gc-line);">
-                    <td></td>
-                    <td style="padding:6px 14px;color:var(--gc-label);">Totales · saldo <?= $c['saldo'] >= 0 ? 'deudor' : 'acreedor' ?></td>
-                    <td style="padding:6px 14px;text-align:right;font-family:monospace;"><?= $fmt($c['total_debe']) ?></td>
-                    <td style="padding:6px 14px;text-align:right;font-family:monospace;"><?= $fmt($c['total_haber']) ?></td>
-                    <td style="padding:6px 14px;text-align:right;font-family:monospace;"><?= number_format(abs($c['saldo']), 2) ?></td>
-                </tr>
             </tbody>
-            <?php endforeach; ?>
+            <tfoot><tr><td colspan="2">Saldo al <?= date('d/m/Y', strtotime(date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01')))) ?></td>
+                <td class="r"><?= $S($sel['total_debe']) ?></td><td class="r"><?= $S($sel['total_haber']) ?></td><td class="r"><?= $saldoDA($sel['saldo']) ?></td></tr></tfoot>
         </table>
-    </div>
-
-    <?php else: ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
-        <div style="font-size:40px;margin-bottom:16px;">📒</div>
-        <div style="font-size:16px;font-weight:600;color:var(--gc-label);margin-bottom:8px;">
-            Sin movimientos acumulados hasta este período
         </div>
-        <div style="font-size:13px;">
-            Genera los asientos del <a href="/empresas/<?= $empresa['id'] ?>/diario" style="color:var(--gc-brand);text-decoration:underline;">Libro Diario</a> primero.
-        </div>
-    </div>
-    <?php endif; ?>
+    </section>
 </div>
-</div>
+<script>
+(function () {
+    var q = document.getElementById('my-q'); if (!q) return;
+    var norm = function (s) { return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
+    q.addEventListener('input', function () {
+        var t = norm(q.value), n = 0;
+        document.querySelectorAll('#my-lista a').forEach(function (a) { var ok = !t || norm(a.dataset.q).indexOf(t) >= 0; a.style.display = ok ? 'block' : 'none'; if (ok) n++; });
+        document.getElementById('my-vacio').style.display = n ? 'none' : 'block';
+    });
+})();
+</script>
+<?php endif; ?>

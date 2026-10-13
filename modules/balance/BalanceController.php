@@ -13,7 +13,36 @@ class BalanceController
         [$empresa, $periodo, $balance] = $this->_datos($empresaId);
         if (!$empresa) { http_response_code(404); die('No encontrado'); }
 
-        $pageTitle = 'Balance de Comprobación — ' . $empresa['razon_social'];
+        // Verificaciones y detalle mensual por cuenta (el balance general se calcula solo para comprobar que cuadra)
+        $pdo = Model::db();
+        $anio = (int)substr($periodo, 0, 4);
+        $st = $pdo->prepare("SELECT id FROM periodos_contables WHERE empresa_id = ? AND anio = ?"); $st->execute([$empresaId, $anio]);
+        $pid = (int)$st->fetchColumn();
+        $verif = ['diario' => null, 'saldos' => null, 'balance_general' => null, 'nueve_79' => null, 'bg' => null];
+        $mensual = [];
+        if ($pid && !empty($balance['filas'])) {
+            require_once ROOT . '/services/BalanceGeneralService.php';
+            $t = $balance['totales'];
+            $verif['diario'] = abs($t['debe'] - $t['haber']) < 0.01;
+            $verif['saldos'] = abs($t['deudor'] - $t['acreedor']) < 0.01;
+            $nueve = 0.0; $s79 = 0.0;
+            foreach ($balance['filas'] as $f) { if ($f['codigo'][0] === '9') $nueve += $f['deudor'] - $f['acreedor']; if (str_starts_with($f['codigo'], '79')) $s79 += $f['acreedor'] - $f['deudor']; }
+            $verif['nueve_79'] = abs($nueve - $s79) < 0.01; $verif['nueve'] = round($nueve, 2); $verif['s79'] = round($s79, 2);
+            $pp = $pdo->prepare("SELECT * FROM parametros_contables WHERE empresa_id = ? AND periodo_id = ?"); $pp->execute([$empresaId, $pid]);
+            if ($par = $pp->fetch(PDO::FETCH_ASSOC)) {
+                $fecha = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
+                $verif['bg'] = BalanceGeneralService::generar($empresaId, $pid, $fecha, $par);
+                $verif['balance_general'] = abs($verif['bg']['descuadre']) < 0.01;
+            }
+            $stm = $pdo->prepare("
+                SELECT c.codigo, MONTH(a.fecha) AS m, SUM(d.debe) AS debe, SUM(d.haber) AS haber
+                FROM asientos_detalle d JOIN asientos a ON a.id = d.asiento_id JOIN cuentas_contables c ON c.id = d.cuenta_id
+                WHERE a.empresa_id = ? AND a.periodo_id = ? AND a.fecha <= ? GROUP BY c.codigo, m ORDER BY c.codigo, m");
+            $stm->execute([$empresaId, $pid, date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'))]);
+            foreach ($stm->fetchAll(PDO::FETCH_ASSOC) as $r) $mensual[$r['codigo']][] = [(int)$r['m'], round((float)$r['debe'], 2), round((float)$r['haber'], 2)];
+        }
+
+        $pageTitle = 'Balance de comprobación — ' . $empresa['razon_social'];
         ob_start();
         require_once ROOT . '/modules/balance/views/comprobacion.php';
         $content = ob_get_clean();

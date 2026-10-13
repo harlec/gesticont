@@ -565,6 +565,513 @@ a:hover{color:#163a5c}
         </sc-if>
       </sc-if>
 
+      <sc-if value="{{isCont}}" hint-placeholder-val="{{false}}">
+        <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:16px 20px;display:flex;flex-wrap:wrap;gap:16px 28px">
+          <sc-for list="{{subGroups}}" as="g" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:14px;font-weight:700;color:#5a5750;text-transform:uppercase;letter-spacing:0.04em">{{g.label}}</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+                  <button onClick="{{it.go}}" style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:10px;font-size:16px;cursor:pointer;background:{{it.bg}};color:{{it.fg}};font-weight:{{it.weight}};border:1px solid {{it.border}}">
+                    <span>{{it.label}}</span>
+                    <sc-if value="{{it.hasBadge}}" hint-placeholder-val="{{false}}"><span style="font-size:13px;font-weight:700;padding:2px 8px;border-radius:999px;background:#fbefd5;color:#7a4f00">{{it.badge}}</span></sc-if>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </section>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:4px;max-width:780px">
+            <h2 style="margin:0;font-size:24px;font-weight:700">{{subTitle}}</h2>
+            <span style="font-size:16px;color:#5a5750;text-wrap:pretty">{{subDesc}}</span>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <sc-for list="{{subActions}}" as="a" hint-placeholder-count="1">
+              <button onClick="{{a.act}}" style="min-height:46px;padding:0 18px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer" style-hover="border-color:#1f4e79">{{a.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <sc-for list="{{subAlerts}}" as="al" hint-placeholder-count="0">
+          <div style="border-radius:14px;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:{{al.bg}};border:1px solid {{al.border}}">
+            <span style="display:flex;flex-direction:column;gap:2px;flex:1 1 420px">
+              <span style="font-size:17px;font-weight:700;color:{{al.fg}}">{{al.title}}</span>
+              <span style="font-size:16px;color:{{al.fg}};text-wrap:pretty">{{al.text}}</span>
+            </span>
+            <sc-if value="{{al.hasAct}}" hint-placeholder-val="{{false}}">
+              <button onClick="{{al.act}}" style="min-height:46px;padding:0 18px;border:0;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;color:#ffffff;background:{{al.btnBg}}">{{al.actLabel}}</button>
+            </sc-if>
+          </div>
+        </sc-for>
+        <sc-if value="{{isBC}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+          <section style="flex:1.3 1 400px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px 28px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:16px;font-weight:600;color:#5a5750">{{res.label}}</span>
+            <span style="font-size:36px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;color:{{res.color}}">{{res.value}}</span>
+            <span style="font-size:17px;font-variant-numeric:tabular-nums">Ganancias {{res.gan}} − Pérdidas {{res.per}}</span>
+            <span style="font-size:15px;color:#5a5750">Antes de Impuesto a la Renta y Reserva Legal</span>
+          </section>
+          <section style="flex:1 1 260px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:16px;font-weight:600;color:#5a5750">Activo total</span>
+              <span style="font-size:24px;font-weight:700;font-variant-numeric:tabular-nums">{{res.act}}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding-top:14px;border-top:1px solid #efece5">
+              <span style="font-size:16px;font-weight:600;color:#5a5750">Pasivo, patrimonio y resultado</span>
+              <span style="font-size:24px;font-weight:700;font-variant-numeric:tabular-nums">{{res.pasU}}</span>
+            </div>
+          </section>
+          <section style="flex:1.3 1 380px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:16px;font-weight:600;color:#5a5750">Verificaciones</span>
+            <sc-for list="{{checks}}" as="k" hint-placeholder-count="4">
+              <div style="display:flex;align-items:flex-start;gap:12px">
+                <span style="flex-shrink:0;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;background:{{k.bg}};color:{{k.fg}}">{{k.icon}}</span>
+                <span style="display:flex;flex-direction:column;line-height:1.3">
+                  <span style="font-size:17px;font-weight:700;color:{{k.fg}}">{{k.title}}</span>
+                  <span style="font-size:15px;color:#5a5750;font-variant-numeric:tabular-nums">{{k.detail}}</span>
+                </span>
+              </div>
+            </sc-for>
+          </section>
+        </div>
+
+        <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+          <div style="padding:16px 24px;border-bottom:1px solid #e2ded5;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;border:1px solid #d6d1c6;border-radius:12px;overflow:hidden">
+              <sc-for list="{{contModes}}" as="k" hint-placeholder-count="2">
+                <button onClick="{{k.set}}" style="min-height:46px;padding:0 18px;border:0;font-size:16px;font-weight:700;cursor:pointer;background:{{k.bg}};color:{{k.fg}}">{{k.label}}</button>
+              </sc-for>
+            </div>
+            <input value="{{contQ}}" onChange="{{setContQ}}" placeholder="Buscar cuenta por número o nombre" style="flex:1 1 280px;height:48px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 16px;font-size:17px;color:#1c1b19;outline:none" style-focus="border-color:#1f4e79">
+            <button onClick="{{toggleAllGroups}}" style="min-height:46px;padding:0 16px;border:0;background:transparent;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer">{{toggleAllLabel}}</button>
+          </div>
+          <div style="overflow-x:auto">
+            <div style="min-width:{{tblMin}}">
+              <sc-if value="{{isFull}}" hint-placeholder-val="{{true}}">
+                <div style="display:grid;grid-template-columns:{{gridCols}};background:#f6f4ef;font-size:15px;font-weight:700;color:#3d3b36">
+                  <span style="padding:12px 16px"></span>
+                  <span style="grid-column:span 2;text-align:center;padding:12px 8px;border-left:1px solid #e2ded5">Sumas del Mayor</span>
+                  <span style="grid-column:span 2;text-align:center;padding:12px 8px;border-left:1px solid #e2ded5">Saldos</span>
+                  <span style="grid-column:span 2;text-align:center;padding:12px 8px;border-left:1px solid #e2ded5">Balance general</span>
+                  <span style="grid-column:span 2;text-align:center;padding:12px 8px;border-left:1px solid #e2ded5">Resultados</span>
+                </div>
+              </sc-if>
+              <div style="display:grid;grid-template-columns:{{gridCols}};background:#f6f4ef;border-top:1px solid #e2ded5;border-bottom:1px solid #e2ded5;font-size:15px;font-weight:600;color:#5a5750">
+                <span style="padding:10px 16px">Cuenta</span>
+                <sc-for list="{{headCells}}" as="h" hint-placeholder-count="8">
+                  <span style="padding:10px 14px;text-align:{{h.align}};border-left:1px solid {{h.bl}}">{{h.v}}</span>
+                </sc-for>
+              </div>
+              <sc-for list="{{groups}}" as="g" hint-placeholder-count="8">
+                <div onClick="{{g.toggle}}" style="display:grid;grid-template-columns:{{gridCols}};align-items:center;background:#faf9f6;border-top:1px solid #e2ded5;cursor:pointer" style-hover="background:#f0ede6">
+                  <span style="padding:14px 16px;display:flex;align-items:center;gap:10px;min-width:0">
+                    <span style="width:18px;font-size:15px;color:#1f4e79;flex-shrink:0">{{g.arrow}}</span>
+                    <span style="font-size:17px;font-weight:700;line-height:1.25">{{g.label}}</span>
+                    <span style="font-size:14px;color:#5a5750;white-space:nowrap">{{g.count}}</span>
+                  </span>
+                  <sc-for list="{{g.cells}}" as="c" hint-placeholder-count="8">
+                    <span style="padding:14px;text-align:{{c.align}};font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;border-left:1px solid {{c.bl}};color:{{c.fg}}">{{c.v}}</span>
+                  </sc-for>
+                </div>
+                <sc-if value="{{g.open}}" hint-placeholder-val="{{true}}">
+                  <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+                    <div onClick="{{r.open}}" style="display:grid;grid-template-columns:{{gridCols}};align-items:center;border-top:1px solid #efece5;cursor:pointer;background:#ffffff" style-hover="background:#f4f7fa">
+                      <span style="padding:12px 16px 12px 44px;display:flex;align-items:baseline;gap:12px;min-width:0">
+                        <span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;font-weight:500;min-width:42px;flex-shrink:0">{{r.code}}</span>
+                        <span style="font-size:16px;line-height:1.3">{{r.name}}</span>
+                      </span>
+                      <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="8">
+                        <span style="padding:12px 14px;text-align:{{c.align}};font-size:16px;font-variant-numeric:tabular-nums;border-left:1px solid {{c.bl}};color:{{c.fg}}">{{c.v}}</span>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </sc-if>
+              </sc-for>
+              <sc-if value="{{contNoMatch}}" hint-placeholder-val="{{false}}">
+                <div style="padding:28px 24px;font-size:17px;color:#5a5750;border-top:1px solid #efece5">No hay cuentas que coincidan con “{{contQ}}”.</div>
+              </sc-if>
+              <sc-for list="{{footRows}}" as="f" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:{{gridCols}};align-items:center;border-top:2px solid #e2ded5;background:#f6f4ef">
+                  <span style="padding:14px 16px;display:flex;flex-direction:column;line-height:1.25">
+                    <span style="font-size:17px;font-weight:700">{{f.label}}</span>
+                    <span style="font-size:14px;color:#5a5750">{{f.sub}}</span>
+                  </span>
+                  <sc-for list="{{f.cells}}" as="c" hint-placeholder-count="8">
+                    <span style="padding:14px;text-align:{{c.align}};font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;border-left:1px solid {{c.bl}};color:{{c.fg}}">{{c.v}}</span>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+        <span style="font-size:15px;color:#5a5750;text-wrap:pretty">Toca una cuenta para ver su movimiento mes a mes. Las celdas vacías no tienen importe.</span>
+        </sc-if>
+
+        <sc-if value="{{isDiario}}" hint-placeholder-val="{{false}}">
+          <sc-if value="{{dNoData}}" hint-placeholder-val="{{false}}">
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:32px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:22px;font-weight:700">Aún no hay asientos de {{periodLabel}}</span>
+                <span style="font-size:16px;color:#5a5750">Se generan cuando descargas de SUNAT los comprobantes del mes.</span>
+              </div>
+              <button onClick="{{dGoSync}}" style="min-height:52px;padding:0 24px;border:0;border-radius:12px;background:#1f4e79;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer">Ir a Sincronizar SIRE</button>
+            </section>
+          </sc-if>
+          <sc-if value="{{dHas}}" hint-placeholder-val="{{true}}">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{dFilters}}" as="f" hint-placeholder-count="3">
+                <button onClick="{{f.set}}" style="min-height:44px;padding:0 16px;border-radius:999px;font-size:16px;font-weight:600;cursor:pointer;background:{{f.bg}};color:{{f.fg}};border:1px solid {{f.border}}">{{f.label}}</button>
+              </sc-for>
+            </div>
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+              <div style="overflow-x:auto">
+                <div style="min-width:820px">
+                  <div style="display:grid;grid-template-columns:80px 120px minmax(0,1fr) 150px 150px;gap:16px;padding:12px 24px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+                    <span>N°</span><span>Fecha</span><span>Glosa y cuentas</span><span style="text-align:right">Debe</span><span style="text-align:right">Haber</span>
+                  </div>
+                  <sc-for list="{{dEntries}}" as="e" hint-placeholder-count="5">
+                    <div style="display:grid;grid-template-columns:80px 120px minmax(0,1fr) 150px 150px;gap:16px;padding:14px 24px;background:#faf9f6;border-top:1px solid #e2ded5;align-items:center">
+                      <span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;font-weight:500">{{e.n}}</span>
+                      <span style="font-size:15px">{{e.date}}</span>
+                      <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:17px;font-weight:700">{{e.glosa}}</span><span style="font-size:13px;font-weight:700;padding:2px 9px;border-radius:999px;background:{{e.chipBg}};color:{{e.chipFg}}">{{e.chip}}</span></span>
+                      <span></span><span></span>
+                    </div>
+                    <sc-for list="{{e.lines}}" as="l" hint-placeholder-count="3">
+                      <div style="display:grid;grid-template-columns:80px 120px minmax(0,1fr) 150px 150px;gap:16px;padding:10px 24px;border-top:1px solid #efece5;align-items:baseline;font-size:16px">
+                        <span></span><span></span>
+                        <span style="padding-left:{{l.pad}};display:flex;gap:10px;min-width:0"><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;font-weight:500;flex-shrink:0">{{l.code}}</span><span>{{l.name}}</span></span>
+                        <span style="text-align:right;font-variant-numeric:tabular-nums">{{l.d}}</span>
+                        <span style="text-align:right;font-variant-numeric:tabular-nums">{{l.h}}</span>
+                      </div>
+                    </sc-for>
+                  </sc-for>
+                  <div style="display:grid;grid-template-columns:80px 120px minmax(0,1fr) 150px 150px;gap:16px;padding:16px 24px;border-top:2px solid #d6d1c6;background:#f6f4ef;align-items:center">
+                    <span></span><span></span>
+                    <span style="font-size:17px;font-weight:700">Total del mes</span>
+                    <span style="text-align:right;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">{{dTotD}}</span>
+                    <span style="text-align:right;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">{{dTotH}}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{isMayor}}" hint-placeholder-val="{{false}}">
+          <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+            <section style="flex:1 1 300px;max-width:400px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+              <div style="padding:16px;border-bottom:1px solid #e2ded5;display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:16px;font-weight:600;color:#5a5750">{{mCount}}</span>
+                <input value="{{mQ}}" onChange="{{setMQ}}" placeholder="Buscar por número o nombre" style="height:50px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 14px;font-size:17px;color:#1c1b19;outline:none;width:100%" style-focus="border-color:#1f4e79">
+              </div>
+              <div style="max-height:640px;overflow-y:auto">
+                <sc-for list="{{mAccts}}" as="a" hint-placeholder-count="10">
+                  <button onClick="{{a.pick}}" style="width:100%;display:flex;flex-direction:column;gap:2px;padding:12px 16px;border:0;border-top:1px solid #efece5;border-left:4px solid {{a.mark}};text-align:left;cursor:pointer;background:{{a.bg}};color:#1c1b19" style-hover="background:#f4f7fa">
+                    <span style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;font-weight:500;min-width:42px;flex-shrink:0">{{a.code}}</span><span style="font-size:16px;line-height:1.3;font-weight:{{a.weight}}">{{a.name}}</span></span>
+                    <span style="font-size:15px;color:#5a5750;padding-left:52px;font-variant-numeric:tabular-nums">{{a.saldo}}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </section>
+            <section style="flex:3 1 560px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+              <div style="padding:20px 24px;border-bottom:1px solid #e2ded5;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:16px;color:#5a5750">Cuenta {{mAcc.code}}</span>
+                  <span style="font-size:22px;font-weight:700;line-height:1.25">{{mAcc.name}}</span>
+                  <span style="align-self:flex-start;font-size:14px;font-weight:700;padding:4px 10px;border-radius:999px;background:#e6eef6;color:#1f4e79">{{mAcc.goes}}</span>
+                </div>
+                <div style="display:flex;gap:24px;flex-wrap:wrap">
+                  <sc-for list="{{mAcc.figs}}" as="x" hint-placeholder-count="3">
+                    <div style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-size:15px;color:#5a5750">{{x.label}}</span><span style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums">{{x.value}}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="overflow-x:auto">
+                <div style="min-width:760px">
+                  <div style="display:grid;grid-template-columns:120px minmax(0,1fr) 140px 140px 170px;gap:16px;padding:12px 24px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+                    <span>Fecha</span><span>Glosa</span><span style="text-align:right">Debe</span><span style="text-align:right">Haber</span><span style="text-align:right">Saldo</span>
+                  </div>
+                  <sc-for list="{{mRows}}" as="r" hint-placeholder-count="10">
+                    <div style="display:grid;grid-template-columns:120px minmax(0,1fr) 140px 140px 170px;gap:16px;padding:12px 24px;border-top:1px solid #efece5;font-size:16px;align-items:baseline">
+                      <span>{{r.date}}</span><span>{{r.glosa}}</span>
+                      <span style="text-align:right;font-variant-numeric:tabular-nums">{{r.d}}</span>
+                      <span style="text-align:right;font-variant-numeric:tabular-nums">{{r.h}}</span>
+                      <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700">{{r.s}}</span>
+                    </div>
+                  </sc-for>
+                  <div style="display:flex;justify-content:space-between;gap:16px;padding:16px 24px;border-top:2px solid #d6d1c6;background:#f6f4ef">
+                    <span style="font-size:17px;font-weight:700">Saldo al {{mEnd}}</span>
+                    <span style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">{{mAcc.final}}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{isManual}}" hint-placeholder-val="{{false}}">
+          <sc-if value="{{yearClosed}}" hint-placeholder-val="{{false}}">
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px 28px;display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:20px;font-weight:700">El año 2026 está cerrado</span>
+              <span style="font-size:16px;color:#5a5750">No se pueden registrar ni quitar asientos. Para corregir algo, reabre el año desde Cierre del año.</span>
+            </section>
+          </sc-if>
+          <sc-if value="{{yearOpen}}" hint-placeholder-val="{{true}}">
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px 28px;display:flex;flex-direction:column;gap:14px">
+              <span style="font-size:18px;font-weight:700">1. Elige una plantilla</span>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">
+                <sc-for list="{{tpls}}" as="t" hint-placeholder-count="7">
+                  <button onClick="{{t.go}}" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;min-height:64px;padding:12px 14px;border-radius:12px;cursor:pointer;color:#1c1b19;background:{{t.bg}};border:{{t.bw}} solid {{t.border}}" style-hover="border-color:#1f4e79">
+                    <span style="font-size:16px;font-weight:700">{{t.label}}</span>
+                    <span style="font-size:14px;color:#5a5750">{{t.sub}}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </section>
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+              <div style="padding:22px 28px 18px;display:flex;flex-direction:column;gap:16px;border-bottom:1px solid #e2ded5">
+                <span style="font-size:18px;font-weight:700">2. Completa el asiento</span>
+                <div style="display:flex;gap:16px;flex-wrap:wrap">
+                  <label style="display:flex;flex-direction:column;gap:6px;flex:0 0 200px">
+                    <span style="font-size:16px;font-weight:600">Fecha</span>
+                    <input value="{{dfDate}}" onChange="{{setDfDate}}" placeholder="dd/mm/aaaa" style="height:50px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 14px;font-size:17px;color:#1c1b19;outline:none;width:100%" style-focus="border-color:#1f4e79">
+                  </label>
+                  <label style="display:flex;flex-direction:column;gap:6px;flex:1 1 360px">
+                    <span style="font-size:16px;font-weight:600">Glosa (descripción)</span>
+                    <input value="{{dfGlosa}}" onChange="{{setDfGlosa}}" placeholder="Por ejemplo: Provisión de CTS setiembre 2026" style="height:50px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 14px;font-size:17px;color:#1c1b19;outline:none;width:100%" style-focus="border-color:#1f4e79">
+                  </label>
+                </div>
+                <sc-if value="{{dfAsk}}" hint-placeholder-val="{{false}}">
+                  <div style="background:#f6f4ef;border-radius:12px;padding:16px 18px;display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+                    <label style="display:flex;flex-direction:column;gap:6px;flex:0 1 300px">
+                      <span style="font-size:16px;font-weight:600">Inventario final de mercaderías (S/)</span>
+                      <input value="{{dfInv}}" onChange="{{setDfInv}}" inputmode="decimal" placeholder="Según tu conteo físico" style="height:50px;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 14px;font-size:17px;color:#1c1b19;outline:none;width:100%" style-focus="border-color:#1f4e79">
+                    </label>
+                    <span style="font-size:15px;color:#3d3b36;flex:1 1 280px;text-wrap:pretty">Mercaderías en libros: <strong>{{dfS201}}</strong>. El costo de ventas es lo que hay en libros menos lo que contaste.</span>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="overflow-x:auto">
+                <div style="min-width:720px;padding:8px 28px 0">
+                  <div style="display:grid;grid-template-columns:minmax(0,1fr) 170px 170px 90px;gap:12px;padding:8px 0;font-size:15px;font-weight:600;color:#5a5750">
+                    <span>Cuenta</span><span style="text-align:right">Debe</span><span style="text-align:right">Haber</span><span></span>
+                  </div>
+                  <sc-for list="{{dfLines}}" as="l" hint-placeholder-count="2">
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) 170px 170px 90px;gap:12px;padding:8px 0;border-top:1px solid #efece5;align-items:center">
+                      <select value="{{l.code}}" onChange="{{l.setCode}}" style="height:48px;min-width:0;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 12px;font-size:16px;background:#ffffff;color:#1c1b19">
+                        <option value="">Elige una cuenta</option>
+                        <sc-for list="{{catOpts}}" as="a" hint-placeholder-count="0"><option value="{{a.code}}">{{a.label}}</option></sc-for>
+                      </select>
+                      <input value="{{l.d}}" onChange="{{l.setD}}" inputmode="decimal" placeholder="0.00" style="height:48px;width:100%;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 12px;font-size:17px;text-align:right;color:#1c1b19;outline:none;font-variant-numeric:tabular-nums" style-focus="border-color:#1f4e79">
+                      <input value="{{l.h}}" onChange="{{l.setH}}" inputmode="decimal" placeholder="0.00" style="height:48px;width:100%;border:1.5px solid #d6d1c6;border-radius:10px;padding:0 12px;font-size:17px;text-align:right;color:#1c1b19;outline:none;font-variant-numeric:tabular-nums" style-focus="border-color:#1f4e79">
+                      <button onClick="{{l.remove}}" style="min-height:44px;border:0;background:transparent;color:#a3261d;font-size:16px;font-weight:600;cursor:pointer">Quitar</button>
+                    </div>
+                  </sc-for>
+                  <div style="display:grid;grid-template-columns:minmax(0,1fr) 170px 170px 90px;gap:12px;padding:12px 0 16px;border-top:2px solid #d6d1c6;align-items:center">
+                    <button onClick="{{addDfLine}}" style="justify-self:start;min-height:46px;padding:0 18px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer">+ Agregar línea</button>
+                    <span style="text-align:right;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;padding-right:12px">{{dfTD}}</span>
+                    <span style="text-align:right;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;padding-right:12px">{{dfTH}}</span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:16px 28px;border-top:1px solid #e2ded5;background:#f6f4ef;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+                <div style="display:flex;flex-direction:column;gap:4px;flex:1 1 320px">
+                  <span style="font-size:17px;font-weight:700;color:{{dfStatusFg}}">{{dfStatus}}</span>
+                  <sc-if value="{{dfHasErr}}" hint-placeholder-val="{{false}}"><span style="font-size:16px;font-weight:600;color:#a3261d">{{dfErr}}</span></sc-if>
+                </div>
+                <button onClick="{{registerDf}}" style="min-height:52px;padding:0 26px;border:0;border-radius:12px;background:#1f4e79;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer;opacity:{{dfOp}}">Registrar asiento</button>
+              </div>
+            </section>
+          </sc-if>
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+            <div style="padding:18px 24px"><h2 style="margin:0;font-size:20px;font-weight:700">Asientos manuales de 2026 ({{manCount}})</h2></div>
+            <sc-if value="{{manNone}}" hint-placeholder-val="{{true}}"><div style="padding:24px;border-top:1px solid #efece5;font-size:16px;color:#5a5750">Aún no hay asientos manuales en 2026.</div></sc-if>
+            <sc-for list="{{manList}}" as="e" hint-placeholder-count="0">
+              <div style="border-top:1px solid #e2ded5">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 24px;background:#faf9f6;flex-wrap:wrap">
+                  <span style="display:flex;gap:14px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;font-weight:500">{{e.n}}</span><span style="font-size:15px">{{e.date}}</span><span style="font-size:17px;font-weight:700">{{e.glosa}}</span></span>
+                  <span style="display:flex;gap:16px;align-items:center"><span style="font-size:16px;font-variant-numeric:tabular-nums">{{e.total}}</span><sc-if value="{{e.canRemove}}" hint-placeholder-val="{{true}}"><button onClick="{{e.remove}}" style="min-height:44px;border:0;background:transparent;color:#a3261d;font-size:16px;font-weight:600;cursor:pointer">Quitar</button></sc-if></span>
+                </div>
+                <sc-for list="{{e.lines}}" as="l" hint-placeholder-count="2">
+                  <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 150px;gap:16px;padding:10px 24px;border-top:1px solid #efece5;font-size:16px">
+                    <span style="display:flex;gap:10px"><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;font-weight:500">{{l.code}}</span><span>{{l.name}}</span></span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums">{{l.d}}</span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums">{{l.h}}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isBG}}" hint-placeholder-val="{{false}}">
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:22px 28px;display:flex;align-items:center;gap:16px 28px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600;color:#5a5750">Activo</span><span style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">{{bgEq.a}}</span></div>
+            <span style="font-size:26px;color:#5a5750">=</span>
+            <div style="display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600;color:#5a5750">Pasivo</span><span style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">{{bgEq.p}}</span></div>
+            <span style="font-size:26px;color:#5a5750">+</span>
+            <div style="display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600;color:#5a5750">Patrimonio</span><span style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums">{{bgEq.pt}}</span></div>
+            <span style="margin-left:auto;font-size:15px;font-weight:700;padding:6px 14px;border-radius:999px;background:{{bgEq.bg}};color:{{bgEq.fg}}">{{bgEq.txt}}</span>
+          </section>
+          <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+            <section style="flex:1 1 440px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+              <div style="padding:18px 24px"><h2 style="margin:0;font-size:20px;font-weight:700">Activo</h2></div>
+              <sc-for list="{{bgA}}" as="l" hint-placeholder-count="8">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:{{l.pad}};border-top:1px solid {{l.line}};background:{{l.bg}}">
+                <span style="display:flex;flex-direction:column;min-width:0">
+                  <span style="font-size:{{l.size}};font-weight:{{l.weight}};color:{{l.fg}}">{{l.label}}</span>
+                  <sc-if value="{{l.hasSub}}" hint-placeholder-val="{{false}}"><span style="font-size:14px;color:#5a5750">{{l.sub}}</span></sc-if>
+                </span>
+                <span style="font-size:{{l.size}};font-weight:{{l.weight}};font-variant-numeric:tabular-nums;white-space:nowrap;color:{{l.vfg}}">{{l.value}}</span>
+              </div>
+              </sc-for>
+            </section>
+            <section style="flex:1 1 440px;min-width:0;background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+              <div style="padding:18px 24px"><h2 style="margin:0;font-size:20px;font-weight:700">Pasivo y patrimonio</h2></div>
+              <sc-for list="{{bgP}}" as="l" hint-placeholder-count="8">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:{{l.pad}};border-top:1px solid {{l.line}};background:{{l.bg}}">
+                <span style="display:flex;flex-direction:column;min-width:0">
+                  <span style="font-size:{{l.size}};font-weight:{{l.weight}};color:{{l.fg}}">{{l.label}}</span>
+                  <sc-if value="{{l.hasSub}}" hint-placeholder-val="{{false}}"><span style="font-size:14px;color:#5a5750">{{l.sub}}</span></sc-if>
+                </span>
+                <span style="font-size:{{l.size}};font-weight:{{l.weight}};font-variant-numeric:tabular-nums;white-space:nowrap;color:{{l.vfg}}">{{l.value}}</span>
+              </div>
+              </sc-for>
+            </section>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{isER}}" hint-placeholder-val="{{false}}">
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden;max-width:920px">
+            <sc-for list="{{erLines}}" as="l" hint-placeholder-count="12">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:{{l.pad}};border-top:1px solid {{l.line}};background:{{l.bg}}">
+                <span style="display:flex;flex-direction:column;min-width:0">
+                  <span style="font-size:{{l.size}};font-weight:{{l.weight}};color:{{l.fg}}">{{l.label}}</span>
+                  <sc-if value="{{l.hasSub}}" hint-placeholder-val="{{false}}"><span style="font-size:14px;color:#5a5750">{{l.sub}}</span></sc-if>
+                </span>
+                <span style="font-size:{{l.size}};font-weight:{{l.weight}};font-variant-numeric:tabular-nums;white-space:nowrap;color:{{l.vfg}}">{{l.value}}</span>
+              </div>
+            </sc-for>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isPat}}" hint-placeholder-val="{{false}}">
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+            <div style="overflow-x:auto">
+              <div style="min-width:860px">
+                <div style="display:grid;grid-template-columns:minmax(240px,1.6fr) repeat(4,minmax(150px,1fr));gap:16px;padding:12px 24px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+                  <span>Concepto</span><span style="text-align:right">Capital</span><span style="text-align:right">Resultados acumulados</span><span style="text-align:right">Resultado del ejercicio</span><span style="text-align:right">Total patrimonio</span>
+                </div>
+                <sc-for list="{{patRows}}" as="r" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:minmax(240px,1.6fr) repeat(4,minmax(150px,1fr));gap:16px;padding:14px 24px;border-top:1px solid {{r.line}};align-items:center;background:{{r.bg}}">
+                    <span style="display:flex;flex-direction:column"><span style="font-size:17px;font-weight:{{r.weight}}">{{r.label}}</span><span style="font-size:14px;color:#5a5750">{{r.sub}}</span></span>
+                    <sc-for list="{{r.cells}}" as="x" hint-placeholder-count="4">
+                      <span style="text-align:right;font-size:17px;font-variant-numeric:tabular-nums;font-weight:{{r.weight}};color:{{x.fg}}">{{x.v}}</span>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isFE}}" hint-placeholder-val="{{false}}">
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:18px 20px;display:flex;flex-wrap:wrap;gap:10px">
+            <sc-for list="{{feEq}}" as="x" hint-placeholder-count="5">
+              <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-radius:12px;background:{{x.bg}}">
+                <span style="font-size:15px;font-weight:600;color:{{x.lfg}}">{{x.label}}</span>
+                <span style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;color:{{x.fg}}">{{x.value}}</span>
+              </div>
+            </sc-for>
+          </section>
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden;max-width:920px">
+            <sc-for list="{{feLines}}" as="l" hint-placeholder-count="12">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:{{l.pad}};border-top:1px solid {{l.line}};background:{{l.bg}}">
+                <span style="display:flex;flex-direction:column;min-width:0">
+                  <span style="font-size:{{l.size}};font-weight:{{l.weight}};color:{{l.fg}}">{{l.label}}</span>
+                  <sc-if value="{{l.hasSub}}" hint-placeholder-val="{{false}}"><span style="font-size:14px;color:#5a5750">{{l.sub}}</span></sc-if>
+                </span>
+                <span style="font-size:{{l.size}};font-weight:{{l.weight}};font-variant-numeric:tabular-nums;white-space:nowrap;color:{{l.vfg}}">{{l.value}}</span>
+              </div>
+            </sc-for>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isCx}}" hint-placeholder-val="{{false}}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+            <sc-for list="{{cxCards}}" as="cd" hint-placeholder-count="5">
+              <button onClick="{{cd.set}}" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:left;padding:16px 18px;border-radius:14px;cursor:pointer;color:#1c1b19;background:{{cd.bg}};border:{{cd.bw}} solid {{cd.border}}" style-hover="border-color:#1f4e79">
+                <span style="font-size:15px;font-weight:600;color:#5a5750">{{cd.label}}</span>
+                <span style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:{{cd.color}}">{{cd.value}}</span>
+                <span style="font-size:14px;color:#5a5750">{{cd.note}}</span>
+              </button>
+            </sc-for>
+          </div>
+          <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+            <div style="overflow-x:auto">
+              <div style="min-width:900px">
+                <div style="display:grid;grid-template-columns:minmax(0,1.8fr) 130px 80px 150px 110px 180px;gap:16px;padding:12px 24px 12px 40px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+                  <span>Comprobante</span><span>Fecha</span><span style="text-align:right">Días</span><span style="text-align:right">Total</span><span style="text-align:right">{{cxPaidH}}</span><span style="text-align:right">Saldo</span>
+                </div>
+                <sc-for list="{{cxGroups}}" as="gr" hint-placeholder-count="4">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 24px;background:#faf9f6;border-top:1px solid #e2ded5">
+                    <span style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;min-width:0"><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px;font-weight:500">{{gr.ruc}}</span><span style="font-size:17px;font-weight:700">{{gr.name}}</span></span>
+                    <span style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:{{gr.tcolor}}">{{gr.total}}</span>
+                  </div>
+                  <sc-for list="{{gr.docs}}" as="x" hint-placeholder-count="1">
+                    <div style="display:grid;grid-template-columns:minmax(0,1.8fr) 130px 80px 150px 110px 180px;gap:16px;padding:12px 24px 12px 40px;border-top:1px solid #efece5;font-size:16px;align-items:baseline">
+                      <span style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><span style="font-weight:600">{{x.tipo}}</span><span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:15px">{{x.serie}}</span></span>
+                      <span>{{x.date}}</span>
+                      <span style="text-align:right;color:{{x.dcolor}};font-weight:{{x.dweight}}">{{x.days}}</span>
+                      <span style="text-align:right;font-variant-numeric:tabular-nums">{{x.total}}</span>
+                      <span style="text-align:right;color:#5a5750">{{x.paid}}</span>
+                      <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:{{x.scolor}}">{{x.saldo}}</span>
+                    </div>
+                  </sc-for>
+                </sc-for>
+                <sc-if value="{{cxNone}}" hint-placeholder-val="{{false}}"><div style="padding:24px;border-top:1px solid #efece5;font-size:16px;color:#5a5750">No hay comprobantes con saldo en este tramo.</div></sc-if>
+                <div style="display:flex;justify-content:space-between;gap:16px;padding:16px 24px;border-top:2px solid #d6d1c6;background:#f6f4ef">
+                  <span style="font-size:17px;font-weight:700">Total de comprobantes con saldo</span>
+                  <span style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">{{cxTotal}}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+          <span style="font-size:15px;color:#5a5750;text-wrap:pretty">{{cxHint}}</span>
+        </sc-if>
+
+        <sc-if value="{{isCierre}}" hint-placeholder-val="{{false}}">
+          <sc-if value="{{yearOpen}}" hint-placeholder-val="{{true}}">
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;overflow:hidden">
+              <sc-for list="{{ciItems}}" as="it" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:16px;padding:18px 24px;border-top:1px solid #efece5;flex-wrap:wrap">
+                  <span style="flex-shrink:0;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;background:{{it.ibg}};color:{{it.ifg}}">{{it.icon}}</span>
+                  <span style="flex:1 1 320px;display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:700">{{it.title}}</span><span style="font-size:16px;color:#5a5750;text-wrap:pretty">{{it.detail}}</span></span>
+                  <sc-if value="{{it.hasAct}}" hint-placeholder-val="{{false}}"><button onClick="{{it.act}}" style="min-height:46px;padding:0 18px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer" style-hover="border-color:#1f4e79">{{it.actLabel}}</button></sc-if>
+                </div>
+              </sc-for>
+            </section>
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:24px 28px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:4px;flex:1 1 420px">
+                <span style="font-size:18px;font-weight:700">Cerrar el año 2026</span>
+                <span style="font-size:16px;color:#5a5750;text-wrap:pretty">Se registra el resultado del ejercicio, se crea el asiento de apertura de 2027 y los asientos de 2026 quedan bloqueados.</span>
+              </div>
+              <button onClick="{{openClose}}" style="min-height:54px;padding:0 26px;border:0;border-radius:12px;font-size:17px;font-weight:700;cursor:{{ciCursor}};background:{{ciBg}};color:{{ciFg}}">{{ciLabel}}</button>
+            </section>
+          </sc-if>
+          <sc-if value="{{yearClosed}}" hint-placeholder-val="{{false}}">
+            <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:28px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:22px;font-weight:700;color:#1e6b3a">El año 2026 está cerrado</span>
+                <span style="font-size:16px;color:#5a5750">{{closedTxt}}</span>
+              </div>
+              <button onClick="{{reopenYear}}" style="min-height:46px;padding:0 18px;border:1.5px solid #b9c8d8;border-radius:10px;background:#ffffff;color:#1f4e79;font-size:16px;font-weight:700;cursor:pointer">Reabrir el año</button>
+            </section>
+          </sc-if>
+        </sc-if>
+      </sc-if>
+
       <sc-if value="{{isOther}}" hint-placeholder-val="{{false}}">
         <section style="background:#ffffff;border:1px solid #e2ded5;border-radius:16px;padding:40px;display:flex;flex-direction:column;gap:14px;align-items:flex-start">
           <span style="font-size:20px;font-weight:700">Esta sección no está incluida en el prototipo</span>
@@ -657,6 +1164,67 @@ a:hover{color:#163a5c}
     </div>
   </sc-if>
 
+  <sc-if value="{{accOpen}}" hint-placeholder-val="{{false}}">
+    <div onClick="{{closeAcc}}" style="position:fixed;inset:0;z-index:55;background:rgba(28,27,25,0.38);display:flex;justify-content:flex-end">
+      <div onClick="{{stop}}" style="width:100%;max-width:540px;height:100%;background:#ffffff;box-shadow:0 24px 60px rgba(28,27,25,0.25);display:flex;flex-direction:column">
+        <div style="padding:22px 26px;border-bottom:1px solid #e2ded5;display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <span style="font-family:'Atkinson Hyperlegible Mono',monospace;font-size:16px;color:#5a5750">Cuenta {{acc.code}}</span>
+            <span style="font-size:22px;font-weight:700;line-height:1.25">{{acc.name}}</span>
+            <span style="align-self:flex-start;font-size:14px;font-weight:700;padding:4px 10px;border-radius:999px;background:#e6eef6;color:#1f4e79">{{acc.goes}}</span>
+          </div>
+          <button onClick="{{closeAcc}}" style="min-height:44px;padding:0 14px;border:1px solid #d6d1c6;border-radius:10px;background:#ffffff;font-size:15px;cursor:pointer;color:#1c1b19;flex-shrink:0">Cerrar</button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:20px">
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <sc-for list="{{acc.figs}}" as="x" hint-placeholder-count="3">
+              <div style="background:#f6f4ef;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:15px;font-weight:600;color:#5a5750">{{x.label}}</span>
+                <span style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">{{x.value}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <span style="font-size:16px;text-wrap:pretty">{{acc.explain}}</span>
+          <div style="border:1px solid #e2ded5;border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.2fr) minmax(0,1.3fr);gap:12px;padding:10px 16px;background:#f6f4ef;font-size:15px;font-weight:600;color:#5a5750">
+              <span>Mes</span><span style="text-align:right">Debe</span><span style="text-align:right">Haber</span><span style="text-align:right">Saldo</span>
+            </div>
+            <sc-for list="{{acc.months}}" as="mm" hint-placeholder-count="9">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.2fr) minmax(0,1.3fr);gap:12px;padding:11px 16px;border-top:1px solid #efece5;font-size:16px;font-variant-numeric:tabular-nums">
+                <span>{{mm.m}}</span><span style="text-align:right">{{mm.d}}</span><span style="text-align:right">{{mm.h}}</span><span style="text-align:right;font-weight:700">{{mm.s}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="padding:16px 26px;border-top:1px solid #e2ded5;display:flex;justify-content:flex-end;gap:12px;background:#f6f4ef">
+          <button onClick="{{openMayor}}" style="min-height:50px;padding:0 22px;border:0;border-radius:12px;background:#1f4e79;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer">Ver asientos en el Libro Mayor</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{closeOpen}}" hint-placeholder-val="{{false}}">
+    <div onClick="{{cancelClose}}" style="position:fixed;inset:0;z-index:55;background:rgba(28,27,25,0.38);display:flex;justify-content:center;align-items:flex-start;padding:100px 16px 16px">
+      <div onClick="{{stop}}" style="width:100%;max-width:560px;background:#ffffff;border-radius:18px;box-shadow:0 24px 60px rgba(28,27,25,0.25);overflow:hidden;display:flex;flex-direction:column">
+        <div style="padding:22px 26px;border-bottom:1px solid #e2ded5"><span style="font-size:22px;font-weight:700">¿Cerrar el año 2026?</span></div>
+        <div style="padding:20px 26px;display:flex;flex-direction:column;gap:12px;font-size:17px">
+          <span>Al cerrar:</span>
+          <span style="display:flex;gap:10px"><span>–</span><span>Se registra el resultado del ejercicio en la cuenta 591 o 592.</span></span>
+          <span style="display:flex;gap:10px"><span>–</span><span>Se crea el asiento de apertura de 2027 con los saldos finales.</span></span>
+          <span style="display:flex;gap:10px"><span>–</span><span>Los asientos de 2026 ya no se pueden modificar ni quitar.</span></span>
+          <label style="display:flex;align-items:flex-start;gap:12px;margin-top:8px;padding:14px 16px;background:#fdf6e7;border:1px solid #e8c98a;border-radius:12px;cursor:pointer">
+            <input type="checkbox" checked="{{closeAck}}" onChange="{{toggleCloseAck}}" style="width:22px;height:22px;margin-top:2px;accent-color:#a3261d;cursor:pointer;flex-shrink:0">
+            <span style="font-size:16px;color:#5c3b00">Entiendo que después no podré modificar los asientos de 2026.</span>
+          </label>
+        </div>
+        <div style="padding:16px 26px;border-top:1px solid #e2ded5;display:flex;justify-content:flex-end;gap:12px;background:#f6f4ef">
+          <button onClick="{{cancelClose}}" style="min-height:50px;padding:0 20px;border:1px solid #d6d1c6;border-radius:12px;background:#ffffff;color:#1c1b19;font-size:16px;font-weight:600;cursor:pointer">Cancelar</button>
+          <button onClick="{{confirmClose}}" style="min-height:50px;padding:0 24px;border:0;border-radius:12px;background:#a3261d;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer;opacity:{{ciConfirmOp}}">Sí, cerrar 2026</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{hasToast}}" hint-placeholder-val="{{false}}">
     <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;background:#1c1b19;color:#ffffff;padding:14px 22px;border-radius:12px;font-size:16px;box-shadow:0 10px 30px rgba(0,0,0,0.25)">{{toast}}</div>
   </sc-if>
@@ -740,6 +1308,29 @@ function genRows(c, m, kind, total) {
 const chip = (sel) => sel ? {bg:'#1f4e79', fg:'#ffffff', border:'#1f4e79'} : {bg:'#ffffff', fg:'#1c1b19', border:'#d6d1c6'};
 const seg = (sel) => sel ? {bg:'#1f4e79', fg:'#ffffff'} : {bg:'#ffffff', fg:'#1c1b19'};
 
+const BAL = [['101','Caja',1244549.50,422894.35],['121','Facturas, boletas y otros comprobantes por cobrar',815459.50,629764.50],['201','Mercaderías manufacturadas',429208.96,0],['241','Materias primas',34320.86,0],['333','Maquinaria y equipo de explotación',180173,0],['371','Activos diferidos',41935,0],['395','Depreciación acumulada de propiedad, planta y equipo',0,209483],['4011','Impuesto General a las Ventas (IGV)',64268.87,91988.74],['4018','Otros impuestos y contraprestaciones',0,11864],['4031','ESSALUD',0,1350],['4032','ONP',0,1560],['411','Remuneraciones por pagar',0,18078.90],['417','Administradoras de fondos de pensiones',0,341.10],['421','Facturas, boletas y otros comprobantes por pagar',422894.35,434901.69],['469','Otras cuentas por pagar diversas',0,67000],['501','Capital social',0,554654],['591','Utilidades no distribuidas',0,298541],['5911','Utilidad del ejercicio',0,7850],['601','Compras de mercaderías',323708.96,0],['602','Compras de materias primas',34320.86,0],['611','Variación de mercaderías',0,323708.96],['612','Variación de materias primas',0,34320.86],['621','Remuneraciones',19980,0],['627','Seguridad, previsión social y otras contribuciones',1350,0],['701','Ventas de mercaderías',0,252453.39],['702','Ventas de productos terminados',0,251415.37],['791','Cargas imputables a cuentas de costos y gastos',0,21330],['94','Gastos de administración',6399,0],['95','Gastos de venta',14931,0]];
+const ELEM = {1:'Activo disponible y exigible',2:'Existencias',3:'Activo inmovilizado',4:'Pasivo',5:'Patrimonio',6:'Gastos por naturaleza',7:'Ingresos',8:'Saldos intermediarios',9:'Costos y gastos por función'};
+const r2 = x => Math.round(x * 100) / 100;
+const nf = v => Math.abs(v) < 0.005 ? '' : v.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+const CAT = Object.assign(Object.fromEntries(BAL.map(b => [b[0], b[1]])), {'629':'Beneficios sociales de los trabajadores','415':'Beneficios sociales de los trabajadores por pagar','6214':'Gratificaciones','4114':'Gratificaciones por pagar','6215':'Vacaciones','4115':'Vacaciones por pagar','681':'Depreciación','691':'Costo de ventas – Mercaderías','881':'Impuesto a la renta','4017':'Impuesto a la renta por pagar','97':'Gastos financieros','77':'Ingresos financieros','92':'Costos de producción','1041':'Cuentas corrientes operativas'});
+const CAT_OPTS = Object.keys(CAT).sort((a, b) => a.localeCompare(b)).map(code => ({code, label:code + ' ' + CAT[code]}));
+const OPEN = ['333','371','395','501','591','5911','469'];
+const TPL = [
+  {k:'cts', label:'Provisión de CTS', sub:'629 → 415, con destino 94', glosa:'Provisión de CTS', dr:'629', cr:'415', base:215.83, dest:true},
+  {k:'grati', label:'Gratificación', sub:'6214 → 4114, con destino 94', glosa:'Provisión de gratificación', dr:'6214', cr:'4114', base:370, dest:true},
+  {k:'vac', label:'Vacaciones', sub:'6215 → 4115, con destino 94', glosa:'Provisión de vacaciones', dr:'6215', cr:'4115', base:185, dest:true},
+  {k:'dep', label:'Depreciación del mes', sub:'681 → 395, con destino 94', glosa:'Depreciación', dr:'681', cr:'395', base:1501.44, dest:true},
+  {k:'costo', label:'Costo de ventas', sub:'691 → 201, con tu inventario final', glosa:'Costo de ventas acumulado a', dr:'691', cr:'201'},
+  {k:'ir', label:'Impuesto a la Renta', sub:'881 → 4017, estimado 29.5%', glosa:'Provisión del Impuesto a la Renta a', dr:'881', cr:'4017'},
+  {k:'blank', label:'En blanco', sub:'Escribe tus propias líneas', glosa:''},
+];
+const CXP = [['20106897914','SERVICENTRO SAN JUDAS S.A.C.',[['FAC','S002-2052','31/12/2025',179.75]]],['10728734171','HUAMÁN TORRES LUIS ALBERTO',[['NC','E001-10','27/06/2026',-30],['NC','E001-11','20/08/2026',-30]]],['20112273922','TIENDAS DEL MEJORAMIENTO DEL HOGAR S.A.',[['NC','F739-4045','07/05/2026',-70.6]]],['20114107663','COMERCIALIZADORA Y SERVICIOS TECNILUB SA',[['NC','E001-11','07/08/2026',-171.01]]],['20524045843','Q.P.R. SAC',[['NC','F601-2668','03/02/2026',-503.8]]]];
+const glosaOf = (code, side) => {
+  const P = [['101','Centralización de Caja – Ingresos','Centralización de Caja – Egresos'],['121','Registro de Ventas','Centralización de Caja – Ingresos'],['421','Centralización de Caja – Egresos','Registro de Compras'],['4011','Registro de Compras','Registro de Ventas'],['70','','Registro de Ventas'],['60','Registro de Compras',''],['61','','Destino de compras'],['2','Destino de compras','Salida de mercadería'],['62','Planilla de remuneraciones',''],['40','Planilla de remuneraciones','Planilla de remuneraciones'],['41','Pago de planilla','Planilla de remuneraciones'],['79','','Destino de gastos de personal'],['9','Destino de gastos de personal','']];
+  const p = P.find(x => code.startsWith(x[0])); return (p && p[side === 'd' ? 1 : 2]) || 'Asiento del mes';
+};
+
 function obligations(c, pr) {
   const day = DUE[c.ruc.slice(-1)];
   const due = new Date(2026, 9, day);
@@ -765,13 +1356,13 @@ class Component extends DCLogic {
   state = {companyId:'arias', view:this.props.startView === 'Inicio' ? 'inicio' : 'empresas', period:8, size:null, presented:{}, synced:{}, syncing:false,
     switcherOpen:false, query:'', filter:'todas', hi:0, carteraQ:'', toast:'',
     tab:'ventas', listQ:'', listF:'todos', shown:15, clasMode:'main', clasKind:'v', clasDone:{}, clasAll:{}, sel:{}, rowAcc:{}, rowPaid:{}, bulkAcc:null,
-    rulesKind:'c', rules:{}, genAcc:{}, newRuc:'', newAcc:null, ruleErr:'', cobKind:'v', cobF:'pend', paid:{}, cobro:null, cobAmt:'', cobDate:'06/10/2026', cobMedio:'Efectivo', cobErr:'', resync:{}, syncM:null};
+    contMode:'full', contQ:'', contClosed:{}, accCode:null, contSub:'diario', dF:'all', mQ:'', mCode:'101', manual:{}, draft:null, draftErr:'', cxF:'all', closed:{}, closeOpen:false, closeAck:false, rulesKind:'c', rules:{}, genAcc:{}, newRuc:'', newAcc:null, ruleErr:'', cobKind:'v', cobF:'pend', paid:{}, cobro:null, cobAmt:'', cobDate:'06/10/2026', cobMedio:'Efectivo', cobErr:'', resync:{}, syncM:null};
   searchRef = React.createRef();
 
   componentDidMount() {
     this.onGlobalKey = e => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.openSwitcher(); }
-      else if (e.key === 'Escape' && (this.state.switcherOpen || this.state.cobro)) this.setState({switcherOpen:false, cobro:null});
+      else if (e.key === 'Escape' && (this.state.switcherOpen || this.state.cobro || this.state.accCode || this.state.closeOpen)) this.setState({switcherOpen:false, cobro:null, accCode:null, closeOpen:false});
     };
     window.addEventListener('keydown', this.onGlobalKey);
   }
@@ -990,6 +1581,358 @@ class Component extends DCLogic {
     return o;
   }
 
+  tplDraft(k) {
+    const c = COMPANIES.find(x => x.id === this.state.companyId), f = c.f / 2.4, t = TPL.find(x => x.k === k), m = this.state.period;
+    const a = t.base ? r2(t.base * f) : k === 'ir' ? (this._irEst || 0) : 0;
+    const L2 = (code, d, hh) => ({code, d:d ? d.toFixed(2) : '', h:hh ? hh.toFixed(2) : ''});
+    let lines = k === 'blank' ? [L2('', 0, 0), L2('', 0, 0)] : [L2(t.dr, a, 0), L2(t.cr, 0, a)];
+    if (t.dest) lines = lines.concat([L2('94', a, 0), L2('791', 0, a)]);
+    return {tpl:k, date:dd(m, new Date(2026, m + 1, 0).getDate()), glosa:t.glosa ? t.glosa + ' ' + MES[m].toLowerCase() + ' 2026' : '', lines, inv:''};
+  }
+  ledger(c, m) {
+    const f = c.f / 2.4, k = f * ((m + 1) / 9), map = {};
+    const rows = BAL.map(([code, name, d, hb]) => { const o = OPEN.includes(code) ? f : k; const x = {code, name, d:r2(d * o), h:r2(hb * o), md:0, mh:0}; map[code] = x; return x; });
+    const ini = r2(614785 * f);
+    map['101'].d = r2(ini + map['121'].h); map['101'].h = map['421'].d;
+    const man = (this.state.manual[c.id] || []).filter(e => e.month <= m);
+    man.forEach(e => e.lines.forEach(l => {
+      let x = map[l.code]; if (!x) { x = map[l.code] = {code:l.code, name:CAT[l.code] || l.code, d:0, h:0, md:0, mh:0}; rows.push(x); }
+      x.d = r2(x.d + l.d); x.h = r2(x.h + l.h); x.md = r2(x.md + l.d); x.mh = r2(x.mh + l.h);
+    }));
+    const diff = r2(rows.reduce((a, x) => a + x.h - x.d, 0));
+    if (diff > 0) map['201'].d = r2(map['201'].d + diff); else if (diff < 0) map['201'].h = r2(map['201'].h - diff);
+    rows.sort((a, b) => a.code.localeCompare(b.code));
+    rows.forEach(x => { const s = r2(x.d - x.h), inv = +x.code[0] <= 5; Object.assign(x, {s, inv, cls:+x.code[0], deu:s > 0 ? s : 0, acr:s < 0 ? -s : 0}); x.act = inv ? x.deu : 0; x.pas = inv ? x.acr : 0; x.per = inv ? 0 : x.deu; x.gan = inv ? 0 : x.acr; });
+    return {rows, map, ini, man};
+  }
+
+  contVals(c) {
+    const S = this.state, m = S.period, f = c.f / 2.4;
+    const {rows, map, ini, man} = this.ledger(c, m);
+    const g = code => map[code] || {d:0, h:0, s:0, md:0, mh:0};
+    const sumP = (pre, fn) => r2(rows.filter(x => x.code.startsWith(pre)).reduce((a, x) => a + fn(x), 0));
+    const HD = x => x.h - x.d, DH = x => x.d - x.h;
+    const lastDay = new Date(2026, m + 1, 0).getDate(), mesTxt = MES[m].toLowerCase(), ldTxt = lastDay + ' de ' + mesTxt + ' de 2026';
+    const sub = S.contSub, closed = !!S.closed[c.id];
+    const toast = t => () => this.showToast(t);
+    const goSub = (k, extra) => () => this.setState({contSub:k, accCode:null, ...(extra || {})});
+    const goManual = k => () => this.setState({contSub:'manual', accCode:null, draft:this.tplDraft(k), draftErr:''});
+    const GREEN = '#1e6b3a', RED = '#a3261d';
+    const TONE = {warn:{bg:'#fdf6e7', border:'#e8c98a', fg:'#5c3b00', btnBg:'#7a4f00'}, ok:{bg:'#e5f2e8', border:'#b9dcc3', fg:'#1e6b3a', btnBg:'#1e6b3a'}, info:{bg:'#eef3f8', border:'#c9d7e5', fg:'#1f3a56', btnBg:'#1f4e79'}};
+    const alert = (tone, title, text, actLabel, act) => ({...TONE[tone], title, text, hasAct:!!actLabel, actLabel:actLabel || '', act:act || null});
+    const fmtS = v => v < 0 ? '− ' + fmt(-v) : fmt(v);
+    const money = v => Math.abs(v) < 0.005 ? '—' : fmtS(v);
+    const L = {
+      head:label => ({label, value:'', hasSub:false, sub:'', pad:'14px 24px 10px', size:'15px', weight:700, fg:'#3d3b36', vfg:'#3d3b36', bg:'#faf9f6', line:'#e2ded5'}),
+      item:(label, v, sb) => ({label, value:money(v), hasSub:!!sb, sub:sb || '', pad:'12px 24px 12px 40px', size:'16px', weight:400, fg:'#1c1b19', vfg:Math.abs(v) < 0.005 ? '#5a5750' : '#1c1b19', bg:'#ffffff', line:'#efece5'}),
+      sub:(label, v, sb) => ({label, value:fmtS(v), hasSub:!!sb, sub:sb || '', pad:'14px 24px', size:'17px', weight:700, fg:'#1c1b19', vfg:'#1c1b19', bg:'#ffffff', line:'#e2ded5'}),
+      total:(label, v, color, sb) => ({label, value:fmtS(v), hasSub:!!sb, sub:sb || '', pad:'16px 24px', size:'18px', weight:700, fg:'#1c1b19', vfg:color || '#1c1b19', bg:'#f6f4ef', line:'#d6d1c6'}),
+    };
+
+    // Balance de comprobación
+    const KEYS = ['d', 'h', 'deu', 'acr', 'act', 'pas', 'per', 'gan'];
+    const sum = (list, key) => r2(list.reduce((a, x) => a + x[key], 0));
+    const T = {}; KEYS.forEach(key => { T[key] = sum(rows, key); });
+    const util = r2(T.gan - T.per), full = S.contMode === 'full';
+    const goes = x => x.s === 0 ? 'Saldada' : x.inv ? (x.deu ? 'Balance · Activo' : 'Balance · Pasivo y patrimonio') : (x.deu ? 'Resultados · Pérdida' : 'Resultados · Ganancia');
+    const BL = '#e2ded5', NB = 'transparent', INK = '#1c1b19';
+    const cellsFull = (o, fg) => KEYS.map((key, i) => ({v:nf(o[key] || 0), bl:i % 2 === 0 ? BL : NB, align:'right', fg:(fg && fg[key]) || INK}));
+    const cellsSimple = (o, va) => [{v:nf(o.deu || 0), bl:BL, align:'right', fg:INK}, {v:nf(o.acr || 0), bl:NB, align:'right', fg:INK}, {v:va || '', bl:BL, align:'left', fg:'#5a5750'}];
+    const cells = (o, va, fg) => full ? cellsFull(o, fg) : cellsSimple(o, va);
+    const q = norm(S.contQ.trim());
+    const match = x => !q || x.code.startsWith(q) || norm(x.name).includes(q);
+    const groups = [];
+    Object.keys(ELEM).forEach(cl => {
+      const all = rows.filter(x => x.cls === +cl), vis = all.filter(match);
+      if (!vis.length) return;
+      const o = {}; KEYS.forEach(key => { o[key] = sum(all, key); });
+      const open = q ? true : !S.contClosed[cl];
+      groups.push({label:cl + ' · ' + ELEM[cl], count:all.length + (all.length === 1 ? ' cuenta' : ' cuentas'), arrow:open ? '▾' : '▸', open,
+        toggle:() => this.setState(s => ({contClosed:{...s.contClosed, [cl]:!s.contClosed[cl]}})), cells:cells(o, ''),
+        rows:vis.map(x => ({code:x.code, name:x.name, cells:cells(x, goes(x)), open:() => this.setState({accCode:x.code})}))});
+    });
+    const pos = util >= 0, U = Math.abs(util), uc = pos ? GREEN : RED;
+    const foot = full ? [
+      {label:'Totales', sub:'', cells:cellsFull(T)},
+      {label:pos ? 'Utilidad del ejercicio' : 'Pérdida del ejercicio', sub:'Ganancias − Pérdidas', cells:cellsFull({act:pos ? 0 : U, pas:pos ? U : 0, per:pos ? U : 0, gan:pos ? 0 : U}, {act:uc, pas:uc, per:uc, gan:uc})},
+      {label:'Sumas iguales', sub:'Ambos lados deben coincidir', cells:cellsFull({act:T.act + (pos ? 0 : U), pas:T.pas + (pos ? U : 0), per:T.per + (pos ? U : 0), gan:T.gan + (pos ? 0 : U)})},
+    ] : [{label:'Totales', sub:'', cells:cellsSimple(T, '')}];
+    const tol = 0.05;
+    const nine = sum(rows.filter(x => x.cls === 9), 'deu'), d79 = sum(rows.filter(x => x.code.startsWith('79')), 'acr');
+    const okD = Math.abs(T.d - T.h) < tol, okS = Math.abs(T.deu - T.acr) < tol, okB = Math.abs(T.act - T.pas - util) < tol, ok9 = Math.abs(nine - d79) < tol, bcOk = okD && okS && okB && ok9;
+    const chk = (ok, title, detail) => ({icon:ok ? '✓' : '!', bg:ok ? '#e5f2e8' : '#fbe3e0', fg:ok ? GREEN : RED, title, detail});
+    const allClosed = groups.length && groups.every(x => !x.open);
+    const acc = rows.find(x => x.code === S.accCode);
+    let accV = {};
+    if (acc) {
+      const rr = rng(hash(c.id + acc.code)), wd = [], wh = [];
+      for (let i = 0; i <= m; i++) { wd.push(0.5 + rr()); wh.push(0.5 + rr()); }
+      const sd = wd.reduce((a, b) => a + b, 0), sh = wh.reduce((a, b) => a + b, 0);
+      let cd = 0, ch = 0;
+      const months = wd.map((w, i) => {
+        const dI = i === m ? r2(acc.d - cd) : r2(acc.d * w / sd), hI = i === m ? r2(acc.h - ch) : r2(acc.h * wh[i] / sh);
+        cd = r2(cd + dI); ch = r2(ch + hI); const s = r2(cd - ch);
+        return {m:MES[i], d:nf(dI), h:nf(hI), s:s === 0 ? '0.00' : nf(Math.abs(s)) + (s > 0 ? ' D' : ' A')};
+      });
+      const ex = acc.s === 0 ? 'La cuenta está saldada: lo cargado y lo abonado suman lo mismo.' : acc.inv
+        ? (acc.deu ? 'Saldo deudor en una cuenta de balance: se presenta como Activo en el Balance general.' : 'Saldo acreedor en una cuenta de balance: se presenta como Pasivo o Patrimonio en el Balance general.')
+        : (acc.deu ? 'Saldo deudor en una cuenta de resultados: suma a las pérdidas del ejercicio.' : 'Saldo acreedor en una cuenta de resultados: suma a las ganancias del ejercicio.');
+      accV = {code:acc.code, name:acc.name, goes:goes(acc), explain:ex + ' D = deudor, A = acreedor.', months,
+        figs:[{label:'Debe', value:nf(acc.d) || '0.00'}, {label:'Haber', value:nf(acc.h) || '0.00'}, {label:acc.s >= 0 ? 'Saldo deudor' : 'Saldo acreedor', value:nf(Math.abs(acc.s)) || '0.00'}]};
+    }
+
+    // Estado de resultados
+    const ventas = sumP('70', HD), costo = sumP('69', DH), bruta = r2(ventas - costo);
+    const g92 = sumP('92', DH), g94 = sumP('94', DH), g95 = sumP('95', DH), g97 = sumP('97', DH), i77 = sumP('77', HD);
+    const op = r2(bruta - g92 - g94 - g95), antes = r2(op - g97 + i77);
+    const has881 = g('881').d > 0, has691 = costo > 0;
+    const irEst = r2(Math.max(0, antes) * 0.295), ir = has881 ? sumP('881', DH) : irEst;
+    const neta = r2(antes - ir), reserva = neta > 0 ? r2(neta * 0.1) : 0;
+    this._irEst = irEst; this._s201 = sumP('20', DH);
+    const erLines = [
+      L.sub('Ventas netas', ventas, 'Cuentas 70'),
+      L.item('(−) Costo de ventas', costo, has691 ? 'Cuenta 69' : 'Cuenta 69 · aún no registrado'),
+      L.sub('Utilidad bruta', bruta),
+      L.item('(−) Gastos de administración', g94, 'Cuenta 94'),
+      L.item('(−) Gastos de venta', g95, 'Cuenta 95'),
+    ].concat(g92 ? [L.item('(−) Costos de producción', g92, 'Cuenta 92')] : []).concat([
+      L.sub('Utilidad operativa', op),
+      L.item('(+) Ingresos financieros', i77, 'Cuenta 77'),
+      L.item('(−) Gastos financieros', g97, 'Cuenta 97'),
+      L.sub('Utilidad antes de impuestos', antes),
+      L.item(has881 ? '(−) Impuesto a la Renta' : '(−) Impuesto a la Renta estimado (29.5%)', ir, has881 ? 'Cuenta 881 · registrado' : 'Calculado; aún no está registrado en libros'),
+      L.total(neta >= 0 ? 'Utilidad neta del ejercicio' : 'Pérdida neta del ejercicio', neta, neta >= 0 ? GREEN : RED),
+      L.item('Reserva legal (10%)', reserva, 'Se registra al cerrar el año'),
+    ]);
+
+    // Balance general
+    const A1 = rows.filter(x => (x.cls === 1 || x.cls === 2 || (x.cls === 4 && x.s > 0)) && x.s !== 0), A3 = rows.filter(x => x.cls === 3 && x.s !== 0);
+    const P4 = rows.filter(x => x.cls === 4 && x.s < 0), P5 = rows.filter(x => x.cls === 5 && x.s !== 0);
+    const ac = r2(A1.reduce((a, x) => a + x.s, 0)), anc = r2(A3.reduce((a, x) => a + x.s, 0)), at = r2(ac + anc);
+    const pc = r2(P4.reduce((a, x) => a - x.s, 0)), patC = r2(P5.reduce((a, x) => a - x.s, 0)), pt = r2(patC + util);
+    const bgOk = Math.abs(at - pc - pt) < tol;
+    const bgA = [L.head('Activo corriente')].concat(A1.map(x => L.item(x.name, x.s, 'Cuenta ' + x.code)), [L.sub('Total activo corriente', ac), L.head('Activo no corriente')],
+      A3.map(x => L.item((x.s < 0 ? '(−) ' : '') + x.name, Math.abs(x.s), 'Cuenta ' + x.code)), [L.sub('Total activo no corriente', anc), L.total('Total activo', at)]);
+    const bgP = [L.head('Pasivo corriente')].concat(P4.map(x => L.item(x.name, -x.s, 'Cuenta ' + x.code)), [L.sub('Total pasivo', pc), L.head('Patrimonio')],
+      P5.map(x => L.item(x.name, -x.s, 'Cuenta ' + x.code)), [L.item('Resultado del ejercicio', util, has881 ? 'Después de impuestos' : 'Antes de impuestos'), L.sub('Total patrimonio', pt), L.total('Total pasivo y patrimonio', r2(pc + pt))]);
+    const d395 = -g('395').s, c333 = g('333').s, depBad = d395 > 0 && c333 > 0 && d395 > c333;
+
+    // Cambios en el patrimonio
+    const capital = r2(-sumP('50', x => x.s)), acum = r2(-sumP('59', x => x.s));
+    const pc0 = v => ({v:money(v), fg:Math.abs(v) < 0.005 ? '#5a5750' : (v < 0 ? RED : INK)});
+    const patRows = [
+      {label:'Saldo al 1 de enero de 2026', sub:'Viene del cierre de 2025', cells:[pc0(capital), pc0(acum), pc0(0), pc0(capital + acum)], weight:400, bg:'#ffffff', line:'#efece5'},
+      {label:'Resultado del ejercicio', sub:'Enero a ' + mesTxt, cells:[pc0(0), pc0(0), pc0(util), pc0(util)], weight:400, bg:'#ffffff', line:'#efece5'},
+      {label:'Reserva legal y dividendos', sub:'Se registran al cerrar el año', cells:[pc0(0), pc0(0), pc0(0), pc0(0)], weight:400, bg:'#ffffff', line:'#efece5'},
+      {label:'Saldo al ' + ldTxt, sub:'', cells:[pc0(capital), pc0(acum), pc0(util), pc0(r2(capital + acum + util))], weight:700, bg:'#f6f4ef', line:'#d6d1c6'},
+    ];
+
+    // Flujo de efectivo
+    const cob = g('121').h, pagP = g('421').d, pagT = g('411').d, fop = r2(cob - pagP - pagT), fFin = r2(ini + fop), real = g('101').s, feOk = Math.abs(fFin - real) < tol;
+    const feLines = [L.head('Actividades de operación'), L.item('Cobranza a clientes', cob, 'Haber de la cuenta 121'), L.item('(−) Pago a proveedores', pagP, 'Debe de la cuenta 421'), L.item('(−) Pago a trabajadores', pagT, 'Debe de la cuenta 411'), L.item('(−) Tributos y aportes (IGV, ESSALUD, ONP, AFP)', 0), L.sub('Flujo de operación', fop),
+      L.head('Actividades de inversión'), L.item('(−) Compra de inmuebles, maquinaria y equipo', 0), L.sub('Flujo de inversión', 0),
+      L.head('Actividades de financiamiento'), L.item('Préstamos recibidos', 0), L.item('(−) Pago de préstamos', 0), L.sub('Flujo de financiamiento', 0),
+      L.total('Aumento neto de efectivo', fop), L.item('Saldo inicial de efectivo', ini, 'Al 1 de enero de 2026'), L.total('Saldo final de efectivo', fFin, feOk ? GREEN : RED)];
+    const eqb = (label, v, last) => ({label, value:fmtS(v), bg:last ? '#1f4e79' : '#f6f4ef', fg:last ? '#ffffff' : '#1c1b19', lfg:last ? '#ffffff' : '#5a5750'});
+    const feEq = [eqb('Saldo inicial', ini), eqb('+ Operación', fop), eqb('+ Inversión', 0), eqb('+ Financiamiento', 0), eqb('= Saldo final', fFin, true)];
+
+    // Libro Diario
+    const md = this.monthData(c, m), mmT = '2026' + String(m + 1).padStart(2, '0'), ld = dd(m, lastDay), auto = [];
+    if (md.v > 0) {
+      const V = r2(md.v), bV = r2(V / 1.18), iV = r2(V - bV), C = r2(md.c), bC = r2(C / 1.18), iC = r2(C - bC), cb = r2(V * 0.93), pg = r2(C * 0.9);
+      auto.push({glosa:'Registro de Ventas ' + mmT, lines:[['121', V, 0], ['701', 0, bV], ['4011', 0, iV]]});
+      auto.push({glosa:'Registro de Compras ' + mmT, lines:[['601', bC, 0], ['4011', iC, 0], ['421', 0, C]]});
+      auto.push({glosa:'Centralización de Caja – Ingresos ' + mmT, lines:[['101', cb, 0], ['121', 0, cb]]});
+      auto.push({glosa:'Centralización de Caja – Egresos ' + mmT, lines:[['421', pg, 0], ['101', 0, pg]]});
+      auto.push({glosa:'Destino de compras ' + mmT, lines:[['201', bC, 0], ['611', 0, bC]]});
+      if (c.planilla) {
+        const rem = r2(2220 * f), ess = r2(rem * 0.09), onp = r2(rem * 0.13), net = r2(rem - onp), tot = r2(rem + ess), a94 = r2(tot * 0.3), a95 = r2(tot - a94);
+        auto.push({glosa:'Planilla de remuneraciones ' + mmT, lines:[['621', rem, 0], ['627', ess, 0], ['4031', 0, ess], ['4032', 0, onp], ['411', 0, net]]});
+        auto.push({glosa:'Destino de gastos de personal ' + mmT, lines:[['94', a94, 0], ['95', a95, 0], ['791', 0, tot]]});
+      }
+    }
+    const base = 1 + m * 7;
+    const ent = auto.map((e, i) => ({...e, n:String(base + i), date:ld, origin:'auto'})).concat((S.manual[c.id] || []).filter(e => e.month === m).map(e => ({n:'M-' + e.n, date:e.date, glosa:e.glosa, origin:'manual', lines:e.lines.map(l => [l.code, l.d, l.h])})));
+    const entF = ent.filter(e => S.dF === 'all' || e.origin === S.dF);
+    const dTD = r2(entF.reduce((a, e) => a + e.lines.reduce((b, l) => b + l[1], 0), 0)), dTH = r2(entF.reduce((a, e) => a + e.lines.reduce((b, l) => b + l[2], 0), 0));
+    const chip = sel => sel ? {bg:'#1f4e79', fg:'#ffffff', border:'#1f4e79'} : {bg:'#ffffff', fg:'#1c1b19', border:'#d6d1c6'};
+    const dFilters = [['all', 'Todos'], ['auto', 'Automáticos'], ['manual', 'Manuales']].map(([k, l]) => ({label:l + ' (' + ent.filter(e => k === 'all' || e.origin === k).length + ')', set:() => this.setState({dF:k}), ...chip(S.dF === k)}));
+    const dEntries = entF.map(e => ({n:e.n, date:e.date, glosa:e.glosa, chip:e.origin === 'auto' ? 'Automático' : 'Manual', chipBg:e.origin === 'auto' ? '#efece5' : '#e6eef6', chipFg:e.origin === 'auto' ? '#5a5750' : '#1f4e79',
+      lines:e.lines.map(([code, d, hh]) => ({code, name:CAT[code] || code, d:nf(d), h:nf(hh), pad:hh ? '36px' : '0px'}))}));
+
+    // Libro Mayor
+    const mq = norm(S.mQ.trim()), withMov = rows.filter(x => x.d || x.h);
+    const selC = map[S.mCode] ? S.mCode : '101', A = map[selC];
+    const sTxt = s => Math.abs(s) < 0.005 ? '0.00' : nf(Math.abs(s)) + (s > 0 ? ' D' : ' A');
+    const mAccts = withMov.filter(x => !mq || x.code.startsWith(mq) || norm(x.name).includes(mq)).map(x => ({code:x.code, name:x.name, saldo:'Saldo ' + sTxt(x.s), pick:() => this.setState({mCode:x.code}),
+      bg:x.code === selC ? '#eef3f8' : '#ffffff', mark:x.code === selC ? '#1f4e79' : 'transparent', weight:x.code === selC ? 700 : 400}));
+    const E = [];
+    if (OPEN.includes(selC)) E.push({o:-1, date:'01/01/2026', glosa:'Asiento de apertura', d:r2(A.d - A.md), h:r2(A.h - A.mh)});
+    else {
+      let bd = r2(A.d - A.md); const bh = r2(A.h - A.mh);
+      if (selC === '101') { E.push({o:-1, date:'01/01/2026', glosa:'Saldo de apertura', d:ini, h:0}); bd = r2(bd - ini); }
+      const rr = rng(hash(c.id + selC)), wd = [], wh = []; for (let i = 0; i <= m; i++) { wd.push(0.5 + rr()); wh.push(0.5 + rr()); }
+      const sd = wd.reduce((a, b) => a + b, 0), sh = wh.reduce((a, b) => a + b, 0); let cd = 0, ch = 0;
+      for (let i = 0; i <= m; i++) {
+        const dI = i === m ? r2(bd - cd) : r2(bd * wd[i] / sd), hI = i === m ? r2(bh - ch) : r2(bh * wh[i] / sh); cd = r2(cd + dI); ch = r2(ch + hI);
+        const tag = ' 2026' + String(i + 1).padStart(2, '0'), dt = dd(i, new Date(2026, i + 1, 0).getDate());
+        if (dI > 0.004) E.push({o:i, date:dt, glosa:glosaOf(selC, 'd') + tag, d:dI, h:0});
+        if (hI > 0.004) E.push({o:i, date:dt, glosa:glosaOf(selC, 'h') + tag, d:0, h:hI});
+      }
+    }
+    man.forEach(e => e.lines.filter(l => l.code === selC).forEach(l => E.push({o:e.month + 0.5, date:e.date, glosa:e.glosa + ' (manual)', d:l.d, h:l.h})));
+    E.sort((a, b) => a.o - b.o);
+    let run = 0; const mRows = E.map(x => { run = r2(run + x.d - x.h); return {date:x.date, glosa:x.glosa, d:nf(x.d), h:nf(x.h), s:sTxt(run)}; });
+    const mAcc = {code:A.code, name:A.name, goes:goes(A), final:sTxt(A.s), figs:[{label:'Debe', value:nf(A.d) || '0.00'}, {label:'Haber', value:nf(A.h) || '0.00'}, {label:'Saldo', value:sTxt(A.s)}]};
+
+    // Asientos manuales
+    const D = S.draft || this.tplDraft('blank');
+    const P = v => { const n = parseFloat(String(v).replace(/,/g, '')); return isFinite(n) ? n : 0; };
+    const upd = fn => this.setState(s => ({draft:fn(JSON.parse(JSON.stringify(s.draft || this.tplDraft('blank')))), draftErr:''}));
+    const TD = r2(D.lines.reduce((a, l) => a + P(l.d), 0)), TH = r2(D.lines.reduce((a, l) => a + P(l.h), 0)), dif = r2(TD - TH);
+    const cuadra = TD > 0 && Math.abs(dif) <= 0.004;
+    const st = !TD && !TH ? ['Escribe los importes del asiento', '#5a5750'] : !cuadra ? [dif > 0 ? 'Falta ' + fmt(dif) + ' en el Haber para que cuadre' : 'Falta ' + fmt(-dif) + ' en el Debe para que cuadre', RED] : ['El asiento cuadra', GREEN];
+    const tpls = TPL.map(t => ({label:t.label, sub:t.sub, go:() => this.setState({draft:this.tplDraft(t.k), draftErr:''}), border:D.tpl === t.k ? '#1f4e79' : '#d6d1c6', bw:D.tpl === t.k ? '2px' : '1px', bg:D.tpl === t.k ? '#eef3f8' : '#ffffff'}));
+    const dfLines = D.lines.map((l, i) => ({code:l.code, d:l.d, h:l.h,
+      setCode:e => { const v = e.target.value; upd(d => { d.lines[i].code = v; return d; }); },
+      setD:e => { const v = e.target.value; upd(d => { d.lines[i].d = v; if (v) d.lines[i].h = ''; return d; }); },
+      setH:e => { const v = e.target.value; upd(d => { d.lines[i].h = v; if (v) d.lines[i].d = ''; return d; }); },
+      remove:() => upd(d => { if (d.lines.length > 2) d.lines.splice(i, 1); else d.lines[i] = {code:'', d:'', h:''}; return d; })}));
+    const registerDf = () => {
+      const errs = [];
+      if (!D.glosa.trim()) errs.push('Escribe la glosa.');
+      const mt = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(D.date.trim()), mon = mt ? +mt[2] - 1 : -1;
+      if (!mt || +mt[3] !== 2026 || mon < 0 || mon > 11) errs.push('La fecha debe ser de 2026, por ejemplo 30/09/2026.');
+      const ls = D.lines.filter(l => P(l.d) || P(l.h));
+      if (ls.some(l => !l.code)) errs.push('Elige la cuenta en todas las líneas con importe.');
+      if (ls.length < 2) errs.push('El asiento necesita al menos dos líneas.');
+      if (!cuadra) errs.push('El Debe y el Haber deben sumar lo mismo.');
+      if (errs.length) return this.setState({draftErr:errs.join(' ')});
+      this.setState(s => { const list = (s.manual[c.id] || []).slice(); list.push({id:Date.now(), n:list.length ? Math.max(...list.map(x => x.n)) + 1 : 1, date:D.date.trim(), month:mon, glosa:D.glosa.trim(), lines:ls.map(l => ({code:l.code, d:r2(P(l.d)), h:r2(P(l.h))}))}); return {manual:{...s.manual, [c.id]:list}, draft:null, draftErr:''}; });
+      this.showToast('Asiento registrado. Ya aparece en el Libro Diario de ' + MES[mon].toLowerCase() + '.');
+    };
+    const manAll = (S.manual[c.id] || []).slice().sort((a, b) => a.month - b.month);
+    const manList = manAll.map(e => ({n:'M-' + e.n, date:e.date, glosa:e.glosa, total:fmt(e.lines.reduce((a, l) => a + l.d, 0)), canRemove:!closed,
+      lines:e.lines.map(l => ({code:l.code, name:CAT[l.code] || l.code, d:nf(l.d), h:nf(l.h)})),
+      remove:() => { this.setState(s => ({manual:{...s.manual, [c.id]:(s.manual[c.id] || []).filter(x => x.id !== e.id)}})); this.showToast('Asiento M-' + e.n + ' quitado'); }}));
+
+    // Cuentas por cobrar / pagar
+    const parseD = s => { const [d1, m1, y1] = s.split('/').map(Number); return new Date(y1, m1 - 1, d1); };
+    const cutoff = new Date(2026, m + 1, 0);
+    const cxData = kind => {
+      let list;
+      if (kind === 'p') list = CXP.flatMap(([ruc, name, docs]) => docs.map(([tipo, serie, date, t]) => ({ruc, name, tipo, serie, date, total:r2(t * f)})));
+      else { const r = rng(hash(c.id + 'cxc')); list = []; for (let i = 0; i < 12; i++) { const p = CLIENTS[Math.floor(r() * CLIENTS.length)], mi = Math.floor(r() * 9), dy = 1 + Math.floor(r() * 28); list.push({ruc:p[0], name:p[1], tipo:'FAC', serie:'F001-' + String(3100 + i * 37).padStart(6, '0'), date:dd(mi, dy), total:800 + r() * 9000}); } }
+      list = list.filter(x => parseD(x.date) <= cutoff);
+      const acct = kind === 'p' ? -g('421').s : g('121').s;
+      if (kind === 'c') { const sm = list.reduce((a, x) => a + x.total, 0), kk = sm > 0 && acct > 0 ? acct / sm : 0; list.forEach(x => { x.total = r2(x.total * kk); }); if (!kk) list = []; }
+      list.forEach(x => { x.days = Math.round((cutoff - parseD(x.date)) / 864e5); x.saldo = x.total; x.b = x.days <= 30 ? 0 : x.days <= 60 ? 1 : x.days <= 90 ? 2 : 3; });
+      const tot = r2(list.reduce((a, x) => a + x.saldo, 0));
+      return {list, acct:r2(acct), tot, diff:r2(acct - tot)};
+    };
+    const CXd = {p:cxData('p'), c:cxData('c')};
+    const isP = sub === 'cxp', CX = CXd[isP ? 'p' : 'c'], acCode = isP ? '421' : '121';
+    const favor = v => v < -0.004 ? fmt(-v) + ' a favor' : fmt(v);
+    const BK = ['0 a 30 días', '31 a 60 días', '61 a 90 días', 'Más de 90 días'];
+    const cxCards = [{k:'all', label:isP ? 'Total por pagar' : 'Total por cobrar', list:CX.list}].concat(BK.map((l, i) => ({k:i, label:l, list:CX.list.filter(x => x.b === i)}))).map(o => {
+      const v = r2(o.list.reduce((a, x) => a + x.saldo, 0)), sel = S.cxF === o.k;
+      return {label:o.label, value:favor(v), color:v < -0.004 ? GREEN : (o.k === 3 && v > 0 ? RED : INK), note:o.list.length + (o.list.length === 1 ? ' comprobante' : ' comprobantes'), set:() => this.setState({cxF:o.k}), border:sel ? '#1f4e79' : '#e2ded5', bw:sel ? '2px' : '1px', bg:sel ? '#f4f7fa' : '#ffffff'};
+    });
+    const fl = CX.list.filter(x => S.cxF === 'all' || x.b === S.cxF), byR = [];
+    fl.forEach(x => { let gr = byR.find(y => y.ruc === x.ruc); if (!gr) byR.push(gr = {ruc:x.ruc, name:x.name, docs:[]}); gr.docs.push(x); });
+    const TIPO = {FAC:'Factura', NC:'Nota de crédito', BOL:'Boleta'};
+    const cxGroups = byR.map(gr => { const t = r2(gr.docs.reduce((a, x) => a + x.saldo, 0)); return {ruc:gr.ruc, name:gr.name, total:favor(t), tcolor:t < -0.004 ? GREEN : INK,
+      docs:gr.docs.map(x => ({tipo:TIPO[x.tipo], serie:x.serie, date:x.date, days:String(x.days), dcolor:x.days > 90 && x.saldo > 0 ? RED : INK, dweight:x.days > 90 && x.saldo > 0 ? 700 : 400,
+        total:x.total < 0 ? '− ' + nf(-x.total) : nf(x.total), paid:'—', saldo:x.saldo < 0 ? nf(-x.saldo) + ' a favor' : nf(x.saldo), scolor:x.saldo < 0 ? GREEN : INK}))}; });
+
+    // Cierre
+    const ciRaw = [
+      {ok:c.pend === 0, t:'Ventas clasificadas', okD:'Todas las ventas de 2026 tienen cuenta asignada.', noD:num(c.pend) + ' ventas sin clasificar.', a:'Clasificar', go:() => this.goClas()},
+      {ok:true, t:'Compras clasificadas', okD:'Todas las compras de 2026 tienen cuenta asignada.'},
+      {ok:has691, t:'Costo de ventas registrado', okD:'Cuenta 691: ' + fmt(costo), noD:'Falta registrar la salida de mercadería con el inventario final.', a:'Registrar', go:goManual('costo')},
+      {ok:has881, t:'Impuesto a la Renta provisionado', okD:'Cuenta 881: ' + fmt(ir), noD:'Estimado: ' + fmt(irEst) + ' (29.5% de la utilidad antes de impuestos).', a:'Registrar', go:goManual('ir')},
+      {ok:bcOk, t:'Los libros cuadran', okD:'Diario, saldos y balance general.', noD:'Hay diferencias en el Balance de comprobación.', a:'Revisar', go:goSub('bc')},
+    ];
+    const blockers = ciRaw.filter(x => !x.ok).length, ciCan = blockers === 0;
+    const ciItems = ciRaw.map(x => ({icon:x.ok ? '✓' : '!', ibg:x.ok ? '#e5f2e8' : '#fbefd5', ifg:x.ok ? GREEN : '#7a4f00', title:x.t, detail:x.ok ? x.okD : x.noD, hasAct:!x.ok, actLabel:x.a || '', act:x.go || null}))
+      .concat([{icon:'i', ibg:'#e6eef6', ifg:'#1f4e79', title:'El año aún no termina', detail:'Faltan octubre, noviembre y diciembre. Lo usual es cerrar en enero o febrero de 2027.', hasAct:false, actLabel:'', act:null}]);
+
+    // Subnav, encabezado y avisos
+    const bad = {bc:!bcOk, bg:(!has881 && antes > 0) || depBad, er:!has691 && ventas > 0, cxc:Math.abs(CXd.c.diff) > tol, cxp:Math.abs(CXd.p.diff) > tol};
+    const GROUPS = [['Libros', [['diario', 'Libro Diario'], ['mayor', 'Libro Mayor'], ['manual', 'Asientos manuales']]], ['Estados financieros', [['bc', 'Balance de comprobación'], ['bg', 'Balance general'], ['er', 'Estado de resultados'], ['pat', 'Cambios en el patrimonio'], ['fe', 'Flujo de efectivo']]], ['Saldos', [['cxc', 'Cuentas por cobrar'], ['cxp', 'Cuentas por pagar']]], ['Cierre', [['cierre', 'Cierre del año']]]];
+    const subGroups = GROUPS.map(([label, items]) => ({label, items:items.map(([k, l]) => { const on = sub === k, badge = k === 'cierre' ? (closed ? 'Cerrado' : blockers ? blockers + ' pendientes' : '') : bad[k] ? 'Revisar' : '';
+      return {label:l, go:goSub(k), bg:on ? '#1f4e79' : '#ffffff', fg:on ? '#ffffff' : INK, weight:on ? 700 : 500, border:on ? '#1f4e79' : '#d6d1c6', hasBadge:!!badge, badge}; })}));
+    const btn = (label, act) => ({label, act});
+    const pdf = n => btn('Descargar PDF', toast('Descargando ' + n + ' en PDF'));
+    const tramo = alert('info', 'Define el tramo de ingresos de la empresa', 'De eso depende si este libro es obligatorio. Se configura en Datos de la empresa.', 'Ir a Datos de la empresa', () => this.setState({view:'empresa'}));
+    const acumTxt = 'Acumulado de enero a ' + mesTxt + ' 2026.';
+    const META = {
+      diario:['Libro Diario', 'Asientos de ' + mesTxt + ' 2026. Se generan solos con tus comprobantes y Caja; los asientos manuales también aparecen aquí.', [btn('Volver a generar', toast('Asientos automáticos de ' + mesTxt + ' generados de nuevo. Tus asientos manuales no se tocaron.')), pdf('Libro Diario')],
+        (ent.length ? [alert(Math.abs(dTD - dTH) < tol ? 'ok' : 'warn', Math.abs(dTD - dTH) < tol ? 'El Diario de ' + mesTxt + ' cuadra' : 'El Diario de ' + mesTxt + ' no cuadra', 'Debe ' + fmt(dTD) + ' · Haber ' + fmt(dTH))] : []).concat([tramo])],
+      mayor:['Libro Mayor', 'Movimientos de cada cuenta. ' + acumTxt, [pdf('Libro Mayor')], [tramo]],
+      manual:['Asientos manuales', 'Para provisiones, depreciación y correcciones. Entran al Diario, al Mayor y a los estados financieros, y la generación automática nunca los borra.', [], []],
+      bc:['Balance de comprobación', acumTxt, [btn('Descargar Excel', toast('Descargando Balance de comprobación en Excel')), pdf('Balance de comprobación')], []],
+      bg:['Balance general', 'Situación al ' + ldTxt + '.', [pdf('Balance general')],
+        (!has881 && antes > 0 ? [alert('warn', 'Falta provisionar el Impuesto a la Renta', 'El resultado del ejercicio se muestra antes de impuestos. El estimado es ' + fmt(irEst) + ' (29.5%).', 'Registrar provisión', goManual('ir'))] : [])
+        .concat(depBad ? [alert('warn', 'Revisa la depreciación acumulada', 'La cuenta 395 (' + fmt(d395) + ') es mayor que el costo de la maquinaria en la 333 (' + fmt(c333) + '). Puede faltar registrar algún activo.', 'Ver cuenta 395', goSub('mayor', {mCode:'395'}))] : [])],
+      er:['Estado de resultados', acumTxt + ' Por función.', [pdf('Estado de resultados')],
+        (!has691 && ventas > 0 ? [alert('warn', 'El costo de ventas está en S/ 0.00', 'Por eso la utilidad bruta es igual a las ventas. Las compras quedan como existencias hasta que registres la salida con tu inventario final.', 'Registrar costo de ventas', goManual('costo'))] : [])
+        .concat(!has881 && antes > 0 ? [alert('info', 'El Impuesto a la Renta es un estimado', 'Para que aparezca también en el Balance general, registra la provisión.', 'Registrar provisión', goManual('ir'))] : [])],
+      pat:['Cambios en el patrimonio', acumTxt, [pdf('Estado de cambios en el patrimonio')], []],
+      fe:['Flujo de efectivo', 'Método directo. ' + acumTxt, [pdf('Flujo de efectivo')],
+        [feOk ? alert('ok', 'El saldo final coincide con Caja y Bancos', 'Cuentas 10 en el Mayor: ' + fmt(real)) : alert('warn', 'El saldo final no coincide con Caja y Bancos', 'Flujo: ' + fmt(fFin) + ' · Cuentas 10: ' + fmt(real), 'Ver cuenta 101', goSub('mayor', {mCode:'101'}))]],
+      cxc:null, cxp:null,
+      cierre:['Cierre del año 2026', 'Revisa estos pasos antes de cerrar. Después del cierre, los asientos de 2026 ya no se pueden modificar.', [], []],
+    };
+    const cxAlert = Math.abs(CX.diff) < tol ? alert('ok', 'La cuenta ' + acCode + ' coincide con los comprobantes', 'Saldo en libros y suma de comprobantes: ' + favor(CX.acct))
+      : alert('warn', 'La cuenta ' + acCode + ' no coincide con los comprobantes', 'Libro Mayor: ' + favor(CX.acct) + ' · Comprobantes con saldo: ' + favor(CX.tot) + ' · Diferencia: ' + fmt(Math.abs(CX.diff)) + '. Suele ser un saldo de apertura o un asiento manual sin comprobante.', 'Ver cuenta ' + acCode, goSub('mayor', {mCode:acCode}));
+    const goCob = () => this.setState({view:'comprobantes', tab:'cobros', cobKind:isP ? 'c' : 'v', shown:15, sel:{}});
+    META.cxc = META.cxp = [isP ? 'Cuentas por pagar' : 'Cuentas por cobrar', 'Comprobantes con saldo al ' + ldTxt + ', agrupados por ' + (isP ? 'proveedor' : 'cliente') + '. Toca un tramo para filtrar.', [btn('Ir a Cobros y pagos', goCob), pdf(isP ? 'Cuentas por pagar' : 'Cuentas por cobrar')], [cxAlert]];
+    const meta = META[sub] || META.diario;
+
+    return {
+      subGroups, subTitle:meta[0], subDesc:meta[1], subActions:meta[2], subAlerts:meta[3],
+      isBC:sub === 'bc', isDiario:sub === 'diario', isMayor:sub === 'mayor', isManual:sub === 'manual', isBG:sub === 'bg', isER:sub === 'er', isPat:sub === 'pat', isFE:sub === 'fe', isCx:sub === 'cxc' || sub === 'cxp', isCierre:sub === 'cierre',
+      contMes:mesTxt,
+      res:{label:pos ? 'Utilidad del ejercicio' : 'Pérdida del ejercicio', value:fmt(U), color:uc, gan:fmt(T.gan), per:fmt(T.per), act:fmt(T.act), pasU:fmt(r2(T.pas + util))},
+      checks:[
+        chk(okD, 'El Diario cuadra', 'Debe = Haber = ' + fmt(T.d)),
+        chk(okS, 'Los saldos cuadran', 'Deudor = Acreedor = ' + fmt(T.deu)),
+        chk(okB, 'El balance general cuadra', 'Activo = Pasivo + Patrimonio + Resultado'),
+        chk(ok9, 'Cuentas 9 y 79 coinciden', 'Gastos por función = Cargas imputables = ' + fmt(nine)),
+      ],
+      contModes:[['full', 'Completo'], ['simple', 'Solo saldos']].map(([key, l]) => ({label:l, set:() => this.setState({contMode:key}), ...seg(S.contMode === key)})),
+      contQ:S.contQ, setContQ:e => this.setState({contQ:e.target.value}),
+      toggleAllLabel:allClosed ? 'Expandir todo' : 'Contraer todo',
+      toggleAllGroups:() => this.setState({contClosed:allClosed ? {} : Object.fromEntries(Object.keys(ELEM).map(x => [x, true]))}),
+      isFull:full, gridCols:full ? 'minmax(260px,2.2fr) repeat(8,minmax(112px,1fr))' : 'minmax(300px,3fr) repeat(2,minmax(150px,1fr)) minmax(230px,1.3fr)', tblMin:full ? '1160px' : '860px',
+      headCells:full ? ['Debe', 'Haber', 'Deudor', 'Acreedor', 'Activo', 'Pasivo', 'Pérdidas', 'Ganancias'].map((v, i) => ({v, bl:i % 2 === 0 ? BL : NB, align:'right'}))
+        : [{v:'Saldo deudor', bl:BL, align:'right'}, {v:'Saldo acreedor', bl:NB, align:'right'}, {v:'Va a', bl:BL, align:'left'}],
+      groups, contNoMatch:groups.length === 0, footRows:foot,
+      accOpen:!!acc, acc:accV, closeAcc:() => this.setState({accCode:null}), openMayor:() => this.setState({contSub:'mayor', mCode:acc ? acc.code : '101', accCode:null}),
+      dNoData:ent.length === 0, dHas:ent.length > 0, dGoSync:() => this.setState({view:'comprobantes', tab:'sync'}), dFilters, dEntries, dTotD:nf(dTD) || '0.00', dTotH:nf(dTH) || '0.00',
+      mCount:withMov.length + ' cuentas con movimiento', mQ:S.mQ, setMQ:e => this.setState({mQ:e.target.value}), mAccts, mAcc, mRows, mEnd:ldTxt,
+      yearClosed:closed, yearOpen:!closed, tpls, catOpts:CAT_OPTS,
+      dfDate:D.date, setDfDate:e => { const v = e.target.value; upd(d => { d.date = v; return d; }); },
+      dfGlosa:D.glosa, setDfGlosa:e => { const v = e.target.value; upd(d => { d.glosa = v; return d; }); },
+      dfAsk:D.tpl === 'costo', dfInv:D.inv, dfS201:fmt(this._s201),
+      setDfInv:e => { const v = e.target.value, s201 = this._s201; upd(d => { d.inv = v; const a = r2(Math.max(0, s201 - P(v))); d.lines[0].d = v ? a.toFixed(2) : ''; d.lines[1].h = v ? a.toFixed(2) : ''; return d; }); },
+      dfLines, addDfLine:() => upd(d => { d.lines.push({code:'', d:'', h:''}); return d; }),
+      dfTD:fmt(TD), dfTH:fmt(TH), dfStatus:st[0], dfStatusFg:st[1], dfOp:cuadra && D.glosa.trim() ? 1 : 0.55, registerDf, dfHasErr:!!S.draftErr, dfErr:S.draftErr,
+      manList, manNone:manAll.length === 0, manCount:manAll.length,
+      bgEq:{a:fmtS(at), p:fmtS(pc), pt:fmtS(pt), txt:bgOk ? 'Cuadra' : 'No cuadra: ' + fmt(Math.abs(at - pc - pt)), bg:bgOk ? '#e5f2e8' : '#fbe3e0', fg:bgOk ? GREEN : RED}, bgA, bgP,
+      erLines, patRows, feEq, feLines,
+      cxCards, cxGroups, cxNone:fl.length === 0, cxTotal:favor(r2(fl.reduce((a, x) => a + x.saldo, 0))), cxPaidH:isP ? 'Pagado' : 'Cobrado',
+      cxHint:'Saldo = total menos lo ' + (isP ? 'pagado' : 'cobrado') + ' hasta el cierre del período. Las notas de crédito se muestran como saldo a favor.',
+      ciItems, ciLabel:ciCan ? 'Cerrar el año 2026' : 'Faltan ' + blockers + (blockers === 1 ? ' paso' : ' pasos') + ' para poder cerrar', ciBg:ciCan ? '#a3261d' : '#efece5', ciFg:ciCan ? '#ffffff' : '#5a5750', ciCursor:ciCan ? 'pointer' : 'default',
+      openClose:() => ciCan && this.setState({closeOpen:true, closeAck:false}),
+      closeOpen:S.closeOpen, closeAck:S.closeAck, toggleCloseAck:() => this.setState(s => ({closeAck:!s.closeAck})), cancelClose:() => this.setState({closeOpen:false}), ciConfirmOp:S.closeAck ? 1 : 0.5,
+      confirmClose:() => { if (!S.closeAck) return; this.setState(s => ({closeOpen:false, closed:{...s.closed, [c.id]:'Cerrado hoy a las ' + nowHM() + '.'}})); this.showToast('Año 2026 cerrado para ' + c.name); },
+      closedTxt:(S.closed[c.id] || '') + ' Los asientos de 2026 ya no se pueden modificar.',
+      reopenYear:() => { this.setState(s => { const cl = {...s.closed}; delete cl[c.id]; return {closed:cl}; }); this.showToast('Año 2026 reabierto'); },
+    };
+  }
+
   results() {
     const {query, filter, presented} = this.state;
     const q = norm(query.trim());
@@ -1077,7 +2020,7 @@ class Component extends DCLogic {
       periodLabel: MES[S.period] + ' 2026', prevOpacity: S.period > 0 ? 1 : 0.35, nextOpacity: S.period < 8 ? 1 : 0.35,
       prevPeriod:() => this.setState(s => ({period:Math.max(0, s.period - 1), shown:15, sel:{}})), nextPeriod:() => this.setState(s => ({period:Math.min(8, s.period + 1), shown:15, sel:{}})),
       sizes: SIZES.map(s => ({label:'Letra ' + s.k.toLowerCase(), px:s.px, set:() => this.setState({size:s.k}), bg: s.k === size.k ? '#1f4e79' : '#ffffff', fg: s.k === size.k ? '#ffffff' : '#1c1b19'})),
-      isInicio: S.view === 'inicio', isEmpresas: S.view === 'empresas', isOther: !['inicio', 'empresas', 'comprobantes'].includes(S.view), isComp: S.view === 'comprobantes',
+      isInicio: S.view === 'inicio', isEmpresas: S.view === 'empresas', isOther: !['inicio', 'empresas', 'comprobantes', 'contabilidad'].includes(S.view), isCont: S.view === 'contabilidad', isComp: S.view === 'comprobantes',
       next, obligations:obligationsList,
       hasPend: c.pend > 0, noPend: c.pend === 0, pendCount:num(c.pend), goClasificar:() => this.goClas(),
       lastSync: S.synced[c.id] ? 'Hoy a las ' + new Date().toTimeString().slice(0, 5) : 'Lunes 5 de octubre, 18:40',
@@ -1103,6 +2046,7 @@ class Component extends DCLogic {
       ],
       hasToast:!!S.toast, toast:S.toast,
       ...this.compVals(c),
+      ...this.contVals(c),
     };
   }
 }

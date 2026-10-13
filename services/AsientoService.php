@@ -432,8 +432,8 @@ class AsientoService
 
         // Gasto cargado a mano (asientos manuales: CTS, depreciación, ajustes).
         // Sin esto quedaría en el elemento 6 y no llegaría al Estado de
-        // Resultados. Se excluyen 61 (variación de inventarios) y 69 (costo de
-        // ventas), que ya son de destino/inventario; se toma el neto del mes
+        // Resultados. Se excluyen 61 (variación de inventarios), 69 (costo de
+        // ventas) y 88 (impuesto a la renta), que no se reparten por función; se toma el neto del mes
         // y solo si es positivo (un ajuste que reduce el gasto no se reparte).
         $stmtMan = $pdo->prepare("
             SELECT COALESCE(SUM(CASE WHEN c.codigo NOT LIKE '67%' THEN d.debe - d.haber END), 0) AS operativo,
@@ -443,7 +443,7 @@ class AsientoService
             JOIN cuentas_contables c ON c.id = d.cuenta_id
             WHERE a.empresa_id = ? AND a.origen = 'manual' AND DATE_FORMAT(a.fecha, '%Y%m') = ?
               AND c.tipo = 'gasto' AND c.es_inventariable = 0
-              AND c.codigo NOT LIKE '61%' AND c.codigo NOT LIKE '69%'
+              AND c.codigo NOT LIKE '61%' AND c.codigo NOT LIKE '69%' AND c.codigo NOT LIKE '88%'
         ");
         $stmtMan->execute([$empresaId, $periodo]);
         $manual = $stmtMan->fetch(PDO::FETCH_ASSOC);

@@ -37,6 +37,8 @@ class App {
         $router->post('/empresas/{id}/sync/plan',    'sync/SyncController@plan');
         $router->post('/empresas/{id}/sync/paso',    'sync/SyncController@paso');
         $router->get('/empresas/{id}/sync/diagnostico','sync/SyncController@diagnostico');
+        // Obligaciones mensuales (vencimientos SUNAT): marcar como presentada
+        $router->post('/empresas/{id}/obligaciones/marcar', 'obligaciones/ObligacionController@marcar');
         // Cuentas por pagar / por cobrar (saldo pendiente por proveedor o cliente)
         $router->get('/empresas/{id}/cuentas-por-pagar',      'cuentas/CuentasController@porPagar');
         $router->get('/empresas/{id}/cuentas-por-pagar/pdf',  'cuentas/CuentasController@porPagarPdf');
@@ -89,6 +91,7 @@ class App {
         // Motor contable — Cierre de Período
         $router->get('/empresas/{id}/cierre',        'cierre/CierreController@index');
         $router->post('/empresas/{id}/cierre/cerrar','cierre/CierreController@cerrar');
+        $router->post('/empresas/{id}/cierre/reabrir','cierre/CierreController@reabrir');
         // Motor contable — Balance General
         $router->get('/empresas/{id}/balance-general', 'balance/BalanceGeneralController@index');
         $router->get('/empresas/{id}/balance-general/pdf', 'balance/BalanceGeneralController@pdf');
@@ -128,6 +131,8 @@ class App {
 		// Registros ventas y compras
 		$router->get('/empresas/{id}/ventas',  'registros/RegistroController@ventas');
 		$router->get('/empresas/{id}/compras', 'registros/RegistroController@compras');
+		$router->get('/empresas/{id}/ventas/excel',  'registros/RegistroController@ventasExcel');
+		$router->get('/empresas/{id}/compras/excel', 'registros/RegistroController@comprasExcel');
         // Usuarios
         $router->get('/usuarios',                   'usuarios/UsuarioController@index');
         $router->get('/usuarios/crear',             'usuarios/UsuarioController@crear');

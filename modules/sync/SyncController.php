@@ -15,21 +15,25 @@ class SyncController
 
         $pdo = Model::db();
 
-        $periodos = Periodo::opciones();
-
-        $stmtV = $pdo->prepare("
-            SELECT periodo, COUNT(*) as cant, SUM(total) as total, MAX(fuente) as fuente
-            FROM registro_ventas WHERE empresa_id = ? GROUP BY periodo ORDER BY periodo DESC
-        ");
-        $stmtV->execute([$empresaId]);
-        $ventasSinc = $stmtV->fetchAll(PDO::FETCH_ASSOC);
-
-        $stmtC = $pdo->prepare("
-            SELECT periodo, COUNT(*) as cant, SUM(total) as total, MAX(fuente) as fuente
-            FROM registro_compras WHERE empresa_id = ? GROUP BY periodo ORDER BY periodo DESC
-        ");
-        $stmtC->execute([$empresaId]);
-        $comprasSinc = $stmtC->fetchAll(PDO::FETCH_ASSOC);
+        // Una fila por mes (el más reciente arriba): cuántos comprobantes hay, de qué fuente, cuántos sin clasificar y cuándo se bajó por última vez
+        $meses = [];
+        foreach (Periodo::opciones(12, 1) as $p) $meses[$p] = ['periodo' => $p, 'v' => 0, 'c' => 0, 'pv' => 0, 'pc' => 0, 'fv' => null, 'fc' => null, 'sync' => null];
+        foreach ([['registro_ventas', 'v'], ['registro_compras', 'c']] as [$tabla, $k]) {
+            $st = $pdo->prepare("
+                SELECT periodo, COUNT(*) AS n, COALESCE(SUM(estado_imputacion = 'pendiente' AND estado_sunat = '1'), 0) AS pend,
+                       MAX(fuente) AS fuente, MAX(sync_at) AS sync
+                FROM {$tabla} WHERE empresa_id = ? GROUP BY periodo
+            ");
+            $st->execute([$empresaId]);
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                if (!isset($meses[$r['periodo']])) continue;
+                $meses[$r['periodo']][$k] = (int)$r['n']; $meses[$r['periodo']]['p' . $k] = (int)$r['pend']; $meses[$r['periodo']]['f' . $k] = $r['fuente'];
+                if ($r['sync'] && ($meses[$r['periodo']]['sync'] === null || $r['sync'] > $meses[$r['periodo']]['sync'])) $meses[$r['periodo']]['sync'] = $r['sync'];
+            }
+        }
+        $stCert = $pdo->prepare("SELECT sol_usuario FROM empresa_certificados WHERE empresa_id = ? AND estado = 'activo' ORDER BY id DESC LIMIT 1");
+        $stCert->execute([$empresaId]);
+        $solUsuario = $stCert->fetchColumn();   // false = sin clave SOL configurada
 
         $resultadoSync = $this->_resultadoLeer($empresaId, true);
 
@@ -43,6 +47,9 @@ class SyncController
     /** Períodos a sincronizar según lo elegido en el formulario. */
     private function _periodosDe(array $in): array
     {
+        if (!empty($in['periodos']) && is_array($in['periodos'])) {   // lista explícita (botones de la tabla por mes)
+            return array_values(array_unique(array_filter($in['periodos'], [Periodo::class, 'permitido'])));
+        }
         $rango   = $in['rango']   ?? 'periodo';
         $periodo = $in['periodo'] ?? date('Ym', strtotime('first day of -1 month'));
         if ($rango === 'todo') {

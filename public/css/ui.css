@@ -113,17 +113,17 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 .gc-card.clip { overflow: hidden; }
 
 .gc-btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px;
-    border-radius: 10px; border: 1px solid var(--gc-line-2); background: #fff; color: var(--gc-ink);
-    font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; line-height: 1.2; white-space: nowrap;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 20px;
+    border-radius: 10px; border: 1.5px solid var(--gc-brand-line); background: #fff; color: var(--gc-brand);
+    font-size: 16px; font-weight: 700; cursor: pointer; text-align: center; line-height: 1.2; white-space: nowrap; text-decoration: none;
 }
-.gc-btn:hover { border-color: var(--gc-brand); color: var(--gc-ink); }
-.gc-btn-primary { background: var(--gc-brand); border-color: var(--gc-brand); color: #fff; }
-.gc-btn-primary:hover { background: var(--gc-brand-hover); border-color: var(--gc-brand-hover); color: #fff; }
+.gc-btn:hover { border-color: var(--gc-brand); color: var(--gc-brand); }
+.gc-btn-primary { background: var(--gc-brand); border: 0; color: #fff; padding: 0 22px; min-height: 48px; border-radius: 10px; }
+.gc-btn-primary:hover { background: var(--gc-brand-hover); color: #fff; }
 .gc-btn-soft { background: var(--gc-brand-soft); border-color: var(--gc-brand-line); color: var(--gc-brand); }
-.gc-btn-danger { background: var(--gc-neg-action); border-color: var(--gc-neg-action); color: #fff; }
-.gc-btn-danger:hover { background: #82201a; border-color: #82201a; color: #fff; }
-.gc-btn-lg { min-height: 54px; padding: 0 28px; font-size: 18px; }
+.gc-btn-danger { background: var(--gc-neg-action); border: 0; color: #fff; }
+.gc-btn-danger:hover { background: #82201a; color: #fff; }
+.gc-btn-lg { min-height: 54px; padding: 0 28px; font-size: 18px; border-radius: 12px; }
 .gc-btn[disabled], .gc-btn.is-off { opacity: .45; pointer-events: none; }
 
 .gc-input, .gc-select, .gc-textarea {
@@ -154,7 +154,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 .gc-tab .cnt.warn { background: var(--gc-warn-soft); color: var(--gc-warn); }
 
 .gc-seg { display: inline-flex; border: 1px solid var(--gc-line-2); border-radius: 10px; overflow: hidden; background: #fff; }
-.gc-seg a, .gc-seg button { min-height: 44px; padding: 0 20px; display: inline-flex; align-items: center; gap: 8px; border: 0; background: #fff; color: var(--gc-ink); font-size: 16px; font-weight: 600; cursor: pointer; }
+.gc-seg a, .gc-seg button { min-height: 44px; padding: 0 20px; display: inline-flex; align-items: center; gap: 8px; border: 0; background: #fff; color: var(--gc-brand); font-size: 17px; font-weight: 700; cursor: pointer; }
 .gc-seg a + a, .gc-seg button + button { border-left: 1px solid var(--gc-line-2); }
 .gc-seg .is-active { background: var(--gc-brand-soft); color: var(--gc-brand); }
 .gc-seg a:hover:not(.is-active) { background: var(--gc-surface-2); color: var(--gc-ink); }
@@ -210,9 +210,10 @@ button.gc-kpi.is-active, a.gc-kpi.is-active { border-color: var(--gc-brand); bac
 .gc-subnav { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; }
 .gc-subnav .grupo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .gc-subnav .rotulo { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--gc-label-2); min-width: 140px; }
-.gc-subnav a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid var(--gc-line-2); border-radius: 10px; background: #fff; color: var(--gc-ink); font-size: 16px; font-weight: 600; }
-.gc-subnav a:hover { border-color: var(--gc-brand); color: var(--gc-ink); }
+.gc-subnav a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--gc-brand-line); border-radius: 10px; background: #fff; color: var(--gc-brand); font-size: 16px; font-weight: 700; }
+.gc-subnav a:hover { border-color: var(--gc-brand); color: var(--gc-brand); }
 .gc-subnav a.is-active { background: var(--gc-brand); border-color: var(--gc-brand); color: #fff; }
+.gc-subnav a:hover.is-active { color: #fff; }
 
 /* ───────── Pantallas heredadas (aún con estilos en línea) ─────────
  * Hasta migrarlas, se les aplica la regla de accesibilidad de la guía: nunca menos

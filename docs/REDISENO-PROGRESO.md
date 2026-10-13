@@ -30,11 +30,15 @@ Se trabaja por fases; cada pantalla se verifica con capturas reales (base de des
   corrección, confirmación con casilla, y "Reabrir el año" → `CierreService::reabrirPeriodo`).
 - Régimen tributario, Depurar, Datos de la empresa (editar), Usuarios, Crear empresa: toman la paleta y los controles nuevos.
 
+- **Libro Diario**: filtros Todos/Automáticos/Manuales, chip por asiento, haber sangrado, confirmación en "Volver a generar".
+- **Caja** (Movimientos, Libro Caja y Bancos), **Planillas**, **Honorarios**, **Apertura**: reescritos con los componentes nuevos.
+- **Datos de la empresa**: pestañas comunes (Datos · Certificado y clave SOL · Régimen · Depurar).
+
 ## Pendiente
-- Reescribir con los componentes nuevos (hoy solo heredan paleta/tamaños): Caja, Planillas, Honorarios, Apertura,
-  Reglas de clasificación, Alertas, Usuarios, Crear empresa.
-- Libro Diario: chips Todos/Automáticos/Manuales y confirmación en "Volver a generar".
-- Cierre: `reabrirPeriodo` no recalcula el año siguiente; al cerrar de nuevo se regeneran sus saldos de apertura.
+- Con estilo heredado (paleta y tamaños nuevos, sin componentes): Préstamos bancarios, Reglas de clasificación, Alertas,
+  Usuarios (lista/crear/editar), Crear empresa, formularios internos de Datos de la empresa y Certificado.
+- No implementado (motor contable): hoja "Determinación del IR" del Excel y asiento de consumo de suministros/materia prima.
+- `reabrirPeriodo` no recalcula el año siguiente; al cerrar de nuevo se regeneran sus saldos de apertura.
 
 ## Antes de producción
 Aplicar con respaldo: `fase1j`, `fase1k`, `fase1l`, `fase1m`, `fase0e` (en `docs/gesticon_doc/`).

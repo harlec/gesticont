@@ -25,6 +25,8 @@ $campo = function (string $name, string $tipo, bool $lleno, string $vacioPh, boo
 
 $panelAyuda = 'background:var(--gc-bg);border:1px solid var(--gc-line);border-radius:10px;padding:16px 18px;font-size:13px;color:var(--gc-label);line-height:1.65;';
 ?>
+<?php $empTab = 'certificado'; require ROOT . '/views/layout/empresa_subtabs.php'; ?>
+
 <style>
     .cert-fila { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,460px); gap:24px; align-items:start; }
     @media (max-width: 1100px) { .cert-fila { grid-template-columns:1fr; } }

@@ -1,99 +1,77 @@
 <?php
-$fmt = fn($v) => $v != 0 ? number_format((float)$v, 2) : '';
-?>
+/** Libro Diario (rediseño). Variables: $empresa, $periodo, $asientos, $pendientes. */
+$id = (int)$empresa['id'];
+$contActiva = 'diario'; require ROOT . '/views/layout/contabilidad_subtabs.php';
+$nAuto = count(array_filter($asientos, fn($a) => $a['origen'] !== 'manual'));
+$nMan  = count($asientos) - $nAuto;
+$contTitulo = 'Libro Diario';
+$contDesc = Periodo::etiqueta($periodo, true) . ' · ' . count($asientos) . ' asiento' . (count($asientos) === 1 ? '' : 's');
+$contAcciones = '<a class="gc-btn" href="/empresas/' . $id . '/diario/pdf?periodo=' . $periodo . '" target="_blank" rel="noopener">Descargar PDF</a>'
+              . '<button type="button" class="gc-btn" onclick="openModal(\'diario-regenerar\')">Volver a generar</button>';
+require ROOT . '/views/layout/contabilidad_head.php';
+$fmt = fn($v) => abs((float)$v) < 0.005 ? '' : number_format((float)$v, 2);
+foreach (['diario_error' => 'neg', 'diario_aviso' => 'warn', 'diario_ok' => 'ok'] as $key => $tipo):
+    if (empty($_SESSION[$key])) continue; ?>
+<div class="gc-alert <?= $tipo ?>" role="status"><span class="msg"><?= htmlspecialchars($_SESSION[$key]) ?></span></div>
+<?php unset($_SESSION[$key]); endforeach;
+$libroClave = 'diario'; require ROOT . '/views/layout/regimen_badge.php'; ?>
 
-<div class="gc-content gc-w-content">
-<div style="max-width:960px;margin:0 auto;">
+<?php if ((int)$pendientes['ventas'] > 0 || (int)$pendientes['compras'] > 0): ?>
+<div class="gc-alert warn"><span class="msg">Quedan <b><?= (int)$pendientes['ventas'] ?> venta(s)</b> y <b><?= (int)$pendientes['compras'] ?> compra(s)</b> sin clasificar en este período. El asiento generado no las incluye hasta que las clasifiques.</span>
+    <a class="gc-btn" href="/empresas/<?= $id ?>/imputacion">Clasificar ahora</a></div>
+<?php endif; ?>
+<div class="gc-alert info"><span class="msg">Los asientos <b>automáticos</b> salen de tus ventas, compras, cobros y pagos clasificados. Los <b>manuales</b> los registras tú en <a href="/empresas/<?= $id ?>/asientos">Asientos manuales</a>. Al volver a generar solo se rehacen los automáticos.</span></div>
 
-    <?php foreach (['diario_error' => ['var(--gc-neg-soft)', 'var(--gc-neg)', '⚠'], 'diario_aviso' => ['var(--gc-warn-soft)', 'var(--gc-warn)', 'ℹ'], 'diario_ok' => ['var(--gc-pos-soft-2)', 'var(--gc-pos)', '✓']] as $key => [$bg, $fg, $icon]):
-        if (empty($_SESSION[$key])) continue; ?>
-    <div style="background:<?= $bg ?>;color:<?= $fg ?>;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        <?= $icon ?> <?= htmlspecialchars($_SESSION[$key]) ?>
-    </div>
-    <?php unset($_SESSION[$key]); endforeach; ?>
-
-    <?php $libroClave = 'diario'; require ROOT . '/views/layout/regimen_badge.php'; ?>
-
-    <!-- Barra de acciones: el período se cambia desde la barra superior -->
-    <div class="no-print" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-        <div>
-            <div style="font-size:18px;font-weight:700;color:var(--gc-ink);">Libro Diario</div>
-            <div style="font-size:13px;color:var(--gc-muted);"><?= Periodo::etiqueta($periodo, true) ?> · <?= count($asientos) ?> asiento(s)</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <a href="/empresas/<?= $empresa['id'] ?>/diario/pdf?periodo=<?= $periodo ?>" target="_blank" rel="noopener"
-               style="background:var(--gc-surface-2);color:var(--gc-label);padding:9px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">📄 Descargar PDF</a>
-            <form method="POST" action="/empresas/<?= $empresa['id'] ?>/diario/generar" style="margin:0;">
-                <input type="hidden" name="periodo" value="<?= $periodo ?>">
-                <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:9px 18px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
-                    ⚙️ Generar / Regenerar
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <?php if ((int)$pendientes['ventas'] > 0 || (int)$pendientes['compras'] > 0): ?>
-    <div style="background:var(--gc-warn-soft);color:var(--gc-warn);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        ⚠ Quedan <?= $pendientes['ventas'] ?> venta(s) y <?= $pendientes['compras'] ?> compra(s) sin clasificar en este período —
-        el asiento generado no las incluirá hasta que se
-        <a href="/empresas/<?= $empresa['id'] ?>/imputacion" style="color:var(--gc-warn);text-decoration:underline;">clasifiquen aquí</a>.
-    </div>
-    <?php endif; ?>
-
-    <?php if (!empty($asientos)): $totD = $totH = 0.0; ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
-            <thead>
-                <tr style="background:var(--gc-bg);border-bottom:1px solid var(--gc-line);color:var(--gc-muted);">
-                    <th style="padding:8px 14px;text-align:left;width:52px;">N°</th>
-                    <th style="padding:8px 14px;text-align:left;width:88px;">Fecha</th>
-                    <th style="padding:8px 14px;text-align:left;">Cuenta</th>
-                    <th style="padding:8px 14px;text-align:right;width:110px;">Debe</th>
-                    <th style="padding:8px 14px;text-align:right;width:110px;">Haber</th>
-                </tr>
-            </thead>
-            <?php foreach ($asientos as $a):
-                $sd = array_sum(array_column($a['lineas'], 'debe')); $sh = array_sum(array_column($a['lineas'], 'haber'));
-                $totD += $sd; $totH += $sh;
-            ?>
-            <tbody style="border-top:1px solid var(--gc-line);">
-                <tr style="background:var(--gc-brand-soft);">
-                    <td style="padding:7px 14px;font-family:monospace;font-weight:700;color:var(--gc-brand);"><?= $a['correlativo'] ?></td>
-                    <td style="padding:7px 14px;font-family:monospace;color:var(--gc-label);white-space:nowrap;"><?= date('d/m/Y', strtotime($a['fecha'])) ?></td>
-                    <td colspan="3" style="padding:7px 14px;font-weight:600;color:var(--gc-ink);"><?= htmlspecialchars($a['glosa']) ?></td>
-                </tr>
-                <?php foreach ($a['lineas'] as $l): ?>
-                <tr>
-                    <td></td><td></td>
-                    <td style="padding:5px 14px;">
-                        <span style="font-family:monospace;font-weight:700;color:var(--gc-label);"><?= $l['codigo'] ?></span>
-                        <?= htmlspecialchars($l['nombre']) ?>
-                    </td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;"><?= $fmt($l['debe']) ?></td>
-                    <td style="padding:5px 14px;text-align:right;font-family:monospace;"><?= $fmt($l['haber']) ?></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-            <?php endforeach; ?>
-            <tfoot>
-                <tr style="border-top:2px solid var(--gc-line);background:var(--gc-bg);font-weight:700;">
-                    <td colspan="3" style="padding:9px 14px;">Total del período</td>
-                    <td style="padding:9px 14px;text-align:right;font-family:monospace;"><?= number_format($totD, 2) ?></td>
-                    <td style="padding:9px 14px;text-align:right;font-family:monospace;"><?= number_format($totH, 2) ?></td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-    <?php else: ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:60px;text-align:center;color:var(--gc-muted);">
-        <div style="font-size:40px;margin-bottom:16px;">📖</div>
-        <div style="font-size:16px;font-weight:600;color:var(--gc-label);margin-bottom:8px;">
-            Sin asientos generados para este período
-        </div>
-        <div style="font-size:13px;">
-            Usa el botón "Generar" arriba una vez que las compras y ventas estén clasificadas.
-        </div>
-    </div>
-    <?php endif; ?>
+<?php if (empty($asientos)): ?>
+<div class="gc-card"><div class="gc-empty"><b>Sin asientos en este período</b>Genera los asientos cuando las compras y ventas estén clasificadas.
+    <div style="margin-top:14px;"><button type="button" class="gc-btn gc-btn-primary" onclick="openModal('diario-regenerar')">Generar asientos</button></div></div></div>
+<?php else: $totD = $totH = 0.0; ?>
+<div class="gc-seg no-print" style="width:max-content;max-width:100%;" id="dia-filtro" role="group" aria-label="Tipo de asiento">
+    <button type="button" class="is-active" data-f="">Todos (<?= count($asientos) ?>)</button>
+    <button type="button" data-f="auto">Automáticos (<?= $nAuto ?>)</button>
+    <button type="button" data-f="manual">Manuales (<?= $nMan ?>)</button>
 </div>
+<section class="gc-card clip" style="overflow-x:auto;">
+<table class="gc-table" style="min-width:720px;">
+    <thead><tr><th style="width:60px;">N°</th><th style="width:100px;">Fecha</th><th>Cuenta</th><th class="r" style="width:130px;">Debe</th><th class="r" style="width:130px;">Haber</th></tr></thead>
+    <?php foreach ($asientos as $a):
+        $sd = array_sum(array_column($a['lineas'], 'debe')); $sh = array_sum(array_column($a['lineas'], 'haber'));
+        $totD += $sd; $totH += $sh; $man = $a['origen'] === 'manual'; ?>
+    <tbody class="dia-asiento" data-tipo="<?= $man ? 'manual' : 'auto' ?>">
+        <tr style="background:var(--gc-brand-soft);">
+            <td class="mono" style="font-weight:700;color:var(--gc-brand);"><?= $a['correlativo'] ?></td>
+            <td class="mono" style="white-space:nowrap;"><?= date('d/m/Y', strtotime($a['fecha'])) ?></td>
+            <td colspan="3"><span class="gc-chip <?= $man ? 'warn' : '' ?>" style="margin-right:8px;"><?= $man ? 'Manual' : 'Automático' ?></span><b><?= htmlspecialchars($a['glosa']) ?></b></td>
+        </tr>
+        <?php foreach ($a['lineas'] as $l): $esHaber = (float)$l['haber'] > 0 && (float)$l['debe'] == 0; ?>
+        <tr>
+            <td></td><td></td>
+            <td style="<?= $esHaber ? 'padding-left:36px;' : '' ?>"><span class="mono" style="font-weight:700;"><?= $l['codigo'] ?></span> <?= htmlspecialchars($l['nombre']) ?></td>
+            <td class="r num"><?= $fmt($l['debe']) ?></td>
+            <td class="r num"><?= $fmt($l['haber']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </tbody>
+    <?php endforeach; ?>
+    <tfoot><tr><td colspan="3">Total del período</td><td class="r num"><?= number_format($totD, 2) ?></td><td class="r num"><?= number_format($totH, 2) ?></td></tr></tfoot>
+</table>
+</section>
+<script>
+document.querySelectorAll('#dia-filtro button').forEach(function (b) {
+    b.addEventListener('click', function () {
+        var f = b.getAttribute('data-f');
+        document.querySelectorAll('#dia-filtro button').forEach(function (x) { x.classList.toggle('is-active', x === b); });
+        document.querySelectorAll('.dia-asiento').forEach(function (g) { g.style.display = (!f || g.getAttribute('data-tipo') === f) ? '' : 'none'; });
+    });
+});
+</script>
+<?php endif; ?>
+
+<div class="gc-modal-back" id="diario-regenerar" onmousedown="if(event.target===this)closeModal('diario-regenerar')">
+  <form class="gc-modal sm" method="POST" action="/empresas/<?= $id ?>/diario/generar">
+    <h2>¿Volver a generar <?= Periodo::etiqueta($periodo, true) ?>?</h2>
+    <p style="margin:12px 0;">Se rehacen los asientos <b>automáticos</b> con lo que hoy está clasificado. Los asientos manuales no se tocan.</p>
+    <input type="hidden" name="periodo" value="<?= $periodo ?>">
+    <div class="gc-row" style="justify-content:flex-end;margin-top:18px;"><button type="button" class="gc-btn" onclick="closeModal('diario-regenerar')">Cancelar</button><button type="submit" class="gc-btn gc-btn-primary">Sí, generar</button></div>
+  </form>
 </div>

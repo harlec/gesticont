@@ -2,6 +2,8 @@
 $etiquetaMin = Periodo::etiqueta($hasta, true);
 $bloqueada   = !$apertura['ok'];
 ?>
+<?php $empTab = 'depurar'; require ROOT . '/views/layout/empresa_subtabs.php'; ?>
+
 <div class="gc-content gc-w-content">
 <div style="max-width:760px;margin:0 auto;">
 

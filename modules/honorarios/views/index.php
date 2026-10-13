@@ -1,135 +1,93 @@
 <?php
-$fmt = fn($v) => number_format((float)$v, 2);
-$base = "/empresas/{$empresa['id']}/honorarios";
-$periodos = [];
-$periodos = Periodo::opciones(13, 0);
-if (!in_array($periodo, $periodos, true)) array_unshift($periodos, $periodo);
-$inp = 'padding:8px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;color:var(--gc-ink);background:var(--gc-surface);width:100%;';
-$lbl = 'display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;';
-?>
-<div class="gc-content gc-w-content">
+/** Honorarios · recibos de 4ta categoría (rediseño). Variables: $empresa, $periodo, $anio, $recibos, $tot, $resumenAnual. */
+$id = (int)$empresa['id'];
+$base = "/empresas/{$id}/honorarios";
+$S = fn($v) => abs((float)$v) < 0.005 ? '<span style="color:var(--gc-muted);">—</span>' : number_format((float)$v, 2);
+foreach (['honorario_ok' => 'ok', 'honorario_error' => 'neg'] as $k => $t): if (empty($_SESSION[$k])) continue; ?>
+<div class="gc-alert <?= $t ?>" role="status"><span class="msg"><?= htmlspecialchars($_SESSION[$k]) ?></span></div>
+<?php unset($_SESSION[$k]); endforeach; ?>
 
-    <?php foreach (['honorario_ok' => ['var(--gc-pos-soft-2)', 'var(--gc-pos)', 'var(--gc-pos-border)', '✓'], 'honorario_error' => ['var(--gc-neg-soft)', 'var(--gc-neg)', 'var(--gc-neg-border)', '⚠']] as $k => [$bg, $fg, $bd, $ic]): ?>
-    <?php if (!empty($_SESSION[$k])): ?>
-    <div style="background:<?= $bg ?>;color:<?= $fg ?>;border:1px solid <?= $bd ?>;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;"><?= $ic ?> <?= htmlspecialchars($_SESSION[$k]) ?></div>
-    <?php unset($_SESSION[$k]); endif; endforeach; ?>
+<div class="gc-stack" style="gap:4px;"><h2 style="margin:0;font-size:24px;font-weight:700;">Honorarios</h2>
+    <div class="gc-sub">Recibos por honorarios (4.ª categoría) de <?= Periodo::etiqueta($periodo, true) ?></div></div>
+<div class="gc-alert info"><span class="msg">Cada recibo se contabiliza como Debe 632 / Haber 424 (neto por pagar) + Haber 4017 (retención) al generar los asientos del mes. Se asume <b>pagado</b>: el pago del neto entra a Caja. La retención se entrega a SUNAT aparte, como egreso de Caja contra 4017.</span></div>
 
-    <div style="margin-bottom:14px;">
-        <div style="font-size:16px;font-weight:700;color:var(--gc-ink);">Honorarios (recibos de 4ta categoría)</div>
-        <div style="font-size:13px;color:var(--gc-muted);margin-top:2px;">
-            Cada recibo se provisiona Debe 632 / Haber 424 (neto por pagar) + Haber 4017 (retención) al generar los asientos del mes.
-            Se asume <strong>pagado</strong>: el pago del neto entra a Caja. La retención se entrega a SUNAT aparte, como egreso de Caja contra 4017.
-        </div>
-    </div>
+<?php if (!empty($recibos)): ?>
+<section class="gc-kpis">
+    <div class="gc-kpi"><div class="k">Monto bruto</div><div class="v num">S/ <?= number_format($tot['monto'], 2) ?></div></div>
+    <div class="gc-kpi"><div class="k">Retención 4017</div><div class="v num">S/ <?= number_format($tot['retencion'], 2) ?></div></div>
+    <div class="gc-kpi"><div class="k">Neto</div><div class="v num">S/ <?= number_format($tot['neto'], 2) ?></div></div>
+    <div class="gc-kpi <?= $tot['pendiente'] > 0 ? 'warn' : 'ok' ?>"><div class="k">Por pagar</div><div class="v num">S/ <?= number_format($tot['pendiente'], 2) ?></div></div>
+</section>
+<?php endif; ?>
 
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <label style="font-size:12px;font-weight:700;color:var(--gc-muted);text-transform:uppercase;letter-spacing:1px;">Período</label>
-        <?php foreach ($periodos as $p): $act = $p === $periodo; ?>
-        <a href="<?= $base ?>?periodo=<?= $p ?>" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:<?= $act ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $act ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;"><?= Periodo::etiqueta($p) ?></a>
-        <?php endforeach; ?>
-    </div>
+<section class="gc-card pad gc-stack" style="gap:14px;">
+    <h3 class="gc-h3" style="margin:0;">Registrar un recibo</h3>
+    <form method="POST" action="<?= $base ?>/crear" class="gc-row" style="gap:12px;align-items:flex-end;">
+        <input type="hidden" name="periodo" value="<?= $periodo ?>">
+        <div class="gc-field" style="width:170px;"><label class="gc-label">Fecha</label><input type="date" name="fecha" required value="<?= date('Y-m-d') ?>" class="gc-input"></div>
+        <div class="gc-field" style="flex:2;min-width:240px;"><label class="gc-label">Prestador</label><input type="text" name="prestador_nombre" required placeholder="Nombre o razón social" class="gc-input"></div>
+        <div class="gc-field" style="width:160px;"><label class="gc-label">RUC o DNI</label><input type="text" name="prestador_doc" maxlength="15" class="gc-input"></div>
+        <div class="gc-field" style="width:170px;"><label class="gc-label">Recibo (E001-123)</label><input type="text" name="comprobante" maxlength="30" class="gc-input"></div>
+        <div class="gc-field" style="width:150px;"><label class="gc-label">Monto bruto (S/)</label><input type="number" name="monto" id="hon-monto" step="0.01" min="0.01" required class="gc-input" style="text-align:right;"></div>
+        <div class="gc-field" style="width:150px;"><label class="gc-label">Retención 8 %</label><input type="number" name="retencion" id="hon-ret" step="0.01" min="0" placeholder="automática" class="gc-input" style="text-align:right;"></div>
+        <div class="gc-field" style="flex:2;min-width:200px;"><label class="gc-label">Concepto</label><input type="text" name="descripcion" maxlength="200" class="gc-input"></div>
+        <label class="gc-check" style="min-height:44px;"><input type="checkbox" name="pagado" checked> Ya se pagó</label>
+        <button type="submit" class="gc-btn gc-btn-primary">Registrar</button>
+    </form>
+    <div class="gc-sub">La retención se calcula sola (8 %) cuando el recibo supera S/ 1,500. Déjala vacía para eso, o escríbela (0 si el prestador tiene suspensión de retenciones).</div>
+</section>
 
-    <!-- Nuevo recibo -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);margin-bottom:16px;overflow:hidden;">
-        <div style="padding:12px 20px;background:var(--gc-bg);border-bottom:1px solid var(--gc-line);font-weight:700;font-size:13px;color:var(--gc-ink);">+ Registrar recibo por honorarios</div>
-        <form method="POST" action="<?= $base ?>/crear" style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;">
-            <input type="hidden" name="periodo" value="<?= $periodo ?>">
-            <div><label style="<?= $lbl ?>">Fecha</label><input type="date" name="fecha" required value="<?= date('Y-m-d') ?>" style="<?= $inp ?>"></div>
-            <div style="grid-column:span 2;"><label style="<?= $lbl ?>">Prestador *</label><input type="text" name="prestador_nombre" required placeholder="Nombre o razón social" style="<?= $inp ?>"></div>
-            <div><label style="<?= $lbl ?>">RUC / DNI</label><input type="text" name="prestador_doc" maxlength="15" style="<?= $inp ?>"></div>
-            <div><label style="<?= $lbl ?>">Recibo (E001-123)</label><input type="text" name="comprobante" maxlength="30" style="<?= $inp ?>"></div>
-            <div><label style="<?= $lbl ?>">Monto bruto *</label><input type="number" name="monto" id="hon-monto" step="0.01" min="0.01" required style="<?= $inp ?>text-align:right;font-family:monospace;"></div>
-            <div><label style="<?= $lbl ?>">Retención 8 %</label><input type="number" name="retencion" id="hon-ret" step="0.01" min="0" placeholder="auto" style="<?= $inp ?>text-align:right;font-family:monospace;"></div>
-            <div><label style="<?= $lbl ?>">Concepto</label><input type="text" name="descripcion" maxlength="200" style="<?= $inp ?>"></div>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gc-label);padding-bottom:8px;">
-                <input type="checkbox" name="pagado" checked style="width:15px;height:15px;"> Ya se pagó
-            </label>
-            <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Registrar</button>
-        </form>
-        <div style="padding:0 20px 14px;font-size:11px;color:var(--gc-muted);">
-            La retención se calcula sola (8 %) cuando el recibo supera S/ 1,500; déjala vacía para eso, o escríbela (0 si el prestador tiene suspensión de retenciones).
-        </div>
-    </div>
+<?php if (empty($recibos)): ?>
+<div class="gc-card"><div class="gc-empty"><b>No hay recibos en <?= Periodo::etiqueta($periodo, true) ?></b>Regístralos arriba.</div></div>
+<?php else: ?>
+<section class="gc-card clip" style="overflow-x:auto;">
+<table class="gc-table" style="min-width:900px;">
+    <thead><tr><th>Fecha</th><th>Prestador</th><th>Recibo</th><th class="r">Monto</th><th class="r">Retención</th><th class="r">Neto</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+    <?php foreach ($recibos as $r): ?>
+        <tr>
+            <td class="mono" style="white-space:nowrap;"><?= date('d/m/Y', strtotime($r['fecha'])) ?></td>
+            <td><b><?= htmlspecialchars($r['prestador_nombre']) ?></b><?php if ($r['prestador_doc']): ?><div class="mono gc-sub" style="font-size:14px;"><?= htmlspecialchars($r['prestador_doc']) ?></div><?php endif; ?></td>
+            <td class="mono"><?= htmlspecialchars((string)$r['comprobante']) ?></td>
+            <td class="r num"><?= $S($r['monto']) ?></td>
+            <td class="r num"><?= $S($r['retencion']) ?></td>
+            <td class="r num" style="font-weight:700;"><?= $S(HonorarioService::neto($r)) ?></td>
+            <td><span class="gc-chip <?= $r['pagado'] ? 'ok' : 'warn' ?>"><?= $r['pagado'] ? 'Pagado' : 'Pendiente' ?></span></td>
+            <td style="white-space:nowrap;text-align:right;">
+                <?php if ($r['pagado']): ?>
+                <form method="POST" action="<?= $base ?>/<?= $r['id'] ?>/pendiente" style="display:inline;"><input type="hidden" name="periodo" value="<?= $periodo ?>"><button type="submit" class="gc-btn">Pasar a pendiente</button></form>
+                <?php else: ?>
+                <form method="POST" action="<?= $base ?>/<?= $r['id'] ?>/pagar" class="gc-row" style="display:inline-flex;gap:8px;"><input type="hidden" name="periodo" value="<?= $periodo ?>">
+                    <input type="date" name="fecha" value="<?= date('Y-m-d') ?>" class="gc-input" style="width:160px;"><button type="submit" class="gc-btn gc-btn-primary">Registrar pago</button></form>
+                <?php endif; ?>
+                <form method="POST" action="<?= $base ?>/<?= $r['id'] ?>/eliminar" style="display:inline;" onsubmit="return confirm('¿Quitar este recibo?');"><input type="hidden" name="periodo" value="<?= $periodo ?>"><button type="submit" class="gc-btn">Quitar</button></form>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+    </tbody>
+    <tfoot><tr><td colspan="3">Total del mes</td><td class="r num"><?= number_format($tot['monto'], 2) ?></td><td class="r num"><?= number_format($tot['retencion'], 2) ?></td><td class="r num"><?= number_format($tot['neto'], 2) ?></td><td colspan="2"><?= $tot['pendiente'] > 0 ? 'Por pagar: S/ ' . number_format($tot['pendiente'], 2) : '' ?></td></tr></tfoot>
+</table>
+</section>
+<?php endif; ?>
 
-    <!-- Recibos del mes -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow-x:auto;margin-bottom:16px;">
-        <div style="padding:12px 20px;background:var(--gc-bg);border-bottom:1px solid var(--gc-line);font-weight:700;font-size:13px;color:var(--gc-ink);">Recibos de <?= Periodo::etiqueta($periodo) ?></div>
-        <?php if (empty($recibos)): ?>
-        <div style="padding:30px;text-align:center;color:var(--gc-muted);font-size:13px;">No hay recibos en este período.</div>
-        <?php else: ?>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead><tr style="border-bottom:1px solid var(--gc-line);color:var(--gc-label-2);">
-                <th style="padding:8px 14px;text-align:left;">Fecha</th><th style="padding:8px 14px;text-align:left;">Prestador</th><th style="padding:8px 14px;text-align:left;">Recibo</th>
-                <th style="padding:8px 14px;text-align:right;">Monto</th><th style="padding:8px 14px;text-align:right;">Retención</th><th style="padding:8px 14px;text-align:right;">Neto</th>
-                <th style="padding:8px 14px;text-align:center;">Estado</th><th style="padding:8px 14px;"></th>
-            </tr></thead>
-            <tbody>
-            <?php foreach ($recibos as $r): ?>
-                <tr style="border-top:1px solid var(--gc-surface-2);">
-                    <td style="padding:8px 14px;white-space:nowrap;"><?= $r['fecha'] ?></td>
-                    <td style="padding:8px 14px;"><?= htmlspecialchars($r['prestador_nombre']) ?>
-                        <?php if ($r['prestador_doc']): ?><div style="font-family:monospace;font-size:11px;color:var(--gc-muted);"><?= htmlspecialchars($r['prestador_doc']) ?></div><?php endif; ?></td>
-                    <td style="padding:8px 14px;font-family:monospace;font-size:12px;"><?= htmlspecialchars((string)$r['comprobante']) ?></td>
-                    <td style="padding:8px 14px;text-align:right;font-family:monospace;"><?= $fmt($r['monto']) ?></td>
-                    <td style="padding:8px 14px;text-align:right;font-family:monospace;color:var(--gc-neg);"><?= $fmt($r['retencion']) ?></td>
-                    <td style="padding:8px 14px;text-align:right;font-family:monospace;font-weight:700;"><?= $fmt(HonorarioService::neto($r)) ?></td>
-                    <td style="padding:8px 14px;text-align:center;">
-                        <span style="padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $r['pagado'] ? 'var(--gc-pos-soft)' : 'var(--gc-warn-soft)' ?>;color:<?= $r['pagado'] ? 'var(--gc-pos)' : 'var(--gc-warn)' ?>;">
-                            <?= $r['pagado'] ? 'Pagado' : 'Pendiente' ?></span>
-                    </td>
-                    <td style="padding:8px 14px;white-space:nowrap;">
-                        <?php if ($r['pagado']): ?>
-                        <form method="POST" action="<?= $base ?>/<?= $r['id'] ?>/pendiente" style="display:inline;"><input type="hidden" name="periodo" value="<?= $periodo ?>">
-                            <button type="submit" style="background:var(--gc-surface-2);color:var(--gc-label);border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Pasar a pendiente</button></form>
-                        <?php else: ?>
-                        <form method="POST" action="<?= $base ?>/<?= $r['id'] ?>/pagar" style="display:inline;"><input type="hidden" name="periodo" value="<?= $periodo ?>">
-                            <input type="date" name="fecha" value="<?= date('Y-m-d') ?>" style="padding:4px 6px;border:1px solid var(--gc-line);border-radius:6px;font-size:12px;">
-                            <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Registrar pago</button></form>
-                        <?php endif; ?>
-                        <form method="POST" action="<?= $base ?>/<?= $r['id'] ?>/eliminar" style="display:inline;" onsubmit="return confirm('¿Eliminar este recibo?');"><input type="hidden" name="periodo" value="<?= $periodo ?>">
-                            <button type="submit" style="background:none;border:none;color:var(--gc-neg);cursor:pointer;font-size:13px;">✕</button></form>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-            <tfoot><tr style="border-top:2px solid var(--gc-line);font-weight:700;background:var(--gc-bg);">
-                <td colspan="3" style="padding:8px 14px;">Total del mes</td>
-                <td style="padding:8px 14px;text-align:right;font-family:monospace;"><?= $fmt($tot['monto']) ?></td>
-                <td style="padding:8px 14px;text-align:right;font-family:monospace;color:var(--gc-neg);"><?= $fmt($tot['retencion']) ?></td>
-                <td style="padding:8px 14px;text-align:right;font-family:monospace;"><?= $fmt($tot['neto']) ?></td>
-                <td colspan="2" style="padding:8px 14px;font-size:12px;color:var(--gc-warn);"><?= $tot['pendiente'] > 0 ? 'Por pagar: S/ ' . $fmt($tot['pendiente']) : '' ?></td>
-            </tr></tfoot>
-        </table>
-        <?php endif; ?>
-    </div>
-
-    <!-- Resumen del año (hoja HONORARIO) -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow-x:auto;">
-        <div style="padding:12px 20px;background:var(--gc-bg);border-bottom:1px solid var(--gc-line);font-weight:700;font-size:13px;color:var(--gc-ink);">Honorarios de enero a diciembre <?= $anio ?></div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead><tr style="border-bottom:1px solid var(--gc-line);color:var(--gc-label-2);">
-                <th style="padding:8px 14px;text-align:left;">Mes</th><th style="padding:8px 14px;text-align:right;">Recibos</th>
-                <th style="padding:8px 14px;text-align:right;">Monto</th><th style="padding:8px 14px;text-align:right;">Retención</th><th style="padding:8px 14px;text-align:right;">Total (neto)</th>
-            </tr></thead>
-            <tbody>
-            <?php $ta = ['n' => 0, 'm' => 0.0, 'r' => 0.0];
-            for ($m = 1; $m <= 12; $m++):
-                $p = sprintf('%s%02d', $anio, $m); $x = $resumenAnual[$p] ?? null;
-                if ($x) { $ta['n'] += $x['n']; $ta['m'] += $x['monto']; $ta['r'] += $x['retencion']; } ?>
-                <tr style="border-top:1px solid var(--gc-surface-2);<?= $p === $periodo ? 'background:var(--gc-brand-soft);' : '' ?>">
-                    <td style="padding:6px 14px;"><a href="<?= $base ?>?periodo=<?= $p ?>" style="color:var(--gc-ink);text-decoration:none;"><?= Periodo::etiqueta($p, true) ?></a></td>
-                    <td style="padding:6px 14px;text-align:right;font-family:monospace;"><?= $x ? (int)$x['n'] : '—' ?></td>
-                    <td style="padding:6px 14px;text-align:right;font-family:monospace;"><?= $x ? $fmt($x['monto']) : '—' ?></td>
-                    <td style="padding:6px 14px;text-align:right;font-family:monospace;"><?= $x ? $fmt($x['retencion']) : '—' ?></td>
-                    <td style="padding:6px 14px;text-align:right;font-family:monospace;font-weight:700;"><?= $x ? $fmt($x['monto'] - $x['retencion']) : '—' ?></td>
-                </tr>
-            <?php endfor; ?>
-            </tbody>
-            <tfoot><tr style="border-top:2px solid var(--gc-line);font-weight:700;background:var(--gc-bg);">
-                <td style="padding:8px 14px;">Total año</td><td style="padding:8px 14px;text-align:right;font-family:monospace;"><?= $ta['n'] ?></td>
-                <td style="padding:8px 14px;text-align:right;font-family:monospace;"><?= $fmt($ta['m']) ?></td><td style="padding:8px 14px;text-align:right;font-family:monospace;"><?= $fmt($ta['r']) ?></td>
-                <td style="padding:8px 14px;text-align:right;font-family:monospace;"><?= $fmt($ta['m'] - $ta['r']) ?></td>
-            </tr></tfoot>
-        </table>
-    </div>
-</div>
+<h3 class="gc-h3" style="margin:8px 0 0;">Honorarios de enero a diciembre <?= $anio ?></h3>
+<section class="gc-card clip" style="overflow-x:auto;">
+<table class="gc-table">
+    <thead><tr><th>Mes</th><th class="r">Recibos</th><th class="r">Monto</th><th class="r">Retención</th><th class="r">Neto</th></tr></thead>
+    <tbody>
+    <?php $ta = ['n' => 0, 'm' => 0.0, 'r' => 0.0];
+    for ($m = 1; $m <= 12; $m++):
+        $p = sprintf('%s%02d', $anio, $m); $x = $resumenAnual[$p] ?? null;
+        if ($x) { $ta['n'] += $x['n']; $ta['m'] += $x['monto']; $ta['r'] += $x['retencion']; } ?>
+        <tr style="<?= $p === $periodo ? 'background:var(--gc-brand-soft);' : '' ?>">
+            <td><a href="<?= $base ?>?periodo=<?= $p ?>" style="color:var(--gc-ink);text-decoration:none;font-weight:600;"><?= Periodo::etiqueta($p, true) ?></a></td>
+            <td class="r num"><?= $x ? (int)$x['n'] : '<span style="color:var(--gc-muted);">—</span>' ?></td>
+            <td class="r num"><?= $x ? $S($x['monto']) : $S(0) ?></td>
+            <td class="r num"><?= $x ? $S($x['retencion']) : $S(0) ?></td>
+            <td class="r num" style="font-weight:700;"><?= $x ? $S($x['monto'] - $x['retencion']) : $S(0) ?></td>
+        </tr>
+    <?php endfor; ?>
+    </tbody>
+    <tfoot><tr><td>Total del año</td><td class="r num"><?= $ta['n'] ?></td><td class="r num"><?= number_format($ta['m'], 2) ?></td><td class="r num"><?= number_format($ta['r'], 2) ?></td><td class="r num"><?= number_format($ta['m'] - $ta['r'], 2) ?></td></tr></tfoot>
+</table>
+</section>

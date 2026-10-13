@@ -6,6 +6,8 @@ $tramosJs  = ['mype' => RegimenService::tramos('mype'), 'general' => RegimenServ
 $inp = 'width:100%;padding:10px 14px;border:1.5px solid var(--gc-line);border-radius:8px;font-size:14px;background:var(--gc-surface);color:var(--gc-ink);font-family:inherit;';
 $lbl = 'display:block;font-size:11px;font-weight:700;color:var(--gc-label-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;';
 ?>
+<?php $empTab = 'regimen'; require ROOT . '/views/layout/empresa_subtabs.php'; ?>
+
 <div class="gc-content gc-w-content">
 <div style="max-width:820px;margin:0 auto;">
 

@@ -1,21 +1,9 @@
 <?php
-/**
- * Sub-navegación de Caja y Bancos: movimientos, Libro Caja y Bancos
- * (matriz mensual) y préstamos bancarios. Requiere $empresa y $cajaTab
- * ('movimientos'|'libro'|'prestamos').
- */
-$cajaTabs = [
-    ['movimientos', '💵', 'Movimientos',            '/caja'],
-    ['libro',       '📒', 'Libro Caja y Bancos',    '/caja/libro'],
-    ['prestamos',   '🏦', 'Préstamos bancarios',    '/prestamos'],
-];
+/** Sub-navegación de Caja y Bancos. Requiere $empresa y $cajaTab ('movimientos'|'libro'|'prestamos'). */
+$__cajaTabs = [['movimientos', 'Movimientos', '/caja'], ['libro', 'Libro Caja y Bancos', '/caja/libro'], ['prestamos', 'Préstamos bancarios', '/prestamos']];
 ?>
-<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-    <?php foreach ($cajaTabs as [$k, $ico, $lbl, $ruta]): $act = $k === $cajaTab; ?>
-    <a href="/empresas/<?= $empresa['id'] ?><?= $ruta ?>"
-       style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-              background:<?= $act ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $act ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
-        <span><?= $ico ?></span><?= $lbl ?>
-    </a>
+<nav class="gc-tabs no-print" aria-label="Caja y Bancos">
+    <?php foreach ($__cajaTabs as [$__k, $__lbl, $__ruta]): ?>
+    <a class="gc-tab <?= $__k === ($cajaTab ?? '') ? 'is-active' : '' ?>" href="/empresas/<?= (int)$empresa['id'] ?><?= $__ruta ?>"><?= $__lbl ?></a>
     <?php endforeach; ?>
-</div>
+</nav>

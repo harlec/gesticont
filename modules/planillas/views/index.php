@@ -1,187 +1,82 @@
 <?php
-$periodos = [];
-$periodos = Periodo::opciones(12, 1);
-$fmt = fn($v) => number_format((float)$v, 2);
-?>
+/** Planillas (rediseño). Variables: $empresa, $periodo, $registros, $totales. */
+$id = (int)$empresa['id'];
+$S = fn($v) => abs((float)$v) < 0.005 ? '<span style="color:var(--gc-muted);">—</span>' : number_format((float)$v, 2);
+foreach (['planilla_error' => 'neg', 'planilla_ok' => 'ok'] as $k => $t): if (empty($_SESSION[$k])) continue; ?>
+<div class="gc-alert <?= $t ?>" role="status"><span class="msg"><?= htmlspecialchars($_SESSION[$k]) ?></span></div>
+<?php unset($_SESSION[$k]); endforeach;
+if (isset($_GET['ok']) && empty($_SESSION['planilla_ok'])): ?><div class="gc-alert ok"><span class="msg">Trabajador agregado.</span></div><?php endif; ?>
 
-<div class="gc-content gc-w-content">
+<div class="gc-stack" style="gap:4px;"><h2 style="margin:0;font-size:24px;font-weight:700;">Planillas</h2>
+    <div class="gc-sub"><?= Periodo::etiqueta($periodo, true) ?> · <?= count($registros) ?> trabajador<?= count($registros) === 1 ? '' : 'es' ?></div></div>
 
-    <?php if (!empty($_SESSION['planilla_error'])): ?>
-    <div style="background:var(--gc-neg-soft);color:var(--gc-neg);border:1px solid var(--gc-neg-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        ⚠ <?= htmlspecialchars($_SESSION['planilla_error']) ?>
-    </div>
-    <?php unset($_SESSION['planilla_error']); endif; ?>
+<?php if (!empty($registros)): ?>
+<section class="gc-kpis">
+    <div class="gc-kpi"><div class="k">Remuneración bruta</div><div class="v num">S/ <?= number_format($totales['bruto'], 2) ?></div></div>
+    <div class="gc-kpi"><div class="k">Retención ONP/AFP</div><div class="v num">S/ <?= number_format($totales['retencion'], 2) ?></div></div>
+    <div class="gc-kpi"><div class="k">Neto a pagar</div><div class="v num">S/ <?= number_format($totales['neto'], 2) ?></div></div>
+    <div class="gc-kpi"><div class="k">ESSALUD (empleador)</div><div class="v num">S/ <?= number_format($totales['essalud'], 2) ?></div></div>
+</section>
+<?php endif; ?>
 
-    <?php if (!empty($_SESSION['planilla_ok'])): ?>
-    <div style="background:var(--gc-pos-soft-2);color:var(--gc-pos);border:1px solid var(--gc-pos-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        ✓ <?= htmlspecialchars($_SESSION['planilla_ok']) ?>
-    </div>
-    <?php unset($_SESSION['planilla_ok']); elseif (isset($_GET['ok'])): ?>
-    <div style="background:var(--gc-pos-soft-2);color:var(--gc-pos);border:1px solid var(--gc-pos-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;">
-        ✓ Trabajador agregado.
-    </div>
-    <?php endif; ?>
+<section class="gc-card pad gc-stack" style="gap:14px;">
+    <h3 class="gc-h3" style="margin:0;">Agregar un trabajador</h3>
+    <form method="POST" action="/empresas/<?= $id ?>/planillas" class="gc-row" style="gap:12px;align-items:flex-end;">
+        <input type="hidden" name="periodo" value="<?= $periodo ?>">
+        <div class="gc-field" style="flex:2;min-width:220px;"><label class="gc-label" for="p-trab">Trabajador</label><input type="text" id="p-trab" name="trabajador" required placeholder="Nombre completo" class="gc-input"></div>
+        <div class="gc-field" style="width:130px;"><label class="gc-label" for="p-sueldo">Sueldo</label><input type="text" inputmode="decimal" name="sueldo" id="p-sueldo" placeholder="0.00" class="gc-input" style="text-align:right;"></div>
+        <div class="gc-field" style="width:130px;"><label class="gc-label">Gratificación</label><input type="text" inputmode="decimal" name="gratificacion" placeholder="0.00" class="gc-input" style="text-align:right;"></div>
+        <div class="gc-field" style="width:130px;"><label class="gc-label">Asig. familiar</label><input type="text" inputmode="decimal" name="asignacion_familiar" placeholder="0.00" class="gc-input" style="text-align:right;"></div>
+        <div class="gc-field" style="width:130px;"><label class="gc-label" for="p-essalud">ESSALUD (9%)</label><input type="text" inputmode="decimal" name="essalud" id="p-essalud" placeholder="0.00" class="gc-input" style="text-align:right;"></div>
+        <div class="gc-field" style="width:130px;"><label class="gc-label">Pensión</label><select name="regimen_pension" class="gc-select"><option value="onp">ONP</option><option value="afp">AFP</option><option value="ninguno">Ninguna</option></select></div>
+        <div class="gc-field" style="width:130px;"><label class="gc-label">Retención</label><input type="text" inputmode="decimal" name="retencion_pension" placeholder="0.00" class="gc-input" style="text-align:right;"></div>
+        <button type="submit" class="gc-btn gc-btn-primary">Agregar</button>
+    </form>
+    <div class="gc-sub">El ESSALUD se calcula solo al 9 % del sueldo y puedes corregirlo. La retención de ONP o AFP la escribes tú: cada AFP cobra una comisión distinta.</div>
+</section>
 
-    <!-- Selector de período -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <label style="font-size:13px;font-weight:700;color:var(--gc-label);">Período:</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <?php foreach ($periodos as $p): $activo = $p === $periodo; $label = Periodo::etiqueta($p); ?>
-            <a href="?periodo=<?= $p ?>"
-               style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-                      background:<?= $activo ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $activo ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;">
-                <?= $label ?>
-            </a>
-            <?php endforeach; ?>
-        </div>
-    </div>
+<section class="gc-card pad gc-stack" style="gap:10px;border-color:var(--gc-pos-border);">
+    <h3 class="gc-h3" style="margin:0;color:var(--gc-pos);">Importar desde PLAME</h3>
+    <div>En el PDT Planilla Electrónica exporta el reporte <b>R01: Trabajadores – Datos de ingresos, tributos y aportes</b> (archivo <span class="mono">RUC_AAAAMM_r01.xml</span>). Puedes subir <b>varios meses a la vez</b>: el mes y el RUC se leen del archivo, y volver a importar un mes reemplaza lo que ya vino de PLAME para ese mes.</div>
+    <div class="gc-sub">El R01 trae el ingreso total (se carga como sueldo), la retención del trabajador y el aporte del empleador. Los descuentos como adelantos no se registran. El régimen ONP/AFP no viene en el archivo: se estima por el monto y lo corriges en la tabla.</div>
+    <form method="POST" action="/empresas/<?= $id ?>/planillas/importar-plame" enctype="multipart/form-data" class="gc-row" style="gap:12px;">
+        <input type="hidden" name="periodo" value="<?= $periodo ?>">
+        <input type="file" name="archivos[]" accept=".xml" multiple required class="gc-input" style="max-width:420px;padding-top:9px;">
+        <button type="submit" class="gc-btn gc-btn-primary">Importar archivos PLAME</button>
+    </form>
+</section>
 
-    <!-- Formulario nuevo trabajador -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:18px 20px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--gc-label);margin-bottom:12px;">+ Agregar trabajador a <?= Periodo::etiqueta($periodo) ?></div>
-        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/planillas" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
-            <input type="hidden" name="periodo" value="<?= $periodo ?>">
-            <div style="flex:2;min-width:180px;">
-                <label style="font-size:11px;color:var(--gc-muted);font-weight:700;">TRABAJADOR</label>
-                <input type="text" name="trabajador" required placeholder="Nombre completo"
-                       style="width:100%;padding:7px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;">
-            </div>
-            <div style="width:110px;">
-                <label style="font-size:11px;color:var(--gc-muted);font-weight:700;">SUELDO</label>
-                <input type="text" inputmode="decimal" name="sueldo" id="p-sueldo" placeholder="0.00"
-                       style="width:100%;padding:7px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;text-align:right;">
-            </div>
-            <div style="width:110px;">
-                <label style="font-size:11px;color:var(--gc-muted);font-weight:700;">GRATIFICACIÓN</label>
-                <input type="text" inputmode="decimal" name="gratificacion" placeholder="0.00"
-                       style="width:100%;padding:7px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;text-align:right;">
-            </div>
-            <div style="width:110px;">
-                <label style="font-size:11px;color:var(--gc-muted);font-weight:700;">ASIG. FAMILIAR</label>
-                <input type="text" inputmode="decimal" name="asignacion_familiar" placeholder="0.00"
-                       style="width:100%;padding:7px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;text-align:right;">
-            </div>
-            <div style="width:110px;">
-                <label style="font-size:11px;color:var(--gc-muted);font-weight:700;">ESSALUD (9%)</label>
-                <input type="text" inputmode="decimal" name="essalud" id="p-essalud" placeholder="0.00"
-                       style="width:100%;padding:7px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;text-align:right;">
-            </div>
-            <div style="width:110px;">
-                <label style="font-size:11px;color:var(--gc-muted);font-weight:700;">RÉGIMEN</label>
-                <select name="regimen_pension" style="width:100%;padding:7px 6px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;">
-                    <option value="onp">ONP</option>
-                    <option value="afp">AFP</option>
-                    <option value="ninguno">Ninguno</option>
-                </select>
-            </div>
-            <div style="width:110px;">
-                <label style="font-size:11px;color:var(--gc-muted);font-weight:700;">RETENCIÓN</label>
-                <input type="text" inputmode="decimal" name="retencion_pension" placeholder="0.00"
-                       style="width:100%;padding:7px 10px;border:1px solid var(--gc-line);border-radius:8px;font-size:13px;text-align:right;">
-            </div>
-            <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;height:34px;">
-                + Agregar
-            </button>
-        </form>
-        <div style="font-size:11px;color:var(--gc-muted);margin-top:8px;">
-            ESSALUD se sugiere automático al 9% del sueldo (editable). La retención de ONP/AFP se ingresa manual — cada AFP tiene comisión distinta.
-        </div>
-    </div>
-
-    <!-- Importación desde PLAME (R01) -->
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-pos-border);padding:18px 20px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--gc-pos);margin-bottom:4px;">📥 Importar desde PLAME (reporte R01)</div>
-        <div style="font-size:12px;color:var(--gc-label);margin-bottom:12px;line-height:1.6;">
-            En el PDT Planilla Electrónica exporta el reporte <strong>R01: Trabajadores - Datos de Ingresos, Tributos y Aportes</strong>
-            (archivo <code>RUC_AAAAMM_r01.xml</code>). Puedes subir <strong>varios meses a la vez</strong>: el mes y el RUC se leen del propio archivo,
-            y volver a importar un mes reemplaza lo que ya se había importado de PLAME para ese mes.
-            <br><span style="color:var(--gc-muted);">
-            El R01 trae el ingreso devengado total (se carga como sueldo, sin separar gratificación ni asignación familiar), la retención del trabajador y el aporte
-            del empleador (EsSalud). Los descuentos (adelantos, etc.) no se registran. El régimen ONP/AFP no viene en el archivo: se estima por el monto y lo puedes corregir en la tabla.</span>
-        </div>
-        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/planillas/importar-plame" enctype="multipart/form-data" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <input type="hidden" name="periodo" value="<?= $periodo ?>">
-            <input type="file" name="archivos[]" accept=".xml" multiple required style="font-size:13px;">
-            <button type="submit" style="background:var(--gc-brand);color:var(--gc-on-brand);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
-                📥 Importar archivos PLAME
-            </button>
-        </form>
-    </div>
-
-    <?php if (!empty($registros)): ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow:hidden;">
-        <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-                <tr style="background:var(--gc-bg);border-bottom:2px solid var(--gc-line);">
-                    <th style="padding:10px 16px;text-align:left;color:var(--gc-label-2);font-weight:700;">Trabajador</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">Sueldo</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">Gratif.</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">Asig.Fam.</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">ESSALUD</th>
-                    <th style="padding:10px 16px;text-align:center;color:var(--gc-label-2);font-weight:700;">Régimen</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">Retención</th>
-                    <th style="padding:10px 16px;text-align:right;color:var(--gc-label-2);font-weight:700;">Neto</th>
-                    <th style="padding:10px 16px;"></th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($registros as $r):
-                $bruto = (float)$r['sueldo'] + (float)$r['gratificacion'] + (float)$r['asignacion_familiar'];
-                $neto  = $bruto - (float)$r['retencion_pension'];
-            ?>
-                <tr style="border-top:1px solid var(--gc-surface-2);">
-                    <td style="padding:8px 16px;"><?= htmlspecialchars($r['trabajador']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($r['sueldo']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($r['gratificacion']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($r['asignacion_familiar']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($r['essalud']) ?></td>
-                    <td style="padding:8px 16px;text-align:center;">
-                        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/planillas/<?= $r['id'] ?>/regimen" style="margin:0;">
-                            <input type="hidden" name="periodo" value="<?= $periodo ?>">
-                            <select name="regimen_pension" onchange="this.form.submit()" title="Corregir régimen de pensión"
-                                    style="padding:3px 4px;border:1px solid var(--gc-line);border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gc-label);background:var(--gc-surface);">
-                                <?php foreach (['onp' => 'ONP', 'afp' => 'AFP', 'ninguno' => 'Ninguno'] as $v => $l): ?>
-                                <option value="<?= $v ?>" <?= $r['regimen_pension'] === $v ? 'selected' : '' ?>><?= $l ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </form>
-                    </td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;"><?= $fmt($r['retencion_pension']) ?></td>
-                    <td style="padding:8px 16px;text-align:right;font-family:monospace;font-weight:700;"><?= $fmt($neto) ?></td>
-                    <td style="padding:8px 16px;text-align:center;">
-                        <form method="POST" action="/empresas/<?= $empresa['id'] ?>/planillas/<?= $r['id'] ?>/eliminar" onsubmit="return confirm('¿Eliminar este registro?')">
-                            <input type="hidden" name="periodo" value="<?= $periodo ?>">
-                            <button type="submit" style="background:none;border:none;color:var(--gc-neg);cursor:pointer;font-size:13px;">✕</button>
-                        </form>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-            <tfoot>
-                <tr style="background:var(--gc-bg);border-top:2px solid var(--gc-line);font-weight:700;">
-                    <td style="padding:10px 16px;">Totales (<?= count($registros) ?>)</td>
-                    <td colspan="3" style="padding:10px 16px;text-align:right;font-family:monospace;">Bruto: <?= $fmt($totales['bruto']) ?></td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;"><?= $fmt($totales['essalud']) ?></td>
-                    <td></td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;"><?= $fmt($totales['retencion']) ?></td>
-                    <td style="padding:10px 16px;text-align:right;font-family:monospace;"><?= $fmt($totales['neto']) ?></td>
-                    <td></td>
-                </tr>
-            </tfoot>
-        </table>
-        </div>
-    </div>
-    <?php else: ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:40px;text-align:center;color:var(--gc-muted);">
-        Sin trabajadores registrados en este período todavía.
-    </div>
-    <?php endif; ?>
-</div>
-
+<?php if (empty($registros)): ?>
+<div class="gc-card"><div class="gc-empty"><b>Sin trabajadores en <?= Periodo::etiqueta($periodo, true) ?></b>Agrégalos arriba o importa el reporte de PLAME.</div></div>
+<?php else: ?>
+<section class="gc-card clip" style="overflow-x:auto;">
+<table class="gc-table" style="min-width:860px;">
+    <thead><tr><th>Trabajador</th><th class="r">Sueldo</th><th class="r">Gratif.</th><th class="r">Asig. fam.</th><th class="r">ESSALUD</th><th>Pensión</th><th class="r">Retención</th><th class="r">Neto</th><th></th></tr></thead>
+    <tbody>
+    <?php foreach ($registros as $r):
+        $neto = (float)$r['sueldo'] + (float)$r['gratificacion'] + (float)$r['asignacion_familiar'] - (float)$r['retencion_pension']; ?>
+        <tr>
+            <td><b><?= htmlspecialchars($r['trabajador']) ?></b></td>
+            <td class="r num"><?= $S($r['sueldo']) ?></td><td class="r num"><?= $S($r['gratificacion']) ?></td><td class="r num"><?= $S($r['asignacion_familiar']) ?></td><td class="r num"><?= $S($r['essalud']) ?></td>
+            <td><form method="POST" action="/empresas/<?= $id ?>/planillas/<?= $r['id'] ?>/regimen" style="margin:0;">
+                <input type="hidden" name="periodo" value="<?= $periodo ?>">
+                <select name="regimen_pension" onchange="this.form.submit()" title="Corregir régimen de pensión" class="gc-select" style="width:120px;">
+                    <?php foreach (['onp' => 'ONP', 'afp' => 'AFP', 'ninguno' => 'Ninguna'] as $v => $l): ?><option value="<?= $v ?>" <?= $r['regimen_pension'] === $v ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?>
+                </select></form></td>
+            <td class="r num"><?= $S($r['retencion_pension']) ?></td>
+            <td class="r num" style="font-weight:700;"><?= $S($neto) ?></td>
+            <td class="r"><form method="POST" action="/empresas/<?= $id ?>/planillas/<?= $r['id'] ?>/eliminar" onsubmit="return confirm('¿Quitar este trabajador del período?')" style="margin:0;">
+                <input type="hidden" name="periodo" value="<?= $periodo ?>"><button type="submit" class="gc-btn">Quitar</button></form></td>
+        </tr>
+    <?php endforeach; ?>
+    </tbody>
+    <tfoot><tr><td>Totales</td><td class="r num" colspan="3">Bruto <?= number_format($totales['bruto'], 2) ?></td><td class="r num"><?= number_format($totales['essalud'], 2) ?></td><td></td><td class="r num"><?= number_format($totales['retencion'], 2) ?></td><td class="r num"><?= number_format($totales['neto'], 2) ?></td><td></td></tr></tfoot>
+</table>
+</section>
+<?php endif; ?>
 <script>
 document.getElementById('p-sueldo').addEventListener('input', function () {
-    const s = parseFloat(this.value.replace(',', '.')) || 0;
+    var s = parseFloat(this.value.replace(',', '.')) || 0;
     document.getElementById('p-essalud').value = s > 0 ? (s * 0.09).toFixed(2) : '';
 });
 </script>

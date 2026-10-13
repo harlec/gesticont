@@ -1,3 +1,4 @@
+<?php $empTab = 'editar'; require ROOT . '/views/layout/empresa_subtabs.php'; ?>
 <div class="gc-content gc-w-content">
 <div class="gc-content gc-w-form">
 <form method="POST" action="/empresas/<?= $empresa['id'] ?>/editar">

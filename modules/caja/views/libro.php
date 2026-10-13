@@ -7,24 +7,22 @@ $td  = 'padding:6px 10px;text-align:right;font-family:monospace;white-space:nowr
 $sep = 'border-left:2px solid var(--gc-line);';
 $totIng = array_fill_keys(array_keys($colsI), 0.0); $totEgr = array_fill_keys(array_keys($colsE), 0.0);
 ?>
-<div class="gc-content gc-w-content">
-    <?php $cajaTab = 'libro'; require ROOT . '/views/layout/caja_subtabs.php'; ?>
-
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-        <div style="font-size:16px;font-weight:700;color:var(--gc-ink);margin-right:8px;">Libro Caja y Bancos <?= $anio ?></div>
-        <?php foreach ($anios as $a): $act = $a === $anio; ?>
-        <a href="/empresas/<?= $empresa['id'] ?>/caja/libro?anio=<?= $a ?>" style="padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:<?= $act ? 'var(--gc-brand)' : 'var(--gc-surface-2)' ?>;color:<?= $act ? 'var(--gc-on-brand)' : 'var(--gc-label)' ?>;"><?= $a ?></a>
-        <?php endforeach; ?>
-        <a href="/empresas/<?= $empresa['id'] ?>/caja/libro/pdf?anio=<?= $anio ?>" target="_blank" rel="noopener" class="no-print" style="margin-left:auto;background:var(--gc-surface-2);color:var(--gc-label);padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">📄 Descargar PDF</a>
+<?php $cajaTab = 'libro'; require ROOT . '/views/layout/caja_subtabs.php'; ?>
+<div class="gc-row between no-print">
+    <div class="gc-stack" style="gap:4px;"><h2 style="margin:0;font-size:24px;font-weight:700;">Libro Caja y Bancos <?= $anio ?></h2><div class="gc-sub">Ingresos y egresos por cuenta, mes a mes. Saldo inicial: S/ <?= number_format($saldoInicial, 2) ?></div></div>
+    <div class="gc-row" style="gap:10px;">
+        <div class="gc-seg"><?php foreach ($anios as $a): ?><a href="/empresas/<?= $empresa['id'] ?>/caja/libro?anio=<?= $a ?>" class="<?= $a === $anio ? 'is-active' : '' ?>"><?= $a ?></a><?php endforeach; ?></div>
+        <a href="/empresas/<?= $empresa['id'] ?>/caja/libro/pdf?anio=<?= $anio ?>" target="_blank" rel="noopener" class="gc-btn">Descargar PDF</a>
     </div>
+</div>
 
     <?php if (empty($colsI) && empty($colsE)): ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);padding:50px;text-align:center;color:var(--gc-muted);font-size:14px;">
-        No hay movimientos de Caja en <?= $anio ?>. Saldo inicial de Caja y Bancos: <strong>S/ <?= number_format($saldoInicial, 2) ?></strong>.
-    </div>
+    <div class="gc-card"><div class="gc-empty">
+        No hay movimientos de Caja en <?= $anio ?>. Saldo inicial de Caja y Bancos: <b>S/ <?= number_format($saldoInicial, 2) ?></b>.
+    </div></div>
     <?php else: ?>
-    <div style="background:var(--gc-surface);border-radius:12px;border:1px solid var(--gc-line);overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <div class="gc-card clip" style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
             <thead>
                 <tr style="background:var(--gc-bg);border-bottom:1px solid var(--gc-line);">
                     <th rowspan="2" style="padding:8px 12px;text-align:left;color:var(--gc-label-2);">Mes</th>
@@ -73,9 +71,8 @@ $totIng = array_fill_keys(array_keys($colsI), 0.0); $totEgr = array_fill_keys(ar
             </tfoot>
         </table>
     </div>
-    <div style="font-size:12px;color:var(--gc-muted);margin-top:8px;">
+    <div class="gc-sub">
         Saldo inicial = cuentas 10x del Inventario Inicial de <?= $anio ?>. Pasa el cursor sobre el código de cada columna para ver el nombre de la cuenta.
         Solo cuentan los movimientos con cuenta contable, los mismos que generan el asiento de Caja.
     </div>
     <?php endif; ?>
-</div>

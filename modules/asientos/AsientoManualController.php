@@ -47,7 +47,7 @@ class AsientoManualController
         require_once ROOT . '/services/EstadoResultadosService.php';
         $periodo = Periodo::resolver($empresaId);
         $fechaPeriodo = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
-        $plantillaDatos = ['existencias' => 0.0, 'inicial' => 0.0, 'compras' => 0.0, 'ir_estimado' => 0.0, 'tasa_ir' => 29.5, 'ir_registrado' => false, 'utilidad_antes' => 0.0];
+        $plantillaDatos = ['existencias' => 0.0, 'inicial' => 0.0, 'compras' => 0.0, 'compras_bruto' => 0.0, 'ventas_bruto' => 0.0, 'ir_estimado' => 0.0, 'tasa_ir' => 29.5, 'ir_registrado' => false, 'utilidad_antes' => 0.0];
         $stPer = $pdo->prepare("SELECT id FROM periodos_contables WHERE empresa_id = ? AND anio = ?");
         $stPer->execute([$empresaId, (int)substr($periodo, 0, 4)]);
         if ($pid = (int)$stPer->fetchColumn()) {
@@ -58,6 +58,12 @@ class AsientoManualController
             $stIni->execute([$empresaId, $pid]);
             $plantillaDatos['inicial'] = round((float)$stIni->fetchColumn(), 2);
             $plantillaDatos['compras'] = round($plantillaDatos['existencias'] - $plantillaDatos['inicial'], 2);
+            // Compras y ventas del año (base sin IGV, comprobantes vigentes) hasta el mes de trabajo
+            foreach (['compras' => 'registro_compras', 'ventas' => 'registro_ventas'] as $k => $tabla) {
+                $stB = $pdo->prepare("SELECT COALESCE(SUM(total - igv),0) FROM {$tabla} WHERE empresa_id = ? AND periodo LIKE ? AND periodo <= ? AND estado_sunat = '1'");
+                $stB->execute([$empresaId, substr($periodo, 0, 4) . '%', $periodo]);
+                $plantillaDatos[$k . '_bruto'] = round((float)$stB->fetchColumn(), 2);
+            }
             $stPar = $pdo->prepare("SELECT * FROM parametros_contables WHERE empresa_id = ? AND periodo_id = ?");
             $stPar->execute([$empresaId, $pid]);
             if ($par = $stPar->fetch(PDO::FETCH_ASSOC)) {

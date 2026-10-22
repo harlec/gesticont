@@ -20,7 +20,7 @@ $plantillas = [
     'grati'   => ['Gratificación', 'Provisión de la gratificación: gasto 6214 contra 4114 por pagar.'],
     'vacac'   => ['Vacaciones', 'Provisión de vacaciones: gasto 6215 contra 4115 por pagar.'],
     'deprec'  => ['Depreciación', 'Depreciación de propiedad, planta y equipo: gasto 684 contra 395 acumulada.'],
-    'costo'   => ['Costo de ventas', 'Se calcula con el inventario final: existencias en libros (201) menos lo que queda.'],
+    'costo'   => ['Costo de ventas', 'Se calcula solo: existencia inicial + compras − ventas del año.'],
     'ir'      => ['Impuesto a la renta', 'Provisión del impuesto del ejercicio: 881 contra 4017 por pagar.'],
     'blanco'  => ['En blanco', 'Armas el asiento línea por línea.'],
 ];
@@ -107,7 +107,7 @@ $plantillas = [
         vacac:  { glosa: 'Provisión de vacaciones', lineas: [['6215', 'debe'], ['4115', 'haber']], nota: 'Escribe el monto de las vacaciones provisionadas. ' + DESTINO },
         deprec: { glosa: 'Depreciación del mes', lineas: [['684', 'debe'], ['395', 'haber']], nota: 'Escribe el monto de la depreciación. ' + DESTINO },
         costo:  { glosa: 'Costo de ventas por inventario final', lineas: [['691', 'debe'], ['201', 'haber']], extra: 'costo',
-                  nota: 'Costo de ventas = inventario inicial + compras − inventario final. Con las existencias en libros (cuenta 201) y el inventario final real, el monto se calcula solo.' },
+                  nota: 'Costo de ventas = existencia inicial + compras del año − ventas del año (en bruto, sin IGV). El monto se propone solo; el contador puede ajustarlo en las líneas.' },
         ir:     { glosa: 'Provisión del impuesto a la renta', lineas: [['881', 'debe'], ['4017', 'haber']], extra: 'ir',
                   nota: 'El monto propuesto es la estimación con la tasa del ejercicio. Puedes corregirlo con el cálculo del contador.' },
         blanco: { glosa: '', lineas: [], nota: '' }
@@ -160,16 +160,14 @@ $plantillas = [
         const extra = document.getElementById('as-extra'); extra.style.display = 'none'; extra.innerHTML = '';
         if (p.extra === 'costo') {
             extra.style.display = '';
+            const costo = Math.max(0, Math.round((DATOS.inicial + DATOS.compras_bruto - DATOS.ventas_bruto) * 100) / 100);
             extra.innerHTML = '<div class="gc-kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">'
                 + '<div class="gc-kpi"><span class="k">Existencia inicial (apertura)</span><span class="v">S/ ' + f2(DATOS.inicial) + '</span></div>'
-                + '<div class="gc-kpi"><span class="k">+ Compras del año (destino a 201)</span><span class="v">S/ ' + f2(DATOS.compras) + '</span></div>'
-                + '<div class="gc-kpi"><span class="k">= Existencias en libros (201)</span><span class="v">S/ ' + f2(DATOS.existencias) + '</span></div>'
-                + '<div class="gc-kpi"><span class="k">− Inventario final (lo que queda)</span><input id="as-inv-final" type="number" step="0.01" min="0" class="gc-input gc-input-lg" placeholder="0.00"></div>'
-                + '<div class="gc-kpi"><span class="k">= Costo de ventas</span><span class="v" id="as-costo-v">S/ 0.00</span></div></div>';
-            document.getElementById('as-inv-final').addEventListener('input', function () {
-                const c = Math.max(0, Math.round((DATOS.existencias - num(this.value)) * 100) / 100);
-                document.getElementById('as-costo-v').textContent = 'S/ ' + f2(c); fijarMonto(c);
-            });
+                + '<div class="gc-kpi"><span class="k">+ Compras del año (sin IGV)</span><span class="v">S/ ' + f2(DATOS.compras_bruto) + '</span></div>'
+                + '<div class="gc-kpi"><span class="k">− Ventas del año (sin IGV)</span><span class="v">S/ ' + f2(DATOS.ventas_bruto) + '</span></div>'
+                + '<div class="gc-kpi"><span class="k">= Costo de ventas</span><span class="v">S/ ' + f2(costo) + '</span></div></div>'
+                + '<div class="gc-sub" style="margin-top:8px;">Cálculo en bruto con compras y ventas del año hasta este mes. Puedes corregir el monto en las líneas del asiento. Si el resultado sale negativo se propone 0.</div>';
+            fijarMonto(costo);
         } else if (p.extra === 'ir') {
             if (DATOS.ir_registrado) { nota.style.display = ''; document.getElementById('as-nota-txt').textContent = 'El impuesto a la renta ya está registrado en 881. Solo agrega otro asiento si necesitas una corrección.'; }
             else fijarMonto(DATOS.ir_estimado);

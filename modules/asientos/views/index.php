@@ -20,7 +20,8 @@ $plantillas = [
     'grati'   => ['Gratificación', 'Provisión de la gratificación: gasto 6214 contra 4114 por pagar.'],
     'vacac'   => ['Vacaciones', 'Provisión de vacaciones: gasto 6215 contra 4115 por pagar.'],
     'deprec'  => ['Depreciación', 'Depreciación de propiedad, planta y equipo: gasto 684 contra 395 acumulada.'],
-    'costo'   => ['Costo de ventas', 'Se calcula solo: existencia inicial + compras − ventas del año.'],
+    'costo'   => ['Costo de ventas', 'Escribes la existencia final del inventario y sale el costo: inicial + compras − existencia final.'],
+    'cancel'  => ['Cancelación 69 contra 61', 'Cierra la variación de inventarios (611) y las compras (601) contra el costo de ventas (691).'],
     'ir'      => ['Impuesto a la renta', 'Provisión del impuesto del ejercicio: 881 contra 4017 por pagar.'],
     'blanco'  => ['En blanco', 'Armas el asiento línea por línea.'],
 ];
@@ -107,7 +108,9 @@ $plantillas = [
         vacac:  { glosa: 'Provisión de vacaciones', lineas: [['6215', 'debe'], ['4115', 'haber']], nota: 'Escribe el monto de las vacaciones provisionadas. ' + DESTINO },
         deprec: { glosa: 'Depreciación del mes', lineas: [['684', 'debe'], ['395', 'haber']], nota: 'Escribe el monto de la depreciación. ' + DESTINO },
         costo:  { glosa: 'Costo de ventas por inventario final', lineas: [['691', 'debe'], ['201', 'haber']], extra: 'costo',
-                  nota: 'Costo de ventas = existencia inicial + compras del año − ventas del año (en bruto, sin IGV). El monto se propone solo; el contador puede ajustarlo en las líneas.' },
+                  nota: 'Costo de ventas = existencia inicial + compras del año − existencia final. Escribe la existencia final (el inventario que haces) y el monto se calcula solo.' },
+        cancel: { glosa: 'Cancelación del costo de ventas (69 contra 61)', lineas: [['611', 'debe'], ['691', 'haber'], ['691', 'debe'], ['601', 'haber']], extra: 'cancel',
+                  nota: 'Cancela el saldo de 611 (variación de inventarios) y de 601 (compras) contra 691. No cambia el costo de ventas total: solo deja 60 y 61 en cero. Revisa los montos propuestos.' },
         ir:     { glosa: 'Provisión del impuesto a la renta', lineas: [['881', 'debe'], ['4017', 'haber']], extra: 'ir',
                   nota: 'El monto propuesto es la estimación con la tasa del ejercicio. Puedes corregirlo con el cálculo del contador.' },
         blanco: { glosa: '', lineas: [], nota: '' }
@@ -160,14 +163,21 @@ $plantillas = [
         const extra = document.getElementById('as-extra'); extra.style.display = 'none'; extra.innerHTML = '';
         if (p.extra === 'costo') {
             extra.style.display = '';
-            const costo = Math.max(0, Math.round((DATOS.inicial + DATOS.compras_bruto - DATOS.ventas_bruto) * 100) / 100);
             extra.innerHTML = '<div class="gc-kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">'
                 + '<div class="gc-kpi"><span class="k">Existencia inicial (apertura)</span><span class="v">S/ ' + f2(DATOS.inicial) + '</span></div>'
                 + '<div class="gc-kpi"><span class="k">+ Compras del año (sin IGV)</span><span class="v">S/ ' + f2(DATOS.compras_bruto) + '</span></div>'
-                + '<div class="gc-kpi"><span class="k">− Ventas del año (sin IGV)</span><span class="v">S/ ' + f2(DATOS.ventas_bruto) + '</span></div>'
-                + '<div class="gc-kpi"><span class="k">= Costo de ventas</span><span class="v">S/ ' + f2(costo) + '</span></div></div>'
-                + '<div class="gc-sub" style="margin-top:8px;">Cálculo en bruto con compras y ventas del año hasta este mes. Puedes corregir el monto en las líneas del asiento. Si el resultado sale negativo se propone 0.</div>';
-            fijarMonto(costo);
+                + '<div class="gc-kpi"><span class="k">− Existencia final</span><input id="as-inv-final" type="number" step="0.01" min="0" class="gc-input gc-input-lg" placeholder="0.00"></div>'
+                + '<div class="gc-kpi"><span class="k">= Costo de ventas</span><span class="v" id="as-costo-v">S/ 0.00</span></div></div>';
+            document.getElementById('as-inv-final').addEventListener('input', function () {
+                const c = Math.max(0, Math.round((DATOS.inicial + DATOS.compras_bruto - num(this.value)) * 100) / 100);
+                document.getElementById('as-costo-v').textContent = 'S/ ' + f2(c); fijarMonto(c);
+            });
+        } else if (p.extra === 'cancel') {
+            const trs = tbody.querySelectorAll('tr'); if (trs.length === 4) {
+                const a = Math.max(0, DATOS.saldo611), b = Math.max(0, DATOS.saldo601);
+                trs[0].querySelector('[name="debe[]"]').value = a > 0 ? a.toFixed(2) : ''; trs[1].querySelector('[name="haber[]"]').value = a > 0 ? a.toFixed(2) : '';
+                trs[2].querySelector('[name="debe[]"]').value = b > 0 ? b.toFixed(2) : ''; trs[3].querySelector('[name="haber[]"]').value = b > 0 ? b.toFixed(2) : '';
+            }
         } else if (p.extra === 'ir') {
             if (DATOS.ir_registrado) { nota.style.display = ''; document.getElementById('as-nota-txt').textContent = 'El impuesto a la renta ya está registrado en 881. Solo agrega otro asiento si necesitas una corrección.'; }
             else fijarMonto(DATOS.ir_estimado);

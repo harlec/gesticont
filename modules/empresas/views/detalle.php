@@ -153,6 +153,19 @@ $hayDatosMes = ($dash['mes_n_ventas'] + $dash['mes_n_compras']) > 0;
       <?php endforeach; ?>
       <line x1="0" x2="<?= $W ?>" y1="<?= $top + $alto ?>" y2="<?= $top + $alto ?>" stroke="var(--gc-line)"/>
     </svg>
+    <div style="overflow-x:auto;margin-top:10px;">
+      <table class="gc-table" style="width:100%;font-size:14px;">
+        <thead><tr><th>Mes</th><th class="r">Ventas (base)</th><th class="r">IGV ventas</th><th class="r">Total ventas</th><th class="r">Compras (base)</th><th class="r">IGV compras</th><th class="r">Total compras</th></tr></thead>
+        <tbody>
+        <?php foreach ($dash['meses'] as $i => $m): ?>
+          <tr><td><?= $mesesCorto[$i] ?></td><td class="r num"><?= number_format($m['ventas_base'], 2) ?></td><td class="r num"><?= number_format($m['ventas_igv'], 2) ?></td><td class="r num"><b><?= number_format($m['ventas'], 2) ?></b></td><td class="r num"><?= number_format($m['compras_base'], 2) ?></td><td class="r num"><?= number_format($m['compras_igv'], 2) ?></td><td class="r num"><b><?= number_format($m['compras'], 2) ?></b></td></tr>
+        <?php endforeach; ?>
+        </tbody>
+        <tfoot><tr><td>Total <?= $dash['anio'] ?></td>
+          <td class="r num"><?= number_format(array_sum(array_column($dash['meses'], 'ventas_base')), 2) ?></td><td class="r num"><?= number_format(array_sum(array_column($dash['meses'], 'ventas_igv')), 2) ?></td><td class="r num"><?= number_format($dash['ventas_anio'], 2) ?></td>
+          <td class="r num"><?= number_format(array_sum(array_column($dash['meses'], 'compras_base')), 2) ?></td><td class="r num"><?= number_format(array_sum(array_column($dash['meses'], 'compras_igv')), 2) ?></td><td class="r num"><?= number_format($dash['compras_anio'], 2) ?></td></tr></tfoot>
+      </table>
+    </div>
     <div class="gc-sub" style="font-size:15px;margin-top:6px;">Toca un mes para trabajar en él. Total del año: ventas <?= $S($dash['ventas_anio']) ?> · compras <?= $S($dash['compras_anio']) ?>.</div>
   </section>
 

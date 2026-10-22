@@ -17,7 +17,7 @@ class DashboardEmpresaService
         // ── Ventas/Compras del año, mes a mes (para el gráfico) ──────────
         $stmtVMes = $pdo->prepare("
             SELECT SUBSTRING(periodo, 5, 2) AS mes, SUM(total) AS total, SUM(igv) AS igv
-            FROM registro_ventas WHERE empresa_id = ? AND periodo LIKE ?
+            FROM registro_ventas WHERE empresa_id = ? AND periodo LIKE ? AND estado_sunat = '1'
             GROUP BY mes
         ");
         $stmtVMes->execute([$empresaId, "{$anio}%"]);
@@ -25,7 +25,7 @@ class DashboardEmpresaService
 
         $stmtCMes = $pdo->prepare("
             SELECT SUBSTRING(periodo, 5, 2) AS mes, SUM(total) AS total, SUM(igv) AS igv
-            FROM registro_compras WHERE empresa_id = ? AND periodo LIKE ?
+            FROM registro_compras WHERE empresa_id = ? AND periodo LIKE ? AND estado_sunat = '1'
             GROUP BY mes
         ");
         $stmtCMes->execute([$empresaId, "{$anio}%"]);
@@ -37,7 +37,11 @@ class DashboardEmpresaService
             $key = str_pad((string)$m, 2, '0', STR_PAD_LEFT);
             $v = (float)($ventasPorMes[$key]['total'] ?? 0);
             $c = (float)($comprasPorMes[$key]['total'] ?? 0);
-            $meses[] = ['mes' => $key, 'ventas' => $v, 'compras' => $c];
+            $vi = (float)($ventasPorMes[$key]['igv'] ?? 0);
+            $ci = (float)($comprasPorMes[$key]['igv'] ?? 0);
+            $meses[] = ['mes' => $key, 'ventas' => $v, 'compras' => $c,
+                        'ventas_base' => round($v - $vi, 2), 'ventas_igv' => round($vi, 2),
+                        'compras_base' => round($c - $ci, 2), 'compras_igv' => round($ci, 2)];
             $totalVentasAnio  += $v;
             $totalComprasAnio += $c;
             $igvVentasAnio    += (float)($ventasPorMes[$key]['igv']  ?? 0);

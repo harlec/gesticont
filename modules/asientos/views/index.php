@@ -160,9 +160,12 @@ $plantillas = [
         const extra = document.getElementById('as-extra'); extra.style.display = 'none'; extra.innerHTML = '';
         if (p.extra === 'costo') {
             extra.style.display = '';
-            extra.innerHTML = '<div class="gc-kpis" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"><div class="gc-kpi"><span class="k">Existencias en libros (201)</span><span class="v">S/ ' + f2(DATOS.existencias) + '</span></div>'
-                + '<div class="gc-kpi"><span class="k">Inventario final (lo que queda)</span><input id="as-inv-final" type="number" step="0.01" min="0" class="gc-input gc-input-lg" placeholder="0.00"></div>'
-                + '<div class="gc-kpi"><span class="k">Costo de ventas</span><span class="v" id="as-costo-v">S/ 0.00</span></div></div>';
+            extra.innerHTML = '<div class="gc-kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">'
+                + '<div class="gc-kpi"><span class="k">Existencia inicial (apertura)</span><span class="v">S/ ' + f2(DATOS.inicial) + '</span></div>'
+                + '<div class="gc-kpi"><span class="k">+ Compras del año (destino a 201)</span><span class="v">S/ ' + f2(DATOS.compras) + '</span></div>'
+                + '<div class="gc-kpi"><span class="k">= Existencias en libros (201)</span><span class="v">S/ ' + f2(DATOS.existencias) + '</span></div>'
+                + '<div class="gc-kpi"><span class="k">− Inventario final (lo que queda)</span><input id="as-inv-final" type="number" step="0.01" min="0" class="gc-input gc-input-lg" placeholder="0.00"></div>'
+                + '<div class="gc-kpi"><span class="k">= Costo de ventas</span><span class="v" id="as-costo-v">S/ 0.00</span></div></div>';
             document.getElementById('as-inv-final').addEventListener('input', function () {
                 const c = Math.max(0, Math.round((DATOS.existencias - num(this.value)) * 100) / 100);
                 document.getElementById('as-costo-v').textContent = 'S/ ' + f2(c); fijarMonto(c);

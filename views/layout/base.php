@@ -12,8 +12,8 @@ $gcZoom = in_array($_COOKIE['gc_letra'] ?? '', ['1', '1.12', '1.25'], true) ? $_
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Atkinson+Hyperlegible+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="/public/css/theme.css" rel="stylesheet">
-<link href="/public/css/ui.css" rel="stylesheet">
+<link href="/public/css/theme.css?v=<?= @filemtime(ROOT . '/public/css/theme.css') ?>" rel="stylesheet">
+<link href="/public/css/ui.css?v=<?= @filemtime(ROOT . '/public/css/ui.css') ?>" rel="stylesheet">
 </head>
 <body>
 <div class="gc-app" id="gc-app" style="--gc-zoom:<?= $gcZoom ?>">
@@ -58,6 +58,6 @@ window.GC_EMPRESAS = <?= json_encode(array_map(function ($e) {
             'texto' => $p ? VencimientosService::textoDias($p['dias'], $p['estado']) : ($e['sin_obligaciones'] ? 'Sin declaraciones' : 'Todo presentado')];
 }, $cartera ?? []), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
 </script>
-<script src="/public/js/app.js"></script>
+<script src="/public/js/app.js?v=<?= @filemtime(ROOT . '/public/js/app.js') ?>"></script>
 </body>
 </html>

@@ -47,12 +47,17 @@ class AsientoManualController
         require_once ROOT . '/services/EstadoResultadosService.php';
         $periodo = Periodo::resolver($empresaId);
         $fechaPeriodo = date('Y-m-t', strtotime(substr($periodo, 0, 4) . '-' . substr($periodo, 4, 2) . '-01'));
-        $plantillaDatos = ['existencias' => 0.0, 'ir_estimado' => 0.0, 'tasa_ir' => 29.5, 'ir_registrado' => false, 'utilidad_antes' => 0.0];
+        $plantillaDatos = ['existencias' => 0.0, 'inicial' => 0.0, 'compras' => 0.0, 'ir_estimado' => 0.0, 'tasa_ir' => 29.5, 'ir_registrado' => false, 'utilidad_antes' => 0.0];
         $stPer = $pdo->prepare("SELECT id FROM periodos_contables WHERE empresa_id = ? AND anio = ?");
         $stPer->execute([$empresaId, (int)substr($periodo, 0, 4)]);
         if ($pid = (int)$stPer->fetchColumn()) {
             $bal = BalanceService::comprobacion($empresaId, $pid, $fechaPeriodo);
             foreach ($bal['filas'] as $f) if ($f['codigo'] === '201') $plantillaDatos['existencias'] = round($f['activo'], 2);
+            // Desglose para el costo de ventas: existencia inicial (apertura) + compras del año destinadas a 201
+            $stIni = $pdo->prepare("SELECT COALESCE(SUM(sa.debe - sa.haber),0) FROM saldos_apertura sa JOIN cuentas_contables c ON c.id = sa.cuenta_id WHERE sa.empresa_id = ? AND sa.periodo_id = ? AND c.codigo = '201'");
+            $stIni->execute([$empresaId, $pid]);
+            $plantillaDatos['inicial'] = round((float)$stIni->fetchColumn(), 2);
+            $plantillaDatos['compras'] = round($plantillaDatos['existencias'] - $plantillaDatos['inicial'], 2);
             $stPar = $pdo->prepare("SELECT * FROM parametros_contables WHERE empresa_id = ? AND periodo_id = ?");
             $stPar->execute([$empresaId, $pid]);
             if ($par = $stPar->fetch(PDO::FETCH_ASSOC)) {

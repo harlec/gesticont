@@ -210,9 +210,9 @@ button.gc-kpi.is-active, a.gc-kpi.is-active { border-color: var(--gc-brand); bac
 .gc-subnav { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; }
 .gc-subnav .grupo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .gc-subnav .rotulo { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--gc-label-2); min-width: 140px; }
-.gc-subnav a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--gc-brand-line); border-radius: 10px; background: #fff; color: var(--gc-brand); font-size: 16px; font-weight: 700; }
-.gc-subnav a:hover { border-color: var(--gc-brand); color: var(--gc-brand); }
-.gc-subnav a.is-active { background: var(--gc-brand); border-color: var(--gc-brand); color: #fff; }
+.gc-subnav a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid var(--gc-line-2); border-radius: 10px; background: #fff; color: var(--gc-ink); font-size: 16px; font-weight: 500; }
+.gc-subnav a:hover { border-color: var(--gc-brand); color: var(--gc-ink); }
+.gc-subnav a.is-active { background: var(--gc-brand); border-color: var(--gc-brand); color: #fff; font-weight: 700; }
 .gc-subnav a:hover.is-active { color: #fff; }
 
 /* ───────── Pantallas heredadas (aún con estilos en línea) ─────────

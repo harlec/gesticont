@@ -8,8 +8,8 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Atkinson+Hyperlegible+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="/public/css/theme.css" rel="stylesheet">
-<link href="/public/css/ui.css" rel="stylesheet">
+<link href="/public/css/theme.css?v=<?= @filemtime(ROOT . '/public/css/theme.css') ?>" rel="stylesheet">
+<link href="/public/css/ui.css?v=<?= @filemtime(ROOT . '/public/css/ui.css') ?>" rel="stylesheet">
 <style>
   .gc-auth { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 16px; }
   .gc-auth-box { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 20px; }
